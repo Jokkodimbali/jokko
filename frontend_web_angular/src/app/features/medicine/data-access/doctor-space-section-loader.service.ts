@@ -22,7 +22,6 @@ export type DoctorSpaceSectionKey =
   | 'negotiations'
   | 'patient-appointments'
   | 'agenda'
-  | 'medical-history'
   | 'wallet';
 
 export interface DoctorSpaceSectionData {
@@ -57,6 +56,7 @@ export class DoctorSpaceSectionLoaderService {
         });
       case 'consultation':
         return forkJoin({
+          availabilities: this.safe(this.doctorSpaceService.listMyAvailabilities(), []),
           services: this.safe(this.doctorSpaceService.listMyServices(), []),
           categories: this.safe(this.doctorSpaceService.listCategoryStructure(), []),
           portfolio:
@@ -67,14 +67,17 @@ export class DoctorSpaceSectionLoaderService {
       case 'negotiations':
         return forkJoin({
           reservations: this.safe(this.doctorSpaceService.listMyReservations(), []),
+          availabilities: isProviderSpace
+            ? this.safe(this.doctorSpaceService.listMyAvailabilities(), [])
+            : of([]),
           negotiations: isProviderSpace
             ? this.safe(this.proposalService.listMyPriceProposals('PRESTATAIRE'), [])
             : of([]),
         });
       case 'patient-appointments':
-      case 'medical-history':
         return forkJoin({
           reservations: this.safe(this.doctorSpaceService.listMyReservations(), []),
+          availabilities: this.safe(this.doctorSpaceService.listMyAvailabilities(), []),
         });
       case 'agenda':
         return forkJoin({

@@ -1,18 +1,4 @@
 <main class="pharmacy-space">
-  <app-doctor-space-sidebar
-    activeSection="pharmacy"
-    ariaLabel="Espace prestataire"
-    [showConsultationSection]="true"
-    serviceSectionLabel="Mes services"
-    agendaSectionLabel="Gestion RDV"
-    appointmentHistorySectionLabel="Historique des RDV"
-    [showNegotiationsSection]="true"
-    [showPatientAppointmentsSection]="false"
-    [showPharmacySection]="true"
-    (backRequested)="leaveProfessionalSpace()"
-    (sectionSelected)="openProviderSection($event)"
-  ></app-doctor-space-sidebar>
-
   <section class="pharmacy-inbox">
     <header class="pharmacy-inbox__header">
       <div>

@@ -2,7 +2,7 @@
   <div class="app-footer__inner">
     <section class="app-footer__main" aria-label="Pied de page Jokko">
       <div class="app-footer__brand">
-        <a routerLink="/services" class="app-footer__logo" aria-label="Retour a l'accueil Jokko">
+        <a [routerLink]="homeRoute()" class="app-footer__logo" aria-label="Retour a l'accueil Jokko">
           <img src="/logojokko.png" alt="Jokko Dimbali" decoding="async" />
         </a>
         <div>
@@ -13,8 +13,12 @@
 
       <nav class="app-footer__column" aria-label="Navigation principale">
         <h3>Explorer</h3>
-        <a routerLink="/services">Services</a>
-        <a routerLink="/appointments">Rendez-vous</a>
+        @if (isProfessional()) {
+          <a [routerLink]="homeRoute()">Mon espace</a>
+        } @else {
+          <a routerLink="/services">Services</a>
+          <a routerLink="/appointments">Rendez-vous</a>
+        }
       </nav>
 
       <nav class="app-footer__column" aria-label="Espace utilisateur">

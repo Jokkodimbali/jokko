@@ -2,6 +2,7 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AppFeedbackService } from '../feedback/app-feedback.service';
 import { AuthSessionService } from './auth-session.service';
+import { professionalHomeRoute } from './professional-space-role.utils';
 
 type AppRole = 'CLIENT' | 'PRESTATAIRE' | 'MEDECIN' | 'ADMIN';
 
@@ -26,6 +27,12 @@ export const authGuard: CanActivateFn = (_route, state) => {
   return redirectToLogin(router, state.url);
 };
 
+export const clientCatalogGuard: CanActivateFn = () => {
+  const role = inject(AuthSessionService).getAuthenticatedRole();
+  const professionalRoute = professionalHomeRoute(role);
+  return professionalRoute ? inject(Router).createUrlTree([professionalRoute]) : true;
+};
+
 export const roleGuard: CanActivateFn = (route, state) => {
   const router = inject(Router);
   const authSession = inject(AuthSessionService);
@@ -43,5 +50,5 @@ export const roleGuard: CanActivateFn = (route, state) => {
   }
 
   feedback.error('Votre compte n a pas les droits necessaires pour acceder a cet espace.');
-  return router.createUrlTree(['/services']);
+  return router.createUrlTree([professionalHomeRoute(role) ?? '/services']);
 };

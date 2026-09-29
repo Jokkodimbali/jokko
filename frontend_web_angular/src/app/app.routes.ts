@@ -1,9 +1,10 @@
 import { Routes } from '@angular/router';
-import { authGuard, roleGuard } from './core/auth/auth.guard';
+import { authGuard, clientCatalogGuard, roleGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
   {
     path: 'services',
+    canActivate: [clientCatalogGuard],
     loadComponent: () =>
       import('./features/services/presentation/pages/services/services.component').then(
         (m) => m.ServicesComponent,
@@ -96,7 +97,7 @@ export const routes: Routes = [
   },
   {
     path: 'favorites',
-    canActivate: [authGuard],
+    canActivate: [authGuard, clientCatalogGuard],
     loadComponent: () =>
       import('./features/account/pages/favorites/favorites-page.component').then(
         (m) => m.FavoritesPageComponent,

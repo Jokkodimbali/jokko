@@ -1,19 +1,4 @@
 <main class="material-inbox-space">
-  <app-doctor-space-sidebar
-    activeSection="hardware"
-    ariaLabel="Espace prestataire"
-    [showConsultationSection]="true"
-    serviceSectionLabel="Mes services"
-    agendaSectionLabel="Gestion RDV"
-    appointmentHistorySectionLabel="Historique des RDV"
-    [showNegotiationsSection]="true"
-    [showPatientAppointmentsSection]="false"
-    [showHardwareStoreSection]="true"
-    (backRequested)="leaveProfessionalSpace()"
-    (sectionSelected)="openProviderSection($event)"
-    (hardwareStoreRequested)="stayInHardwareSpace()"
-  ></app-doctor-space-sidebar>
-
   <section class="material-inbox">
     <header>
       <span>Espace quincaillerie</span>

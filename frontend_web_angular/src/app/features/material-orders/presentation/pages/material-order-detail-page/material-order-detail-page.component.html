@@ -1,20 +1,4 @@
-<main class="material-order-space" [class.material-order-space--hardware]="showHardwareSidebar()">
-  <app-doctor-space-sidebar
-    *ngIf="showHardwareSidebar()"
-    activeSection="hardware"
-    ariaLabel="Espace prestataire"
-    [showConsultationSection]="true"
-    serviceSectionLabel="Mes services"
-    agendaSectionLabel="Gestion RDV"
-    appointmentHistorySectionLabel="Historique des RDV"
-    [showNegotiationsSection]="true"
-    [showPatientAppointmentsSection]="false"
-    [showHardwareStoreSection]="true"
-    (backRequested)="leaveProfessionalSpace()"
-    (sectionSelected)="openProviderSection($event)"
-    (hardwareStoreRequested)="openHardwareRequests()"
-  ></app-doctor-space-sidebar>
-
+<main class="material-order-space" [class.material-order-space--hardware]="isHardwareStore()">
   <section class="material-order">
     <app-appointment-tracking-stepper
       *ngIf="!isHardwareStore()"

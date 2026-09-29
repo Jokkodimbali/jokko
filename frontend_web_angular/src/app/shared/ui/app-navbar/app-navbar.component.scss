@@ -1,4 +1,54 @@
 :host {
+
+@media (max-width: 1023px) {
+  .app-navbar--professional .app-navbar__bottom-nav {
+    align-items: stretch;
+    background: #965b24;
+    border-top: 1px solid rgb(255 255 255 / 14%);
+    bottom: 0;
+    display: flex;
+    gap: 2px;
+    left: 0;
+    min-height: 70px;
+    overflow: visible;
+    padding: 5px 6px max(5px, env(safe-area-inset-bottom));
+    position: fixed;
+    right: 0;
+    scrollbar-width: none;
+    z-index: 220;
+  }
+
+  .app-navbar--professional .app-navbar__bottom-nav > :is(a, button) {
+    align-items: center;
+    color: #fff;
+    display: flex;
+    flex: 0 0 96px;
+    flex-direction: column;
+    font-size: 10px;
+    gap: 3px;
+    justify-content: center;
+    min-width: 0;
+    padding: 4px;
+    text-align: center;
+    text-decoration: none;
+  }
+
+  .app-navbar--professional .app-navbar__bottom-nav > button {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    font: inherit;
+    width: auto;
+  }
+
+  .app-navbar--professional .app-navbar__bottom-nav > :is(a, button) span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
+  }
+}
   display: block;
   min-height: var(--app-navbar-height, 104px);
   --app-navbar-backdrop-height: 360px;
@@ -51,8 +101,23 @@
   display: flex;
   gap: clamp(8px, 1.4vw, 22px);
   justify-content: center;
+  min-width: 0;
   position: relative;
+  width: 100%;
   z-index: 130;
+}
+
+.app-navbar__nav-tabs {
+  align-items: center;
+  display: flex;
+  flex: 1 1 auto;
+  gap: 8px;
+  min-width: 0;
+  overflow: visible;
+}
+
+.app-navbar__nav-tabs > a {
+  flex: 0 0 auto;
 }
 
 .app-navbar__nav-item {
@@ -113,7 +178,7 @@
   border-color: transparent;
   color: #ffffff;
   cursor: pointer;
-  font: inherit;
+  font-family: inherit;
 }
 
 .app-navbar__nav-item--button span,
@@ -123,6 +188,7 @@
 }
 
 .app-navbar__info-menu {
+  flex: 0 0 auto;
   position: relative;
 }
 
@@ -1838,6 +1904,21 @@
     width: clamp(20px, 2vw, 26px);
   }
 
+  .app-navbar--professional .app-navbar__nav {
+    gap: 4px;
+  }
+
+  .app-navbar--professional .app-navbar__nav-item {
+    font-size: 11px;
+    gap: 4px;
+    padding-inline: 6px;
+  }
+
+  .app-navbar--professional .app-navbar__nav-item lucide-icon {
+    height: 20px;
+    width: 20px;
+  }
+
   .app-navbar__actions {
     gap: clamp(6px, 1vw, 8px);
   }
@@ -2374,5 +2455,449 @@
     width: max-content;
     max-width: calc(100vw - 20px);
     margin-inline: 0;
+  }
+}
+/* Keep navigation, notifications and account controls in separate width budgets. */
+.app-navbar,
+.app-navbar > *,
+.app-navbar__nav,
+.app-navbar__actions {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .app-navbar,
+  .app-navbar--notification-featured {
+    column-gap: clamp(8px, 1.2vw, 20px);
+    grid-template-columns: clamp(96px, 10vw, 136px) minmax(0, 1fr) minmax(220px, 29vw);
+    padding-inline: clamp(12px, 1.6vw, 24px);
+  }
+
+  .app-navbar__brand {
+    height: 70px;
+    margin-left: 0;
+    width: 104px;
+  }
+
+  .app-navbar__brand img {
+    height: 64px;
+    max-width: 100%;
+    width: 90px;
+  }
+
+  .app-navbar__nav {
+    gap: 6px;
+    justify-content: flex-start;
+  }
+
+  .app-navbar__nav-tabs {
+    flex: 1 1 0;
+    max-width: 100%;
+  }
+
+  .app-navbar__nav-item {
+    gap: 5px;
+    padding-inline: 8px;
+  }
+
+  .app-navbar__nav-item lucide-icon {
+    flex: 0 0 auto;
+    height: 22px;
+    width: 22px;
+  }
+
+  .app-navbar__info-menu {
+    flex: 0 0 auto;
+  }
+
+  .app-navbar__info-dropdown {
+    left: auto;
+    right: 0;
+    width: min(302px, calc(100vw - 24px));
+  }
+
+  .app-navbar__actions,
+  .app-navbar--notification-featured .app-navbar__actions {
+    justify-content: flex-end;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .app-navbar__notification-menu,
+  .app-navbar--notification-featured .app-navbar__notification-menu {
+    flex: 0 1 auto;
+    max-width: calc(100% - 100px);
+    min-width: 48px;
+    width: auto;
+  }
+
+  .app-navbar__notification.app-navbar__notification--featured,
+  .app-navbar--notification-featured .app-navbar__notification.app-navbar__notification--featured {
+    max-width: 100%;
+    min-width: 48px;
+    overflow: hidden;
+    width: 100%;
+  }
+
+  .app-navbar__notification--featured .app-navbar__notification-copy {
+    flex: 1 1 auto;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    width: auto;
+  }
+
+  .app-navbar__notification--featured .app-navbar__notification-heading,
+  .app-navbar__notification--featured .app-navbar__notification-copy small,
+  .app-navbar__notification--featured .app-navbar__notification-heading > span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .app-navbar__profile,
+  .app-navbar--notification-featured .app-navbar__profile {
+    flex: 0 1 150px;
+    max-width: 150px;
+    min-width: 90px;
+    overflow: hidden;
+  }
+
+  .app-navbar__dropdown {
+    overflow: visible;
+  }
+}
+
+@media (max-width: 1023px) {
+  .app-navbar--professional .app-navbar__bottom-nav {
+    box-sizing: border-box;
+    max-width: 100vw;
+    overflow: visible;
+  }
+
+  .app-navbar--professional .app-navbar__bottom-nav > :is(a, button) {
+    box-sizing: border-box;
+    flex: 0 0 clamp(78px, 12vw, 96px);
+  }
+
+  .app-navbar--professional .app-navbar__bottom-nav-menu {
+    background: #965b24;
+    box-shadow: -8px 0 12px #965b24;
+    margin-left: auto;
+    position: sticky;
+    right: 0;
+    z-index: 1;
+  }
+}
+
+@media (max-width: 767px) {
+  .app-navbar--notification-featured .app-navbar__mobile-location,
+  .app-navbar--notification-featured .app-navbar__mobile-page-heading {
+    visibility: hidden;
+  }
+}
+/* Professional links remain visible without a horizontal scrollbar. */
+@media (min-width: 1024px) {
+  :host:has(.app-navbar--professional) {
+    --app-navbar-height: 104px;
+  }
+
+  .app-navbar__nav-tabs {
+    overflow: visible;
+  }
+
+  .app-navbar--professional,
+  .app-navbar--professional.app-navbar--notification-featured {
+    column-gap: clamp(8px, 1.2vw, 20px);
+    grid-template-columns: clamp(96px, 10vw, 136px) minmax(0, 1fr) minmax(270px, 25vw);
+    grid-template-rows: auto;
+    height: var(--app-navbar-height);
+    row-gap: 0;
+  }
+
+  .app-navbar--professional .app-navbar__brand {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .app-navbar--professional .app-navbar__actions {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .app-navbar--professional .app-navbar__nav {
+    gap: 8px;
+    grid-column: 2;
+    grid-row: 1;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .app-navbar--professional .app-navbar__nav-tabs {
+    flex: 0 1 auto;
+    gap: 8px;
+    justify-content: center;
+    overflow: visible;
+  }
+
+  .app-navbar--professional .app-navbar__nav-tabs > a {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .app-navbar--professional .app-navbar__nav-tabs > a.app-navbar__nav-item--clients {
+    flex: 0 0 140px;
+  }
+
+  .app-navbar--professional .app-navbar__nav-tabs > a.app-navbar__nav-item--services {
+    flex: 0 0 188px;
+  }
+
+  .app-navbar--professional .app-navbar__nav-item--clients span,
+  .app-navbar--professional .app-navbar__nav-item--services span {
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  .app-navbar--professional .app-navbar__nav-item {
+    flex-direction: row;
+    font-size: 12px;
+    gap: 3px;
+    height: 44px;
+    line-height: 1.1;
+    padding: 3px 2px;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .app-navbar--professional .app-navbar__nav-item lucide-icon {
+    height: 20px;
+    width: 20px;
+  }
+
+  .app-navbar--professional .app-navbar__nav-item span {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .app-navbar--professional .app-navbar__info-menu {
+    flex: 0 0 64px;
+  }
+
+  .app-navbar--professional .app-navbar__info-menu .app-navbar__nav-item {
+    width: 64px;
+  }
+}
+
+@media (max-width: 1023px) {
+  :host .app-navbar--professional .app-navbar__bottom-nav {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    overflow: visible;
+    width: 100%;
+  }
+
+  :host .app-navbar--professional .app-navbar__bottom-nav > :is(a, button) {
+    flex: initial;
+    width: 100%;
+  }
+
+  :host .app-navbar--professional .app-navbar__bottom-nav-menu {
+    box-shadow: none;
+    margin-left: 0;
+    position: static;
+  }
+
+  .app-navbar__mobile-professional-links {
+    display: grid;
+    gap: 4px;
+    margin-block: 12px;
+  }
+
+  .app-navbar__mobile-professional-links a {
+    align-items: center;
+    border-radius: 12px;
+    color: #fff;
+    display: flex;
+    gap: 12px;
+    min-height: 44px;
+    padding: 8px 12px;
+    text-decoration: none;
+  }
+
+  .app-navbar__mobile-professional-links a:hover,
+  .app-navbar__mobile-professional-links a:focus-visible {
+    background: rgb(255 255 255 / 15%);
+  }
+
+  .app-navbar__mobile-professional-links span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}
+@media (min-width: 1024px) {
+  .app-navbar__info-menu:has(.app-navbar__info-dropdown)::after {
+    content: '';
+    height: 30px;
+    left: -224px;
+    position: absolute;
+    right: 0;
+    top: 100%;
+  }
+
+  .app-navbar__info-dropdown {
+    animation: none;
+    left: auto;
+    right: 0;
+    top: calc(100% + 30px);
+    transform: none;
+  }
+
+  .app-navbar__info-dropdown::before {
+    left: auto;
+    right: 22px;
+    transform: rotate(45deg);
+  }
+
+  .app-navbar--professional .app-navbar__info-menu .app-navbar__nav-item lucide-icon:first-child {
+    height: 20px;
+    width: 20px;
+  }
+
+  .app-navbar--professional .app-navbar__info-menu {
+    flex-basis: 100px;
+  }
+
+  .app-navbar--professional .app-navbar__info-menu .app-navbar__nav-item {
+    font-size: 13px;
+    gap: 4px;
+    padding-inline: 6px;
+    width: 100px;
+  }
+
+  .app-navbar--professional .app-navbar__info-menu .app-navbar__nav-item span {
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  .app-navbar--professional .app-navbar__profile,
+  .app-navbar--professional.app-navbar--notification-featured .app-navbar__profile {
+    flex: 1 1 auto;
+    max-width: 270px;
+    min-width: 0;
+    overflow: visible;
+  }
+
+  .app-navbar--professional .app-navbar__profile strong {
+    overflow: visible;
+    overflow-wrap: anywhere;
+    text-overflow: clip;
+    white-space: normal;
+  }
+}
+
+@media (min-width: 1280px) {
+  .app-navbar--professional .app-navbar__nav-tabs {
+    gap: 8px;
+  }
+
+  .app-navbar--professional .app-navbar__nav-tabs > a {
+    flex: 0 1 auto;
+  }
+
+  .app-navbar--professional .app-navbar__nav-tabs > a.app-navbar__nav-item--clients {
+    flex: 0 0 178px;
+  }
+
+  .app-navbar--professional .app-navbar__nav-tabs > a.app-navbar__nav-item--services {
+    flex: 0 0 230px;
+  }
+
+  .app-navbar--professional .app-navbar__nav-item {
+    font-size: 13px;
+    gap: 8px;
+    padding-inline: 12px;
+  }
+
+  .app-navbar--professional .app-navbar__nav-item lucide-icon,
+  .app-navbar--professional .app-navbar__info-menu .app-navbar__nav-item lucide-icon:first-child {
+    height: 26px;
+    width: 26px;
+  }
+
+  .app-navbar--professional .app-navbar__info-menu .app-navbar__nav-item lucide-icon:last-child {
+    height: 16px;
+    width: 16px;
+  }
+
+  .app-navbar--professional .app-navbar__info-menu {
+    flex-basis: 116px;
+  }
+
+  .app-navbar--professional .app-navbar__info-menu .app-navbar__nav-item {
+    padding-inline: 12px;
+    width: 116px;
+  }
+}
+
+@media (max-width: 1023px) {
+  :host .app-navbar--professional .app-navbar__bottom-nav > :is(a, button) span {
+    line-height: 1.2;
+    min-height: 2.4em;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-navbar--professional
+    .app-navbar__nav-tabs
+    > a.app-navbar__nav-item--clients
+    span {
+    flex: 0 0 auto;
+    overflow: visible;
+    text-overflow: clip;
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-navbar,
+  .app-navbar--professional,
+  .app-navbar--professional.app-navbar--notification-featured {
+    grid-template-columns: clamp(96px, 10vw, 136px) minmax(0, 1fr) max-content;
+  }
+
+  .app-navbar__actions,
+  .app-navbar--notification-featured .app-navbar__actions,
+  .app-navbar--professional .app-navbar__actions {
+    justify-self: end;
+    max-width: none;
+    width: max-content;
+  }
+
+  .app-navbar__profile,
+  .app-navbar--notification-featured .app-navbar__profile,
+  .app-navbar--professional .app-navbar__profile,
+  .app-navbar--professional.app-navbar--notification-featured .app-navbar__profile {
+    flex: 0 0 auto;
+    max-width: none;
+    min-width: max-content;
+    overflow: visible;
+    width: max-content;
+  }
+
+  .app-navbar__profile strong,
+  .app-navbar--professional .app-navbar__profile strong {
+    flex: 0 0 auto;
+    overflow: visible;
+    overflow-wrap: normal;
+    text-overflow: clip;
+    white-space: nowrap;
   }
 }

@@ -175,11 +175,6 @@ export const APP_MESSAGES_BY_MODULE = {
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.NOT_FOUND,
       message: 'Traitement medical introuvable.',
     },
-    USERS_MEDICAL_PROFILE_ACCESS_FORBIDDEN: {
-      code: 'USERS_MEDICAL_PROFILE_ACCESS_FORBIDDEN',
-      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.FORBIDDEN,
-      message: "Vous n'etes pas autorise a consulter cette fiche medicale.",
-    },
     USERS_PROFESSIONAL_CREDENTIAL_UPLOADED: {
       code: 'USERS_PROFESSIONAL_CREDENTIAL_UPLOADED',
       httpStatus: HTTP_STATUS_CODES.SUCCESS.CREATED,

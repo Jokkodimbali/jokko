@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, RoleUtilisateur } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { appHttpException } from '../../../core/http/app-http.exception';
 import { PrismaService } from '../../../prisma/prisma.service';
 
@@ -87,45 +87,6 @@ export class UsersMedicalProfileService {
     return profile ? this.toProfileView(profile) : this.emptyProfile();
   }
 
-  async getPatientMedicalProfileForProfessional(
-    requester: { sub: string; role: RoleUtilisateur },
-    clientId: string,
-  ): Promise<MedicalProfileView> {
-    if (
-      requester.role !== RoleUtilisateur.PRESTATAIRE &&
-      requester.role !== RoleUtilisateur.MEDECIN &&
-      requester.role !== RoleUtilisateur.ADMIN
-    ) {
-      throw appHttpException('USERS_MEDICAL_PROFILE_ACCESS_FORBIDDEN');
-    }
-
-    if (requester.role !== RoleUtilisateur.ADMIN) {
-      const professionalProfile =
-        await this.prisma.profilProfessionnel.findUnique({
-          where: { utilisateurId: requester.sub },
-          select: { id: true },
-        });
-
-      if (!professionalProfile) {
-        throw appHttpException('USERS_PROFESSIONAL_PROFILE_NOT_FOUND');
-      }
-
-      const sharedReservation = await this.prisma.reservation.findFirst({
-        where: {
-          clientId,
-          professionnelId: professionalProfile.id,
-        },
-        select: { id: true },
-      });
-
-      if (!sharedReservation) {
-        throw appHttpException('USERS_MEDICAL_PROFILE_ACCESS_FORBIDDEN');
-      }
-    }
-
-    const profile = await this.findProfile(clientId);
-    return profile ? this.toProfileView(profile) : this.emptyProfile();
-  }
 
   async updateMyMedicalProfile(
     userId: string,

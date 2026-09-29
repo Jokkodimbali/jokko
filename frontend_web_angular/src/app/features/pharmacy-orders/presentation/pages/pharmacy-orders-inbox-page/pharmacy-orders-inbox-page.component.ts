@@ -1,16 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { asapScheduler, finalize, interval, observeOn } from 'rxjs';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { MessagesRealtimeService } from '../../../../messages/data-access/messages-realtime.service';
-import {
-  DoctorSpaceSection,
-  DoctorSpaceSidebarComponent,
-} from '../../../../medicine/presentation/pages/doctor-space-page/components/doctor-space-sidebar/doctor-space-sidebar.component';
 import {
   PharmacyOrderView,
   PharmacyOrdersService,
@@ -19,14 +15,13 @@ import {
 @Component({
   selector: 'app-pharmacy-orders-inbox-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, LucideAngularModule, DoctorSpaceSidebarComponent],
+  imports: [CommonModule, RouterLink, LucideAngularModule],
   templateUrl: './pharmacy-orders-inbox-page.component.html',
   styleUrl: './pharmacy-orders-inbox-page.component.scss',
 })
 export class PharmacyOrdersInboxPageComponent implements OnInit {
   private readonly ordersService = inject(PharmacyOrdersService);
   private readonly authSession = inject(AuthSessionService);
-  private readonly router = inject(Router);
   private readonly messagesRealtime = inject(MessagesRealtimeService);
   private readonly destroyRef = inject(DestroyRef);
   private refreshInFlight = false;
@@ -62,14 +57,6 @@ export class PharmacyOrdersInboxPageComponent implements OnInit {
     interval(15_000)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.load(true));
-  }
-
-  protected openProviderSection(section: DoctorSpaceSection): void {
-    void this.router.navigate(['/prestataire/espace'], { queryParams: { section } });
-  }
-
-  protected leaveProfessionalSpace(): void {
-    void this.router.navigate(['/services']);
   }
 
   protected load(silent = false): void {

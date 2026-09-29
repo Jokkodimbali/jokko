@@ -554,9 +554,6 @@ Ne jamais créer de données de test dans la production sans autorisation explic
 - [ ] `MED-015` — Vue client affiche mêmes actes/vaccins/traitements que vue médecin.
 - [ ] `MED-016` — Télécharger ordonnance → document lisible et données exactes.
 - [ ] `MED-017` — Consultation non médicale → aucune action ordonnance.
-- [ ] `MED-018` — Historique médical filtre patients, mois et spécialités correctement.
-- [ ] `MED-019` — Ajouter acte depuis dossier patient → historique mis à jour.
-- [ ] `MED-020` — Deux médecins ne voient que leurs patients autorisés.
 
 ## 31. Avis
 

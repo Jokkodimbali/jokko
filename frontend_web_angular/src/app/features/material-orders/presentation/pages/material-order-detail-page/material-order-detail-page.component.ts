@@ -18,10 +18,6 @@ import {
   MaterialOrderView,
 } from '../../../data-access/material-orders.service';
 import { MaterialOrdersRealtimeService } from '../../../data-access/material-orders-realtime.service';
-import {
-  DoctorSpaceSection,
-  DoctorSpaceSidebarComponent,
-} from '../../../../medicine/presentation/pages/doctor-space-page/components/doctor-space-sidebar/doctor-space-sidebar.component';
 import { ParcelPickupQrCardComponent } from '../../../../appointments/presentation/components/parcel-pickup-qr-card/parcel-pickup-qr-card.component';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { OrderCompletionDocumentService } from '../../../../../shared/documents/order-completion-document.service';
@@ -35,7 +31,6 @@ import { OrderCompletionDocumentService } from '../../../../../shared/documents/
     RouterLink,
     LucideAngularModule,
     AppointmentTrackingStepperComponent,
-    DoctorSpaceSidebarComponent,
     ParcelPickupQrCardComponent,
   ],
   templateUrl: './material-order-detail-page.component.html',
@@ -68,12 +63,6 @@ export class MaterialOrderDetailPageComponent implements OnInit {
   );
   protected readonly isClientViewer = computed(
     () => this.order()?.client.id === this.auth.currentUser()?.id,
-  );
-  protected readonly showHardwareSidebar = computed(
-    () =>
-      !this.courierOfferMode &&
-      (this.isHardwareStore() ||
-        (!this.order() && this.auth.currentUser()?.role === 'PRESTATAIRE')),
   );
   protected readonly canValidate = computed(
     () => this.isHardwareStore() && this.order()?.status === 'EN_ATTENTE_QUINCAILLERIE',
@@ -175,18 +164,6 @@ export class MaterialOrderDetailPageComponent implements OnInit {
 
   protected goBack(): void {
     this.backNavigation.back(null, this.isHardwareStore() ? '/material-orders' : '/appointments');
-  }
-
-  protected openProviderSection(section: DoctorSpaceSection): void {
-    void this.router.navigate(['/prestataire/espace'], { queryParams: { section } });
-  }
-
-  protected leaveProfessionalSpace(): void {
-    void this.router.navigate(['/services']);
-  }
-
-  protected openHardwareRequests(): void {
-    void this.router.navigate(['/material-orders']);
   }
 
   protected setAvailability(position: number, isAvailable: boolean): void {

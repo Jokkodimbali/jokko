@@ -10,8 +10,10 @@ import { InlineFormValidationService } from './core/forms/inline-form-validation
 import { SessionPresenceService } from './core/presence/session-presence.service';
 import { CallOverlayComponent } from './features/calls/presentation/call-overlay.component';
 import { AppNavbarComponent } from './shared/ui/app-navbar/app-navbar.component';
+import { AppFooterComponent } from './shared/ui/app-footer/app-footer.component';
 import { AppNavbarPresentationService } from './shared/ui/app-navbar/app-navbar-presentation.service';
 import { AuthSessionService } from './core/auth/auth-session.service';
+import { professionalHomeRoute } from './core/auth/professional-space-role.utils';
 import { MessagesRealtimeService } from './features/messages/data-access/messages-realtime.service';
 import { MessagesService } from './features/messages/data-access/messages.service';
 import { getHttpErrorMessage } from './core/http/api-response.utils';
@@ -28,6 +30,7 @@ import { CatalogRealtimeService } from './features/services/data-access/catalog-
     CallOverlayComponent,
     DeliveryOfferCardComponent,
     AppNavbarComponent,
+    AppFooterComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
@@ -61,6 +64,14 @@ export class App {
 
   protected readonly feedbackMessage = this.feedback.message;
   protected readonly showNavbar = computed(() => this.isNavbarRoute(this.currentUrl()));
+  protected readonly showProfessionalFooter = computed(() => {
+    if (!professionalHomeRoute(this.authSession.currentUser()?.role)) return false;
+    const path = this.normalizedPath(this.currentUrl());
+    return path === '/prestataire/espace' || path.startsWith('/medecine/espace') ||
+      path === '/pharmacy-orders' || path === '/material-orders' ||
+      /^\/(pharmacy-orders|material-orders)\/[^/]+$/.test(path) &&
+        !path.endsWith('/select');
+  });
   protected readonly navbarMobileLocationStatic = computed(
     () => this.normalizedPath(this.currentUrl()) === '/services',
   );
@@ -68,6 +79,12 @@ export class App {
     const path = this.normalizedPath(this.currentUrl());
     if (path === '/appointments') return 'Rendez-vous';
     if (path === '/messages') return 'Messages';
+    if (path.startsWith('/prestataire/espace')) return 'Espace prestataire';
+    if (path.startsWith('/medecine/espace')) return 'Espace médecin';
+    if (this.authSession.currentUser()?.role === 'PRESTATAIRE') {
+      if (path.startsWith('/pharmacy-orders')) return 'Pharmacie';
+      if (path.startsWith('/material-orders')) return 'Quincaillerie';
+    }
     return '';
   });
   protected readonly navbarMobilePageSubtitle = computed(() => {
@@ -112,6 +129,15 @@ export class App {
       path === '/a-propos'
     ) {
       return true;
+    }
+
+    const role = this.authSession.currentUser()?.role;
+    if (role === 'PRESTATAIRE' || role === 'MEDECIN') {
+      if (path === '/prestataire/espace' || path === '/medecine/espace' ||
+          path === '/medecine/espace/rdv-patients') return true;
+      if (role === 'PRESTATAIRE' &&
+          (path === '/pharmacy-orders' || path === '/material-orders' ||
+            /^\/(pharmacy-orders|material-orders)\/(?!select$)[^/]+$/.test(path))) return true;
     }
 
     if (/^\/services\/[^/]+$/.test(path)) return true;

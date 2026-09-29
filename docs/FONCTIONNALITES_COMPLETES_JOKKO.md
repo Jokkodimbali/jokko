@@ -173,7 +173,7 @@ Le client peut créer ou modifier :
 - pathologies/conditions ;
 - traitements en cours ou passés.
 
-Chaque traitement peut inclure nom, dosage, fréquence, début, fin et notes. Il peut être ajouté, modifié ou supprimé. L'utilisateur peut consulter un résumé et son historique médical/rendez-vous disponible.
+Chaque traitement peut inclure nom, dosage, fréquence, début, fin et notes. Il peut être ajouté, modifié ou supprimé. L'utilisateur peut consulter un résumé de sa fiche médicale personnelle.
 
 ### 7.3 Sécurité du compte
 

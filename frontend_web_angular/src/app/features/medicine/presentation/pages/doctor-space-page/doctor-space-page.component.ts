@@ -7,7 +7,6 @@ import { Observable, Subscription, forkJoin, of, timer } from 'rxjs';
 import { catchError, finalize, switchMap } from 'rxjs/operators';
 import { AppFeedbackService } from '../../../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
-import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import {
   isNegotiationInProgressStatus,
   negotiationStatusIcon as sharedNegotiationStatusIcon,
@@ -42,11 +41,8 @@ import {
   BackendReservation,
 } from '../../../../appointments/domain/appointments.models';
 import { ReservationsRealtimeService } from '../../../../appointments/data-access/reservations-realtime.service';
-import { PharmacyOrdersService } from '../../../../pharmacy-orders/data-access/pharmacy-orders.service';
-import { MaterialOrdersService } from '../../../../material-orders/data-access/material-orders.service';
 import {
   DoctorSpaceService,
-  PatientMedicalProfile,
   DoctorWalletPendingEscrow,
   DoctorWalletTransaction,
   DoctorWalletView,
@@ -56,7 +52,9 @@ import {
   DoctorSpaceSectionData,
   DoctorSpaceSectionLoaderService,
 } from '../../../data-access/doctor-space-section-loader.service';
-import { DoctorSpaceSidebarComponent } from './components/doctor-space-sidebar/doctor-space-sidebar.component';
+
+type ManagementTab = 'availability' | 'services';
+type RequestsTab = 'requests' | 'agenda';
 
 type DoctorSpaceSection =
   | 'profile'
@@ -65,7 +63,6 @@ type DoctorSpaceSection =
   | 'negotiations'
   | 'patient-appointments'
   | 'agenda'
-  | 'medical-history'
   | 'wallet';
 
 const DOCTOR_SPACE_SECTIONS: readonly DoctorSpaceSection[] = [
@@ -75,7 +72,6 @@ const DOCTOR_SPACE_SECTIONS: readonly DoctorSpaceSection[] = [
   'negotiations',
   'patient-appointments',
   'agenda',
-  'medical-history',
   'wallet',
 ];
 
@@ -143,8 +139,6 @@ type VehicleOption = {
 
 type AgendaFilter = 'ALL' | 'ACTIVE' | 'DONE' | 'CANCELLED' | 'DISPUTE';
 type AgendaViewMode = 'day' | 'week' | 'month';
-type MedicalHistoryTab = 'future' | 'past';
-type ProviderHistoryFilter = 'ALL' | 'TERMINEE' | 'ANNULEE' | 'NO_SHOW';
 type ProviderNegotiationFilter = 'ALL' | 'PENDING' | 'WAITING_CLIENT' | 'CONFIRMED' | 'CLOSED';
 
 type ProviderNegotiationGroup = {
@@ -178,7 +172,6 @@ type ProviderNegotiationCalendarDay = {
   dateKey: string | null;
 };
 
-const PROVIDER_HISTORY_PAGE_SIZE_OPTIONS = [8, 12, 20] as const;
 
 type AgendaDay = {
   date: Date;
@@ -210,88 +203,7 @@ type AgendaEvent = {
 
 type AgendaReservationDetail = BackendReservation;
 
-type NextAgendaReservationView = {
-  reservation: BackendReservation;
-  patientName: string;
-  avatarUrl: string | null;
-  initials: string;
-  serviceName: string;
-  locationLabel: string;
-  timeLabel: string;
-  dayLabel: string;
-  monthLabel: string;
-  durationLabel: string;
-  delayLabel: string;
-  progress: number;
-  statusLabel: string;
-  confirmationLabel: string;
-};
 
-type MedicalHistoryPatientOption = {
-  id: string;
-  label: string;
-};
-
-type MedicalHistoryDocument = {
-  label: string;
-  type: 'DOC';
-};
-
-type MedicalSpecialtyChip = {
-  label: string;
-  tone: 'red' | 'blue' | 'purple' | 'amber' | 'green' | 'gray' | 'mint' | 'pink';
-};
-
-type MedicalHistoryRow = {
-  id: string;
-  clientId: string;
-  patientName: string;
-  avatarUrl: string | null;
-  serviceName: string;
-  scheduledAt: Date;
-  appointmentLabel: string;
-  lastAppointmentLabel: string;
-  isFuture: boolean;
-  documents: MedicalHistoryDocument[];
-};
-
-type ProviderAppointmentHistoryRow = {
-  id: string;
-  clientName: string;
-  avatarUrl: string | null;
-  initials: string;
-  serviceName: string;
-  scheduledAt: Date;
-  timeLabel: string;
-  dateLabel: string;
-  locationLabel: string;
-  amount: number;
-  status: AppointmentStatus;
-  statusLabel: string;
-  statusTone: 'done' | 'cancelled' | 'absent' | 'pending';
-};
-
-type ProviderHistoryMonthOption = {
-  value: string;
-  label: string;
-};
-
-type PatientMedicalDetail = MedicalHistoryRow & {
-  reservation: BackendReservation;
-  profile: PatientMedicalProfile;
-  ageLabel: string;
-  genderLabel: string;
-  locationLabel: string;
-  phoneLabel: string;
-  alerts: string[];
-  medicalActs: Array<{
-    id: string;
-    title: string;
-    category: string;
-    dateLabel: string;
-  }>;
-  availableSpecialties: MedicalSpecialtyChip[];
-};
 
 type WithdrawalMethodOption = {
   id: 'WAVE' | 'ORANGE_MONEY' | 'BANK_TRANSFER';
@@ -341,7 +253,6 @@ type UploadPreview = {
     FormsModule,
     RouterLink,
     LucideAngularModule,
-    DoctorSpaceSidebarComponent,
     ServiceProposalInteractiveMapComponent,
   ],
   templateUrl: './doctor-space-page.component.html',
@@ -353,21 +264,19 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   private readonly proposalService = inject(ServiceProposalService);
   private readonly negotiationsRealtime = inject(NegotiationsRealtimeService);
   private readonly reservationsRealtime = inject(ReservationsRealtimeService);
-  private readonly pharmacyOrdersService = inject(PharmacyOrdersService);
-  private readonly materialOrdersService = inject(MaterialOrdersService);
   private readonly feedback = inject(AppFeedbackService);
-  private readonly backNavigation = inject(BackNavigationService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private negotiationsRealtimeSubscription?: Subscription;
   private reservationsRealtimeSubscription?: Subscription;
   private professionalRealtimeFallbackSubscription?: Subscription;
+  private routeSectionSubscription?: Subscription;
   private isReservationsRefreshInProgress = false;
   private readonly loadedSections = new Set<DoctorSpaceSection>();
 
   protected readonly activeSection = signal<DoctorSpaceSection>('patient-appointments');
-  protected readonly showPharmacySpace = signal(false);
-  protected readonly showHardwareStoreSpace = signal(false);
+  protected readonly managementTab = signal<ManagementTab>('availability');
+  protected readonly requestsTab = signal<RequestsTab>('requests');
   protected readonly isLoading = signal(false);
   protected readonly isSaving = signal(false);
   protected readonly isProfileSaving = signal(false);
@@ -401,26 +310,14 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   protected readonly agendaCursor = signal(this.startOfDay(new Date()));
   protected readonly agendaFilter = signal<AgendaFilter>('ALL');
   protected readonly agendaViewMode = signal<AgendaViewMode>('day');
-  protected readonly medicalHistoryTab = signal<MedicalHistoryTab>('future');
-  protected readonly medicalHistorySearch = signal('');
-  protected readonly medicalHistoryPatientFilter = signal('ALL');
-  protected readonly providerHistorySearch = signal('');
-  protected readonly providerHistoryFilter = signal<ProviderHistoryFilter>('ALL');
-  protected readonly providerHistoryMonth = signal(this.monthInputValue(new Date()));
   protected readonly negotiationMonth = signal(this.monthInputValue(new Date()));
   protected readonly negotiationFilter = signal<ProviderNegotiationFilter>('ALL');
   protected readonly selectedNegotiationDate = signal<string | null>(null);
-  protected readonly providerHistoryPage = signal(1);
-  protected readonly providerHistoryPageSize =
-    signal<(typeof PROVIDER_HISTORY_PAGE_SIZE_OPTIONS)[number]>(8);
-  protected readonly selectedPatientDetail = signal<PatientMedicalDetail | null>(null);
   protected readonly selectedAgendaReservation = signal<AgendaReservationDetail | null>(null);
   protected readonly selectedAvailabilityPreviewKey = signal<string | null>(null);
   protected readonly isAgendaReservationLoading = signal(false);
   protected readonly isAgendaReservationCancelling = signal(false);
   protected readonly agendaReservationError = signal<string | null>(null);
-  protected readonly isPatientDetailLoading = signal(false);
-  protected readonly patientDetailError = signal<string | null>(null);
   protected readonly isWithdrawalModalOpen = signal(false);
   protected readonly agendaPeriodStart = signal('');
   protected readonly agendaPeriodEnd = signal('');
@@ -503,14 +400,6 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     amount: 0,
     method: 'WAVE' as 'WAVE' | 'ORANGE_MONEY',
   };
-  protected readonly patientActForm = {
-    specialty: '',
-    title: '',
-    date: '',
-    doctorName: '',
-    notes: '',
-    documentName: '',
-  };
   protected readonly agendaCancelForm = {
     reason: '',
   };
@@ -572,18 +461,8 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   protected readonly isProviderSpace = computed(() =>
     this.router.url.startsWith('/prestataire/espace'),
   );
-  protected readonly spaceAriaLabel = computed(() =>
-    this.isProviderSpace() ? 'Espace prestataire' : 'Espace medecin',
-  );
-  protected readonly showConsultationSection = computed(() => true);
   protected readonly serviceSectionLabel = computed(() =>
     this.isProviderSpace() ? 'Mes services' : 'Services / motifs',
-  );
-  protected readonly appointmentHistorySectionLabel = computed(() =>
-    this.isProviderSpace() ? 'Historique des prestations' : 'Historique medical',
-  );
-  protected readonly agendaSectionLabel = computed(() =>
-    this.isProviderSpace() ? 'Gestion des prestations' : 'Gestion RDV',
   );
   protected readonly hasProfessionalProfile = computed(() => !!this.professionalProfileId());
   protected readonly kycStatusLabel = computed(() => {
@@ -758,26 +637,6 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   });
   protected readonly agendaRows = computed(() => this.buildAgendaRows());
   protected readonly agendaEvents = computed(() => this.buildAgendaEvents());
-  protected readonly agendaRevenue = computed(() =>
-    this.sumPeriodRevenue((status) => this.isAgendaRevenueStatus(status)),
-  );
-  protected readonly agendaCancelledRevenue = computed(() =>
-    this.sumPeriodRevenue((status) => status === 'ANNULEE' || status === 'NO_SHOW'),
-  );
-  protected readonly nextAgendaReservation = computed(() => this.buildNextAgendaReservationView());
-  protected readonly agendaNextDelayLabel = computed(
-    () => this.nextAgendaReservation()?.delayLabel ?? '--',
-  );
-  protected readonly agendaPeriodCaption = computed(() => {
-    switch (this.agendaViewMode()) {
-      case 'day':
-        return 'Ce jour';
-      case 'week':
-        return 'Cette semaine';
-      case 'month':
-        return 'Ce mois';
-    }
-  });
   protected readonly agendaZoomPercent = computed(() => {
     return this.appointmentStepMinutes();
   });
@@ -789,132 +648,6 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     if (minutes >= 30) return 31;
     return 34;
   });
-  protected readonly medicalHistoryRows = computed(() => this.buildMedicalHistoryRows());
-  protected readonly medicalHistoryFutureRows = computed(() =>
-    this.medicalHistoryRows().filter((row) => row.isFuture),
-  );
-  protected readonly medicalHistoryPastRows = computed(() =>
-    this.medicalHistoryRows().filter((row) => !row.isFuture),
-  );
-  protected readonly medicalHistoryVisibleRows = computed(() => {
-    const selectedRows =
-      this.medicalHistoryTab() === 'future'
-        ? this.medicalHistoryFutureRows()
-        : this.medicalHistoryPastRows();
-    const search = this.medicalHistorySearch().trim().toLowerCase();
-    const patientFilter = this.medicalHistoryPatientFilter();
-
-    return selectedRows.filter((row) => {
-      const matchesPatient = patientFilter === 'ALL' || row.clientId === patientFilter;
-      const matchesSearch =
-        !search ||
-        row.patientName.toLowerCase().includes(search) ||
-        row.serviceName.toLowerCase().includes(search);
-      return matchesPatient && matchesSearch;
-    });
-  });
-  protected readonly medicalHistoryPatients = computed<MedicalHistoryPatientOption[]>(() => {
-    const patients = new Map<string, string>();
-    for (const reservation of this.reservations()) {
-      patients.set(reservation.clientId, this.clientLabel(reservation));
-    }
-    return Array.from(patients, ([id, label]) => ({ id, label })).sort((left, right) =>
-      left.label.localeCompare(right.label, 'fr'),
-    );
-  });
-  protected readonly providerHistoryRows = computed(() => this.buildProviderHistoryRows());
-  protected readonly providerHistoryMonthOptions = computed<ProviderHistoryMonthOption[]>(() => {
-    const months = new Map<string, Date>();
-    for (const row of this.providerHistoryRows()) {
-      const value = this.monthInputValue(row.scheduledAt);
-      if (!months.has(value)) {
-        months.set(value, new Date(row.scheduledAt.getFullYear(), row.scheduledAt.getMonth(), 1));
-      }
-    }
-
-    if (!months.has(this.providerHistoryMonth())) {
-      const fallback = this.parseMonthValue(this.providerHistoryMonth()) ?? new Date();
-      months.set(
-        this.providerHistoryMonth(),
-        new Date(fallback.getFullYear(), fallback.getMonth(), 1),
-      );
-    }
-
-    return Array.from(months, ([value, date]) => ({
-      value,
-      label: this.formatProviderHistoryMonth(date),
-    })).sort((left, right) => right.value.localeCompare(left.value));
-  });
-  protected readonly providerHistoryMonthRows = computed(() => {
-    const selectedMonth = this.providerHistoryMonth();
-    return this.providerHistoryRows().filter(
-      (row) => this.monthInputValue(row.scheduledAt) === selectedMonth,
-    );
-  });
-  protected readonly providerHistoryVisibleRows = computed(() => {
-    const search = this.providerHistorySearch().trim().toLowerCase();
-    const filter = this.providerHistoryFilter();
-
-    return this.providerHistoryMonthRows().filter((row) => {
-      const matchesFilter = filter === 'ALL' || row.status === filter;
-      const matchesSearch =
-        !search ||
-        row.clientName.toLowerCase().includes(search) ||
-        row.serviceName.toLowerCase().includes(search) ||
-        row.locationLabel.toLowerCase().includes(search);
-      return matchesFilter && matchesSearch;
-    });
-  });
-  protected readonly providerHistoryPageSizeOptions = PROVIDER_HISTORY_PAGE_SIZE_OPTIONS;
-  protected readonly providerHistoryTotalPages = computed(() =>
-    Math.max(
-      1,
-      Math.ceil(this.providerHistoryVisibleRows().length / this.providerHistoryPageSize()),
-    ),
-  );
-  protected readonly providerHistoryCurrentPage = computed(() =>
-    Math.min(this.providerHistoryPage(), this.providerHistoryTotalPages()),
-  );
-  protected readonly providerHistoryPagedRows = computed(() => {
-    const page = this.providerHistoryCurrentPage();
-    const pageSize = this.providerHistoryPageSize();
-    const start = (page - 1) * pageSize;
-    return this.providerHistoryVisibleRows().slice(start, start + pageSize);
-  });
-  protected readonly providerHistoryPageStart = computed(() => {
-    if (this.providerHistoryVisibleRows().length === 0) return 0;
-    return (this.providerHistoryCurrentPage() - 1) * this.providerHistoryPageSize() + 1;
-  });
-  protected readonly providerHistoryPageEnd = computed(() =>
-    Math.min(
-      this.providerHistoryPageStart() + this.providerHistoryPagedRows().length - 1,
-      this.providerHistoryVisibleRows().length,
-    ),
-  );
-  protected readonly providerHistoryTotalCount = computed(
-    () => this.providerHistoryMonthRows().length,
-  );
-  protected readonly providerHistoryMonthLabel = computed(() => {
-    const month = this.parseMonthValue(this.providerHistoryMonth()) ?? new Date();
-    return this.formatProviderHistoryMonth(month);
-  });
-  protected readonly providerHistoryTotalRevenue = computed(() =>
-    this.sumProviderRows(
-      this.providerHistoryMonthRows().filter((row) => row.status === 'TERMINEE'),
-    ),
-  );
-  protected readonly providerHistoryDoneCount = computed(
-    () => this.providerHistoryMonthRows().filter((row) => row.status === 'TERMINEE').length,
-  );
-  protected readonly providerHistoryCancelledCount = computed(
-    () => this.providerHistoryMonthRows().filter((row) => row.status === 'ANNULEE').length,
-  );
-  protected readonly providerHistoryAbsentCount = computed(
-    () => this.providerHistoryMonthRows().filter((row) => row.status === 'NO_SHOW').length,
-  );
-  protected readonly providerHistoryVisibleTotal = computed(() =>
-    this.sumProviderRows(this.providerHistoryVisibleRows()),
-  );
   protected readonly negotiationMonthOptions = computed(() => {
     const months = new Map<string, Date>();
     for (const negotiation of this.negotiations()) {
@@ -933,7 +666,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     }
     return Array.from(months, ([value, date]) => ({
       value,
-      label: this.formatProviderHistoryMonth(date),
+      label: this.formatMonthLabel(date),
     })).sort((left, right) => right.value.localeCompare(left.value));
   });
   protected readonly negotiationMonthRows = computed(() =>
@@ -1208,17 +941,16 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       case 'profile':
         return 'Profil professionnel';
       case 'availability':
-        return 'Mes disponibilites';
       case 'consultation':
-        return this.isProviderSpace() ? 'Mes services' : 'Services et motifs';
+        return this.isProviderSpace()
+          ? 'Services et disponibilités'
+          : 'Motifs et disponibilités';
       case 'negotiations':
-        return this.isProviderSpace() ? 'Demandes et négociations clients' : 'RDV et Negociation clients';
+        return this.isProviderSpace() ? 'Rendez-vous et négociations clients' : 'RDV et Negociation clients';
       case 'patient-appointments':
-        return 'RDV patients';
+        return 'Gestion des patients';
       case 'agenda':
-        return this.agendaSectionLabel();
-      case 'medical-history':
-        return this.isProviderSpace() ? 'Historique des prestations' : 'Historique medical';
+        return 'Gestion RDV';
       case 'wallet':
         return 'WALLET';
     }
@@ -1228,77 +960,43 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       case 'profile':
         return 'Completez votre fiche publique, vos justificatifs KYC et vos realisations.';
       case 'availability':
-        return "Vos modifications s'appliquent immediatement a l'agenda des rendez-vous";
       case 'consultation':
         return this.isProviderSpace()
-          ? 'Définissez vos services, leurs tarifs et leurs conditions de réalisation.'
-          : 'Definissez les motifs du patient. Les motifs obligatoires devront etre coches a la prise de rendez-vous';
+          ? 'Gérez vos disponibilités, vos services et leurs tarifs au même endroit.'
+          : 'Gérez vos disponibilités, vos motifs de consultation et leurs tarifs au même endroit.';
       case 'negotiations':
         return '';
       case 'patient-appointments':
         return '';
       case 'agenda':
         return '';
-      case 'medical-history':
-        return this.isProviderSpace()
-          ? `${this.providerHistoryTotalCount()} prestations - ${this.providerHistoryMonthLabel()}`
-          : 'Consultez les informations medicales liees aux rendez-vous et aux patients.';
       case 'wallet':
         return 'Suivez vos revenus et retirez vos gains via Wave, Orange Money ou virement bancaire.';
     }
   });
 
   ngOnInit(): void {
+    this.requestsTab.set(this.resolveRequestsTabFromRoute());
     this.activeSection.set(this.resolveSectionFromRoute());
-    this.loadPharmacyAccess();
-    this.loadHardwareStoreAccess();
+    this.managementTab.set(this.resolveManagementTabFromRoute());
+    this.routeSectionSubscription = this.route.queryParamMap.subscribe(() => {
+      this.managementTab.set(this.resolveManagementTabFromRoute());
+      this.requestsTab.set(this.resolveRequestsTabFromRoute());
+      const section = this.resolveSectionFromRoute();
+      if (section === this.activeSection()) return;
+      this.activeSection.set(section);
+      this.loadSection(section);
+    });
     this.loadSchedule();
   }
 
   ngOnDestroy(): void {
+    this.routeSectionSubscription?.unsubscribe();
     this.negotiationsRealtimeSubscription?.unsubscribe();
     this.reservationsRealtimeSubscription?.unsubscribe();
     this.professionalRealtimeFallbackSubscription?.unsubscribe();
     this.negotiationsRealtime.stopWatching('PRESTATAIRE');
     this.reservationsRealtime.stopWatching('PRESTATAIRE');
-  }
-
-  protected goBack(): void {
-    this.backNavigation.back(this.route.snapshot.queryParamMap.get('returnUrl'), '/services', {
-      preferReturnUrl: true,
-    });
-  }
-
-  protected openPharmacySpace(): void {
-    if (!this.showPharmacySpace()) return;
-    void this.router.navigate(['/pharmacy-orders']);
-  }
-
-  protected openHardwareStoreSpace(): void {
-    if (!this.showHardwareStoreSpace()) return;
-    void this.router.navigate(['/material-orders']);
-  }
-
-  private loadPharmacyAccess(): void {
-    if (!this.isProviderSpace()) {
-      this.showPharmacySpace.set(false);
-      return;
-    }
-    this.pharmacyOrdersService
-      .getAccess()
-      .pipe(catchError(() => of({ isPharmacy: false })))
-      .subscribe((access) => this.showPharmacySpace.set(access.isPharmacy));
-  }
-
-  private loadHardwareStoreAccess(): void {
-    if (!this.isProviderSpace()) {
-      this.showHardwareStoreSpace.set(false);
-      return;
-    }
-    this.materialOrdersService
-      .getAccess()
-      .pipe(catchError(() => of({ isHardwareStore: false })))
-      .subscribe((access) => this.showHardwareStoreSpace.set(access.isHardwareStore));
   }
 
   private resolveSectionFromRoute(): DoctorSpaceSection {
@@ -1308,11 +1006,71 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
 
     const section = this.route.snapshot.queryParamMap.get('section');
     if (section === 'profile') return this.defaultSectionForSpace();
+    if (section === 'availability') return 'consultation';
+    if (section === 'agenda' && this.isProviderSpace()) {
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { section: 'negotiations', view: 'agenda' },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+      return 'negotiations';
+    }
+    if (section === 'agenda') {
+      void this.router.navigate(['/medecine/espace/rdv-patients'], {
+        queryParams: { view: 'agenda' },
+        replaceUrl: true,
+      });
+      return 'patient-appointments';
+    }
     if (section === 'patient-appointments' && this.isProviderSpace()) return 'negotiations';
     if (section === 'negotiations' && !this.isProviderSpace()) return 'patient-appointments';
     return DOCTOR_SPACE_SECTIONS.includes(section as DoctorSpaceSection)
       ? (section as DoctorSpaceSection)
       : this.defaultSectionForSpace();
+  }
+
+  private resolveRequestsTabFromRoute(): RequestsTab {
+    const query = this.route.snapshot.queryParamMap;
+    return query.get('section') === 'agenda' || query.get('view') === 'agenda'
+      ? 'agenda'
+      : 'requests';
+  }
+
+  protected selectRequestsTab(tab: RequestsTab): void {
+    if (this.requestsTab() === tab) return;
+    this.requestsTab.set(tab);
+    if (!this.isProviderSpace()) {
+      void this.router.navigate(['/medecine/espace/rdv-patients'], {
+        queryParams: { view: tab },
+        replaceUrl: true,
+      });
+      return;
+    }
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { section: 'negotiations', view: tab },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
+  private resolveManagementTabFromRoute(): ManagementTab {
+    const query = this.route.snapshot.queryParamMap;
+    const view = query.get('view');
+    if (view === 'services' || view === 'availability') return view;
+    return query.get('section') === 'availability' ? 'availability' : 'services';
+  }
+
+  protected selectManagementTab(tab: ManagementTab): void {
+    if (this.managementTab() === tab) return;
+    this.managementTab.set(tab);
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { section: 'consultation', view: tab },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   private defaultSectionForSpace(): DoctorSpaceSection {
@@ -1337,24 +1095,6 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     });
   }
 
-  protected selectSection(section: DoctorSpaceSection): void {
-    if (section !== 'profile' && !this.professionalProfileId()) {
-      this.feedback.info(
-        'Completez votre profil professionnel dans les parametres pour activer cette section.',
-      );
-      this.router.navigate(['/settings'], { queryParams: { section: 'health' } });
-      return;
-    }
-
-    if (section === 'consultation' && !this.showConsultationSection()) {
-      this.setActiveSection('availability');
-      return;
-    }
-
-    this.setActiveSection(section);
-    this.loadSection(section);
-  }
-
   protected selectAgendaFilter(filter: AgendaFilter): void {
     this.agendaFilter.set(filter);
   }
@@ -1363,9 +1103,6 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     this.agendaViewMode.set(mode);
   }
 
-  protected selectMedicalHistoryTab(tab: MedicalHistoryTab): void {
-    this.medicalHistoryTab.set(tab);
-  }
 
   protected saveProfessionalProfile(): void {
     const payload = {
@@ -1574,28 +1311,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       });
   }
 
-  protected updateMedicalHistorySearch(value: string): void {
-    this.medicalHistorySearch.set(value);
-  }
 
-  protected updateMedicalHistoryPatientFilter(value: string): void {
-    this.medicalHistoryPatientFilter.set(value);
-  }
-
-  protected updateProviderHistorySearch(value: string): void {
-    this.providerHistorySearch.set(value);
-    this.resetProviderHistoryPagination();
-  }
-
-  protected selectProviderHistoryFilter(filter: ProviderHistoryFilter): void {
-    this.providerHistoryFilter.set(filter);
-    this.resetProviderHistoryPagination();
-  }
-
-  protected updateProviderHistoryMonth(value: string): void {
-    this.providerHistoryMonth.set(value);
-    this.resetProviderHistoryPagination();
-  }
 
   protected selectNegotiationFilter(filter: ProviderNegotiationFilter): void {
     this.negotiationFilter.set(filter);
@@ -1792,87 +1508,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     return 'cancelled';
   }
 
-  protected updateProviderHistoryPageSize(value: string | number): void {
-    const pageSize = Number(value);
-    if (PROVIDER_HISTORY_PAGE_SIZE_OPTIONS.some((option) => option === pageSize)) {
-      this.providerHistoryPageSize.set(
-        pageSize as (typeof PROVIDER_HISTORY_PAGE_SIZE_OPTIONS)[number],
-      );
-      this.resetProviderHistoryPagination();
-    }
-  }
 
-  protected goToProviderHistoryPage(page: number): void {
-    const nextPage = Math.min(Math.max(page, 1), this.providerHistoryTotalPages());
-    this.providerHistoryPage.set(nextPage);
-  }
-
-  protected previousProviderHistoryPage(): void {
-    this.goToProviderHistoryPage(this.providerHistoryPage() - 1);
-  }
-
-  protected nextProviderHistoryPage(): void {
-    this.goToProviderHistoryPage(this.providerHistoryPage() + 1);
-  }
-
-  protected openProviderHistoryReservation(row: ProviderAppointmentHistoryRow): void {
-    this.openReservationDetail(row.id);
-  }
-
-  protected openPatientMedicalDetail(row: MedicalHistoryRow): void {
-    const reservation = this.reservations().find((item) => item.id === row.id);
-    if (!reservation) {
-      this.feedback.error('Impossible de retrouver le rendez-vous selectionne.');
-      return;
-    }
-
-    this.isPatientDetailLoading.set(true);
-    this.patientDetailError.set(null);
-    this.selectedPatientDetail.set(null);
-
-    this.doctorSpaceService
-      .getPatientMedicalProfile(row.clientId)
-      .pipe(finalize(() => this.isPatientDetailLoading.set(false)))
-      .subscribe({
-        next: (profile) => {
-          this.selectedPatientDetail.set(this.buildPatientMedicalDetail(row, reservation, profile));
-        },
-        error: (error: unknown) => {
-          this.patientDetailError.set(
-            getHttpErrorMessage(error, 'Impossible de charger la fiche medicale du patient.'),
-          );
-        },
-      });
-  }
-
-  protected closePatientMedicalDetail(): void {
-    this.selectedPatientDetail.set(null);
-    this.patientDetailError.set(null);
-  }
-
-  protected hasMedicalProfileValue(value: string | number | null | undefined): boolean {
-    return value !== null && value !== undefined && `${value}`.trim().length > 0;
-  }
-
-  protected medicalValue(value: string | number | null | undefined, suffix = ''): string {
-    if (!this.hasMedicalProfileValue(value)) return 'Non renseigne';
-    return `${value}${suffix}`;
-  }
-
-  protected selectPatientActSpecialty(label: string): void {
-    this.patientActForm.specialty = label;
-  }
-
-  protected onPatientActDocumentSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    this.patientActForm.documentName = input.files?.[0]?.name ?? '';
-  }
-
-  protected submitPatientAct(): void {
-    this.feedback.error(
-      "L'enregistrement d'un acte medical patient necessite encore l'endpoint backend dedie.",
-    );
-  }
 
   protected walletBalance(): number {
     return this.wallet()?.availableBalance ?? 0;
@@ -2016,9 +1652,6 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     this.openAgendaReservationById(event.id);
   }
 
-  protected openNextAgendaReservation(next: NextAgendaReservationView): void {
-    this.openReservationDetail(next.reservation.id);
-  }
 
   private openReservationDetail(reservationId: string): void {
     this.router.navigate(['/appointments', reservationId], {
@@ -2797,10 +2430,6 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       this.setActiveSection('profile');
       return;
     }
-
-    if (section === 'consultation' && !this.showConsultationSection()) {
-      this.setActiveSection(this.defaultSectionForSpace());
-    }
   }
 
   private refreshAvailabilities(): void {
@@ -3204,280 +2833,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       .filter((event): event is AgendaEvent => event !== null);
   }
 
-  private buildMedicalHistoryRows(): MedicalHistoryRow[] {
-    const now = Date.now();
-    return this.reservations()
-      .map((reservation) => {
-        const scheduledAt = new Date(reservation.dateHeure);
-        if (Number.isNaN(scheduledAt.getTime())) return null;
-        if (this.isCancelledStatus(reservation.statut)) return null;
 
-        const isFuture =
-          scheduledAt.getTime() >= now &&
-          reservation.statut !== 'TERMINEE' &&
-          reservation.statut !== 'LITIGE';
-
-        return {
-          id: reservation.id,
-          clientId: reservation.clientId,
-          patientName: this.clientLabel(reservation),
-          avatarUrl: reservation.client?.urlAvatar ?? null,
-          serviceName: this.requestedReservationServiceName(reservation) ?? 'Consultation',
-          scheduledAt,
-          appointmentLabel: this.formatMedicalHistoryAppointment(scheduledAt),
-          lastAppointmentLabel: this.lastAppointmentLabelForClient(
-            reservation.clientId,
-            reservation.id,
-          ),
-          isFuture,
-          documents: this.medicalHistoryDocuments(reservation),
-        } satisfies MedicalHistoryRow;
-      })
-      .filter((row): row is MedicalHistoryRow => row !== null)
-      .sort((left, right) =>
-        left.isFuture === right.isFuture
-          ? left.isFuture
-            ? left.scheduledAt.getTime() - right.scheduledAt.getTime()
-            : right.scheduledAt.getTime() - left.scheduledAt.getTime()
-          : left.isFuture
-            ? -1
-            : 1,
-      );
-  }
-
-  private buildProviderHistoryRows(): ProviderAppointmentHistoryRow[] {
-    return this.reservations()
-      .map((reservation) => {
-        const scheduledAt = new Date(reservation.dateHeure);
-        if (Number.isNaN(scheduledAt.getTime())) return null;
-        const clientName = this.clientLabel(reservation);
-        return {
-          id: reservation.id,
-          clientName,
-          avatarUrl: reservation.client?.urlAvatar ?? null,
-          initials: this.initialsForName(clientName),
-          serviceName: this.requestedReservationServiceName(reservation) ?? 'Service non renseigne',
-          scheduledAt,
-          timeLabel: this.formatAgendaTime(scheduledAt).replace(':', 'H'),
-          dateLabel: new Intl.DateTimeFormat('fr-FR', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-          })
-            .format(scheduledAt)
-            .replace('.', ''),
-          locationLabel: this.reservationLocationLabel(reservation),
-          amount: this.agendaReservationPrice(reservation),
-          status: reservation.statut,
-          statusLabel: this.providerHistoryStatusLabel(reservation.statut),
-          statusTone: this.providerHistoryStatusTone(reservation.statut),
-        } satisfies ProviderAppointmentHistoryRow;
-      })
-      .filter((row): row is ProviderAppointmentHistoryRow => row !== null)
-      .sort((left, right) => right.scheduledAt.getTime() - left.scheduledAt.getTime());
-  }
-
-  private buildPatientMedicalDetail(
-    row: MedicalHistoryRow,
-    reservation: BackendReservation,
-    profile: PatientMedicalProfile,
-  ): PatientMedicalDetail {
-    return {
-      ...row,
-      reservation,
-      profile,
-      ageLabel: 'Non renseigne',
-      genderLabel: 'Non renseigne',
-      locationLabel: reservation.client?.adresse || reservation.adresseClient || 'Non renseigne',
-      phoneLabel: reservation.client?.numeroTelephone || 'Non renseigne',
-      alerts: [...profile.allergies, ...profile.conditions],
-      medicalActs: this.patientMedicalActs(row.clientId),
-      availableSpecialties: this.medicalSpecialtyChips(),
-    };
-  }
-
-  private patientMedicalActs(clientId: string): PatientMedicalDetail['medicalActs'] {
-    return this.reservations()
-      .filter((reservation) => reservation.clientId === clientId)
-      .filter((reservation) => !this.isCancelledStatus(reservation.statut))
-      .map((reservation) => {
-        const scheduledAt = new Date(reservation.dateHeure);
-        return {
-          id: reservation.id,
-          title: this.requestedReservationServiceName(reservation) ?? 'Consultation',
-          category: reservation.service?.categorie?.nom ?? 'Acte medical',
-          dateLabel: Number.isNaN(scheduledAt.getTime())
-            ? 'Date non renseignee'
-            : this.formatMedicalHistoryDate(scheduledAt),
-        };
-      })
-      .sort((left, right) => {
-        const leftDate = new Date(
-          this.reservations().find((reservation) => reservation.id === left.id)?.dateHeure ?? 0,
-        ).getTime();
-        const rightDate = new Date(
-          this.reservations().find((reservation) => reservation.id === right.id)?.dateHeure ?? 0,
-        ).getTime();
-        return rightDate - leftDate;
-      })
-      .slice(0, 6);
-  }
-
-  private medicalSpecialtyChips(): MedicalSpecialtyChip[] {
-    const tones: MedicalSpecialtyChip['tone'][] = [
-      'red',
-      'blue',
-      'purple',
-      'amber',
-      'green',
-      'gray',
-      'mint',
-      'pink',
-    ];
-
-    return this.categories()
-      .slice(0, 20)
-      .map((category, index) => ({
-        label: category.nom,
-        tone: tones[index % tones.length],
-      }));
-  }
-
-  private medicalHistoryDocuments(reservation: BackendReservation): MedicalHistoryDocument[] {
-    const notes = reservation.notes?.trim();
-    if (!notes) return [];
-    return [{ label: 'Notes du rendez-vous', type: 'DOC' }];
-  }
-
-  private lastAppointmentLabelForClient(clientId: string, excludedReservationId: string): string {
-    const pastReservation = this.reservations()
-      .filter((reservation) => reservation.clientId === clientId)
-      .filter((reservation) => reservation.id !== excludedReservationId)
-      .filter((reservation) => !this.isCancelledStatus(reservation.statut))
-      .map((reservation) => new Date(reservation.dateHeure))
-      .filter((date) => !Number.isNaN(date.getTime()))
-      .filter((date) => date.getTime() < Date.now())
-      .sort((left, right) => right.getTime() - left.getTime())[0];
-
-    return pastReservation
-      ? this.formatMedicalHistoryDate(pastReservation)
-      : 'Aucun rendez-vous passe';
-  }
-
-  private formatMedicalHistoryAppointment(date: Date): string {
-    const datePart = new Intl.DateTimeFormat('fr-FR', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })
-      .format(date)
-      .replace('.', '');
-    return `${datePart} - ${this.formatAgendaTime(date)}`;
-  }
-
-  private formatMedicalHistoryDate(date: Date): string {
-    return new Intl.DateTimeFormat('fr-FR', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    }).format(date);
-  }
-
-  private sumPeriodRevenue(predicate: (status: AppointmentStatus) => boolean): number {
-    const { start, end } = this.agendaStatPeriod();
-    return this.reservations().reduce((total, reservation) => {
-      const scheduledAt = new Date(reservation.dateHeure);
-      if (
-        Number.isNaN(scheduledAt.getTime()) ||
-        scheduledAt < start ||
-        scheduledAt > end ||
-        !predicate(reservation.statut)
-      ) {
-        return total;
-      }
-
-      const service = this.motifs().find((motif) => motif.id === reservation.serviceId);
-      return (
-        total + Number(reservation.prixConvenu ?? reservation.service?.prix ?? service?.price ?? 0)
-      );
-    }, 0);
-  }
-
-  private agendaStatPeriod(): { start: Date; end: Date } {
-    const cursor = this.agendaCursor();
-    if (this.agendaViewMode() === 'day') {
-      const start = this.startOfDay(cursor);
-      const end = new Date(start);
-      end.setHours(23, 59, 59, 999);
-      return { start, end };
-    }
-
-    if (this.agendaViewMode() === 'week') {
-      const start = this.startOfWeek(cursor);
-      const end = new Date(start);
-      end.setDate(start.getDate() + 6);
-      end.setHours(23, 59, 59, 999);
-      return { start, end };
-    }
-
-    const start = this.startOfMonth(cursor);
-    const end = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
-    end.setHours(23, 59, 59, 999);
-    return { start, end };
-  }
-
-  private buildNextAgendaReservationView(): NextAgendaReservationView | null {
-    const now = new Date();
-    const nextReservation = this.reservations()
-      .map((reservation) => ({
-        reservation,
-        scheduledAt: new Date(reservation.dateHeure),
-      }))
-      .filter(({ reservation, scheduledAt }) => {
-        return (
-          !Number.isNaN(scheduledAt.getTime()) &&
-          scheduledAt.getTime() > now.getTime() &&
-          this.isAgendaUpcomingStatus(reservation.statut)
-        );
-      })
-      .sort((left, right) => left.scheduledAt.getTime() - right.scheduledAt.getTime())[0];
-
-    if (!nextReservation) return null;
-
-    const { reservation, scheduledAt } = nextReservation;
-    const patientName = this.clientLabel(reservation);
-    const minutes = Math.max(1, Math.round((scheduledAt.getTime() - now.getTime()) / 60000));
-
-    return {
-      reservation,
-      patientName,
-      avatarUrl: reservation.client?.urlAvatar ?? null,
-      initials: this.initialsForName(patientName),
-      serviceName: this.requestedReservationServiceName(reservation) ?? 'Consultation',
-      locationLabel: this.reservationLocationLabel(reservation),
-      timeLabel: this.formatAgendaTime(scheduledAt).replace(':', 'H'),
-      dayLabel: scheduledAt.getDate().toString().padStart(2, '0'),
-      monthLabel: new Intl.DateTimeFormat('fr-FR', { month: 'short' })
-        .format(scheduledAt)
-        .replace('.', '')
-        .toUpperCase(),
-      durationLabel: this.formatDelayLabel(Math.max(1, reservation.dureeMinutes || 0)),
-      delayLabel: this.formatDelayLabel(minutes),
-      progress: Math.max(8, Math.min(100, 100 - (minutes / (24 * 60)) * 100)),
-      statusLabel: this.agendaReservationStatusLabel(reservation.statut),
-      confirmationLabel: this.isAgendaUpcomingStatus(reservation.statut)
-        ? 'LE RDV EST CONFIRME'
-        : this.agendaReservationStatusLabel(reservation.statut).toUpperCase(),
-    };
-  }
-
-  private formatDelayLabel(minutes: number): string {
-    if (minutes < 60) return `${minutes} min`;
-    const hours = Math.floor(minutes / 60);
-    const rest = minutes % 60;
-    return rest ? `${hours}h${rest.toString().padStart(2, '0')}` : `${hours}h`;
-  }
 
   private matchesAgendaFilter(status: AppointmentStatus): boolean {
     const filter = this.agendaFilter();
@@ -3496,18 +2852,6 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     return status === 'CONFIRMEE' || status === 'PAYEE_SEQUESTRE' || status === 'EN_COURS';
   }
 
-  private isAgendaRevenueStatus(status: AppointmentStatus): boolean {
-    return (
-      status === 'CONFIRMEE' ||
-      status === 'PAYEE_SEQUESTRE' ||
-      status === 'EN_COURS' ||
-      status === 'TERMINEE'
-    );
-  }
-
-  private isAgendaUpcomingStatus(status: AppointmentStatus): boolean {
-    return status === 'CONFIRMEE' || status === 'PAYEE_SEQUESTRE' || status === 'EN_COURS';
-  }
 
   private agendaEventVariant(status: AppointmentStatus): AgendaEvent['variant'] {
     const tone = reservationStatusTone(status);
@@ -3539,36 +2883,6 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     return reservation.client?.nom || `Client ${reservation.clientId.slice(0, 6).toUpperCase()}`;
   }
 
-  protected providerHistoryFilterCount(filter: ProviderHistoryFilter): number {
-    if (filter === 'ALL') return this.providerHistoryMonthRows().length;
-    return this.providerHistoryMonthRows().filter((row) => row.status === filter).length;
-  }
-
-  private resetProviderHistoryPagination(): void {
-    this.providerHistoryPage.set(1);
-  }
-
-  private providerHistoryStatusLabel(status: AppointmentStatus): string {
-    if (status === 'TERMINEE') return 'Termine';
-    if (status === 'ANNULEE') return 'Annule';
-    if (status === 'NO_SHOW') return 'Absent';
-    return this.agendaReservationStatusLabel(status);
-  }
-
-  private providerHistoryStatusTone(
-    status: AppointmentStatus,
-  ): ProviderAppointmentHistoryRow['statusTone'] {
-    const tone = reservationStatusTone(status);
-    if (tone === 'blue') return 'pending';
-    if (tone === 'green') return 'done';
-    if (status === 'ANNULEE') return 'cancelled';
-    if (status === 'NO_SHOW') return 'absent';
-    return tone === 'red' ? 'cancelled' : 'pending';
-  }
-
-  private sumProviderRows(rows: ProviderAppointmentHistoryRow[]): number {
-    return rows.reduce((total, row) => total + row.amount, 0);
-  }
 
   private initialsForName(name: string): string {
     return userInitials(name, 'CL');
@@ -3593,7 +2907,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     return new Date(year, month - 1, 1);
   }
 
-  private formatProviderHistoryMonth(date: Date): string {
+  private formatMonthLabel(date: Date): string {
     const label = new Intl.DateTimeFormat('fr-FR', {
       month: 'long',
       year: 'numeric',

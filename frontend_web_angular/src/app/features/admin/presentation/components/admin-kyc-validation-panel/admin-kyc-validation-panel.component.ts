@@ -21,14 +21,18 @@ export class AdminKycValidationPanelComponent implements OnChanges {
   @Output() detailRequested = new EventEmitter<string>();
 
   protected readonly selectedId = signal<string | null>(null);
+  private readonly currentProfiles = signal<AdminKycProfile[]>([]);
   protected readonly rejectionProfileId = signal<string | null>(null);
   protected rejectionReason = '';
   protected readonly selectedProfile = computed(
     () =>
-      this.profiles.find((profile) => profile.id === this.selectedId()) ?? this.profiles[0] ?? null,
+      this.currentProfiles().find((profile) => profile.id === this.selectedId()) ??
+      this.currentProfiles()[0] ??
+      null,
   );
 
   ngOnChanges(): void {
+    this.currentProfiles.set(this.profiles);
     if (!this.profiles.some((profile) => profile.id === this.selectedId())) {
       this.selectedId.set(this.profiles[0]?.id ?? null);
     }

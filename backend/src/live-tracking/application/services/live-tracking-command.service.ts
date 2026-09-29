@@ -579,6 +579,8 @@ export class LiveTrackingCommandService {
       await this.liveTrackingRepository.resumeParcelTrackingAfterPickup(input);
     if (!tracking) return null;
 
+    // La nouvelle session est visible avant le géocodage et le calcul du tracé.
+    this.realtimeEvents.emit('live-tracking.session.resumed', tracking);
     const enrichedTracking = await this.enrichTrackingRoute(tracking, context);
     this.publishLocationRealtime(enrichedTracking);
     this.publishRouteMetadataRealtime(enrichedTracking);

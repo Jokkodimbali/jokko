@@ -77,6 +77,7 @@ import {
   TrackingLocationUpdate,
   TrackingRealtimeService,
   TrackingRouteMetadataEvent,
+  TrackingRouteSelection,
 } from '../../../../tracking/data-access/tracking-realtime.service';
 import { LatestPendingValue } from '../../../../tracking/data-access/latest-pending-value';
 import { TrackingGoogleMapRendererService } from '../../../../tracking/presentation/tracking-google-map-renderer.service';
@@ -240,6 +241,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private trackingRouteMetadataSubscription?: Subscription;
   private missionSubscription?: Subscription;
   private routeSelectionSubscription?: Subscription;
+  private pendingRouteSelection: TrackingRouteSelection | null = null;
   private connectionSubscription?: Subscription;
   private appointmentStatePollingSubscription?: Subscription;
   private paymentStatusRefreshSubscription?: Subscription;
@@ -3612,24 +3614,55 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     );
     this.routeSelectionSubscription = this.trackingRealtime.routeSelected$.subscribe((event) => {
       if (event.reservationId !== appointmentId || this.isRouteActorViewer() ||
-          event.sessionStartedAt !== this.tracking()?.startedAt) return;
-      const coordinates = event.coordinates.map(({ lat, lng }) => [lat, lng] as [number, number]);
-      if (coordinates.length < 2) return;
-
-      this.routeOptions = [
-        {
-          id: event.routeId,
-          coordinates,
-          distanceKm: event.distanceKm,
-          durationMinutes: event.durationMinutes,
-          navigationSteps: event.navigationSteps,
-        },
-      ];
-      this.selectedRouteId.set(event.routeId);
-      this.applySelectedRoute(this.routeOptions[0]);
-      this.routeStatus.set('ready');
-      this.updateGoogleMaps();
+          event.coordinates.length < 2) return;
+      const currentSession = this.tracking()?.startedAt;
+      const eventStartedAtMs = Date.parse(event.sessionStartedAt);
+      const currentStartedAtMs = Date.parse(currentSession ?? '');
+      if (event.sessionStartedAt !== currentSession) {
+        // Le tracé peut arriver avant le snapshot de la nouvelle session.
+        if (!Number.isFinite(currentStartedAtMs) ||
+            (Number.isFinite(eventStartedAtMs) && eventStartedAtMs > currentStartedAtMs)) {
+          this.pendingRouteSelection = event;
+          this.refreshTracking(appointmentId);
+          this.refreshAppointmentState(appointmentId);
+        }
+        return;
+      }
+      const appointment = this.appointment();
+      if (appointment && this.isParcelTransportAppointment(appointment) &&
+          !this.isParcelDropoffNavigationActive()) {
+        this.pendingRouteSelection = event;
+        this.refreshAppointmentState(appointmentId);
+        return;
+      }
+      this.installSharedRouteSelection(event);
     });
+  }
+
+  private installSharedRouteSelection(event: TrackingRouteSelection): void {
+    const coordinates = event.coordinates.map(({ lat, lng }) => [lat, lng] as [number, number]);
+    if (coordinates.length < 2) return;
+    this.routeOptions = [{
+      id: event.routeId,
+      coordinates,
+      distanceKm: event.distanceKm,
+      durationMinutes: event.durationMinutes,
+      navigationSteps: event.navigationSteps,
+    }];
+    this.selectedRouteId.set(event.routeId);
+    this.applySelectedRoute(this.routeOptions[0]);
+    this.routeStatus.set('ready');
+    this.updateGoogleMaps();
+  }
+
+  private applyPendingRouteSelection(): void {
+    const event = this.pendingRouteSelection;
+    if (!event || event.sessionStartedAt !== this.tracking()?.startedAt) return;
+    const appointment = this.appointment();
+    if (!appointment || (this.isParcelTransportAppointment(appointment) &&
+        !this.isParcelDropoffNavigationActive())) return;
+    this.pendingRouteSelection = null;
+    this.installSharedRouteSelection(event);
   }
 
   private synchronizeLiveNavigation(appointment: AppointmentView): void {
@@ -3675,6 +3708,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.trackingRouteMetadataSubscription = undefined;
     this.missionSubscription = undefined;
     this.routeSelectionSubscription = undefined;
+    this.pendingRouteSelection = null;
     this.connectionSubscription = undefined;
     this.appointmentStatePollingSubscription = undefined;
     this.stopProviderLocationSharing();
@@ -3956,6 +3990,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       this.prepareParcelDropoffNavigationAfterPickup(nextAppointment);
     }
     this.synchronizeLiveNavigation(nextAppointment);
+    this.applyPendingRouteSelection();
     if (nextAppointment.status === 'TERMINEE' && previousStatus !== 'TERMINEE') {
       this.loadTerminalTrackingSnapshot(nextAppointment.id);
     }
@@ -4296,6 +4331,17 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     }
     this.syncAppointmentStatusFromTracking(acceptedTracking);
     const appointment = this.appointment();
+    if (appointment && this.isParcelTransportAppointment(appointment) &&
+        appointment.status === 'PAYEE_SEQUESTRE' &&
+        acceptedTracking.trackingStatus === 'EN_ROUTE' &&
+        previousTracking?.startedAt !== acceptedTracking.startedAt) {
+      // Le nouveau trajet peut précéder le statut EN_COURS : effacer l'ancien tracé.
+      this.routeCoordinates = [];
+      this.routeOptions = [];
+      this.routeStatus.set('idle');
+      this.mapRenderer.resetRoute();
+      this.refreshAppointmentState(appointment.id);
+    }
     if (appointment) {
       this.refreshParcelDropoffRouteForNewTrackingSession(appointment, acceptedTracking);
     }
@@ -4355,6 +4401,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
         this.routeStatus.set(this.routeCoordinates.length > 1 ? 'ready' : 'unavailable');
       }
     }
+    this.applyPendingRouteSelection();
     this.updateGoogleMaps();
     this.announceNavigationInstruction();
     if (

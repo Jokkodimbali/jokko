@@ -322,7 +322,7 @@ export class AdminDashboardPageComponent implements OnInit, OnDestroy {
   }
 
   private loadSectionData(section: AdminSection): void {
-    if (section === 'validations' && this.kycProfiles().length === 0) {
+    if (section === 'validations') {
       this.loadPendingKyc();
     }
     if (section === 'doctors' && this.medicalCredentialProfiles().length === 0) {

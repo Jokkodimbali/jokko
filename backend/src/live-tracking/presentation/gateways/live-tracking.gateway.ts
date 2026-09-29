@@ -14,7 +14,10 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { Server, Socket } from 'socket.io';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { LiveTrackingFacade } from '../../application/services/live-tracking-facade.service';
-import type { TrackingRouteSelection } from '../../application/ports/live-tracking-repository.port';
+import type {
+  ReservationTrackingView,
+  TrackingRouteSelection,
+} from '../../application/ports/live-tracking-repository.port';
 import type { TrackingLocationDto } from '../dto/tracking-location.dto';
 import { buildSocketCorsOptionsFromProcessEnv } from '../../../core/config/cors.config';
 
@@ -277,6 +280,19 @@ export class LiveTrackingGateway
     } catch {
       acknowledge?.({ accepted: false });
     }
+  }
+
+  @OnEvent('live-tracking.session.resumed')
+  handleTrackingSessionResumed(tracking: ReservationTrackingView): void {
+    this.server
+      .to(this.buildReservationRoom(tracking.reservationId))
+      .emit('tracking.snapshot', tracking);
+    this.server
+      .to(this.buildUserRoom(tracking.clientUserId))
+      .emit('tracking.snapshot', tracking);
+    this.server
+      .to(this.buildProfessionalRoom(tracking.professionalId))
+      .emit('tracking.snapshot', tracking);
   }
 
   @OnEvent('live-tracking.location.updated')

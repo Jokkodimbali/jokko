@@ -1,11 +1,12 @@
 import { reservationServiceNameFromNotes } from '../domain/reservation-service-name';
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Observable, catchError, forkJoin, map, of, shareReplay, switchMap } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { publicAssetUrl } from '../../../shared/utils/public-asset-url';
 import { ApiResponse } from '../../../core/http/api-response.models';
 import { unwrapApiResponse } from '../../../core/http/api-response.utils';
+import { SKIP_HTTP_CACHE } from '../../../core/http/http-cache.interceptor';
 import { ServicesService } from '../../services/data-access/services.service';
 import {
   GoogleMapsCoordinate,
@@ -93,7 +94,9 @@ export class AppointmentsService {
 
   getAppointmentById(reservationId: string): Observable<AppointmentView> {
     return this.http
-      .get<ApiResponse<BackendReservation>>(`${this.apiUrl}/reservations/${reservationId}`)
+      .get<ApiResponse<BackendReservation>>(`${this.apiUrl}/reservations/${reservationId}`, {
+        context: new HttpContext().set(SKIP_HTTP_CACHE, true),
+      })
       .pipe(
         map(unwrapApiResponse),
         switchMap((reservation) => {

@@ -13,24 +13,56 @@ describe('LiveTrackingGateway route synchronization', () => {
     );
     gateway.server = { to } as never;
     const client = { id: 'socket-1' } as never;
-    (gateway as any).socketUsers.set('socket-1', { sub: 'actor-1' });
+    (gateway as unknown).socketUsers.set('socket-1', { sub: 'actor-1' });
     const selection = {
       reservationId: 'reservation-1',
       sessionStartedAt: '2026-09-28T10:00:00.000Z',
       routeId: 'route-1',
-      coordinates: [{ lat: 14.7, lng: -17.4 }, { lat: 14.8, lng: -17.3 }],
+      coordinates: [
+        { lat: 14.7, lng: -17.4 },
+        { lat: 14.8, lng: -17.3 },
+      ],
       distanceKm: 10,
       durationMinutes: 15,
       navigationSteps: [],
       selectedAt: '2026-09-28T10:01:00.000Z',
     };
     await gateway.handleRouteSelection(client, selection);
-    expect(selectRoute).toHaveBeenCalledWith(expect.objectContaining({ sub: 'actor-1' }), selection);
+    expect(selectRoute).toHaveBeenCalledWith(
+      expect.objectContaining({ sub: 'actor-1' }),
+      selection,
+    );
     expect(emit).toHaveBeenCalledWith('tracking.route.selected', selection);
     selectRoute.mockResolvedValue(false);
     emit.mockClear();
     await gateway.handleRouteSelection(client, selection);
     expect(emit).not.toHaveBeenCalled();
+  });
+
+  it('broadcasts the resumed delivery session before its route is calculated', () => {
+    const emit = jest.fn();
+    const to = jest.fn().mockReturnValue({ emit });
+    const gateway = new LiveTrackingGateway(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    gateway.server = { to } as never;
+    const tracking = {
+      reservationId: 'reservation-1',
+      clientUserId: 'client-1',
+      professionalId: 'courier-1',
+      trackingStatus: 'EN_ROUTE',
+      startedAt: new Date('2026-09-28T10:00:00.000Z'),
+      route: null,
+    } as never;
+
+    gateway.handleTrackingSessionResumed(tracking);
+
+    expect(to).toHaveBeenCalledTimes(3);
+    expect(emit).toHaveBeenCalledTimes(3);
+    expect(emit).toHaveBeenCalledWith('tracking.snapshot', tracking);
   });
 
   it('sends the recalculated route to the reservation, client and courier', () => {

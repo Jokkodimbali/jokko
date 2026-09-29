@@ -24,6 +24,9 @@
   }
 }
 <router-outlet></router-outlet>
+@if (showProfessionalFooter()) {
+  <app-footer />
+}
 <app-call-overlay />
 
 <app-delivery-offer-card />

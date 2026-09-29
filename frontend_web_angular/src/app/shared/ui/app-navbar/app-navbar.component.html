@@ -3,28 +3,35 @@
   [class.app-navbar--notification-featured]="!!featuredNotification()"
   [class.app-navbar--notification-expanded]="deliveryNotificationVisible() || (!!featuredNotification() && notificationAnimationPhase() !== 'leaving')"
   [class.app-navbar--mobile-page-heading]="!!mobilePageTitle"
+  [class.app-navbar--professional]="professionalNavItems().length > 0"
 >
   <!-- Brand Logo -->
-  <a class="app-navbar__brand" routerLink="/services" aria-label="Accueil Jokko Dimbali">
+  <a class="app-navbar__brand" [routerLink]="homeRoute()" aria-label="Accueil Jokko Dimbali">
     <img [src]="logo" alt="" />
   </a>
 
   <!-- Desktop Navigation -->
   <nav class="app-navbar__nav" aria-label="Navigation principale">
+    <div class="app-navbar__nav-tabs">
     <a
       *ngFor="let item of navItems(); let index = index"
       [style.--nav-motion-index]="index"
       class="app-navbar__nav-item"
-      [class.app-navbar__nav-item--active]="isActive(item.route)"
+      [class.app-navbar__nav-item--active]="isNavItemActive(item)"
+      [class.app-navbar__nav-item--clients]="isProfessional() && item.section === 'negotiations'"
+      [class.app-navbar__nav-item--services]="isProfessional() && item.section === 'consultation'"
       [routerLink]="item.route"
+      [queryParams]="item.section ? (item.view ? { section: item.section, view: item.view } : { section: item.section }) : null"
       [attr.aria-label]="item.label"
+      [title]="item.label"
     >
-      <lucide-icon [name]="item.icon" size="36" [strokeWidth]="2.6"></lucide-icon>
+      <lucide-icon [name]="item.icon" [size]="isProfessional() ? 26 : 36" [strokeWidth]="2.6"></lucide-icon>
       <span>{{ item.label }}</span>
       <b *ngIf="navItemBadgeLabel(item)" class="app-navbar__nav-badge">{{
         navItemBadgeLabel(item)
       }}</b>
     </a>
+    </div>
     <div
       class="app-navbar__info-menu"
       [style.--nav-motion-index]="navItems().length"
@@ -40,9 +47,9 @@
         aria-label="Informations"
         (click)="toggleInfoMenu()"
       >
-        <lucide-icon name="building-2" size="30" [strokeWidth]="2.5"></lucide-icon>
+        <lucide-icon name="building-2" [size]="isProfessional() ? 20 : 30" [strokeWidth]="2.5"></lucide-icon>
         <span>Infos</span>
-        <lucide-icon name="chevron-down" size="17" [strokeWidth]="2.8"></lucide-icon>
+        <lucide-icon name="chevron-down" [size]="isProfessional() ? 16 : 17" [strokeWidth]="2.8"></lucide-icon>
       </button>
 
       <section *ngIf="isInfoMenuOpen()" class="app-navbar__info-dropdown" role="menu">
@@ -244,6 +251,7 @@
           </span>
         </button>
 
+        @if (!isProfessional()) {
         <a
           routerLink="/favorites"
           class="app-navbar__dropdown-item"
@@ -255,6 +263,7 @@
           </span>
           <span>Mes favoris</span>
         </a>
+        }
         <a
           routerLink="/notifications"
           class="app-navbar__dropdown-item"
@@ -300,30 +309,6 @@
             <lucide-icon name="layout-dashboard" size="18" [strokeWidth]="2.2"></lucide-icon>
           </span>
           <span>Administration</span>
-        </a>
-        <a
-          *ngIf="showDoctorSpace()"
-          routerLink="/medecine/espace"
-          class="app-navbar__dropdown-item"
-          role="menuitem"
-          (click)="closeProfileMenu()"
-        >
-          <span class="app-navbar__dropdown-icon app-navbar__dropdown-icon--doctor">
-            <lucide-icon name="heart-plus" size="18" [strokeWidth]="2.2"></lucide-icon>
-          </span>
-          <span>Espace M&eacute;decin</span>
-        </a>
-        <a
-          *ngIf="showProviderSpace()"
-          routerLink="/prestataire/espace"
-          class="app-navbar__dropdown-item"
-          role="menuitem"
-          (click)="closeProfileMenu()"
-        >
-          <span class="app-navbar__dropdown-icon app-navbar__dropdown-icon--provider">
-            <lucide-icon name="user-round-cog" size="18" [strokeWidth]="2.2"></lucide-icon>
-          </span>
-          <span>Espace Prestataire</span>
         </a>
         <button
           type="button"
@@ -519,15 +504,29 @@
         </div>
 
         <nav class="app-navbar__mobile-shortcuts" aria-label="Raccourcis du compte">
+          @if (!isProfessional()) {
           <a routerLink="/favorites" (click)="closeMobileNav()">
             <i><lucide-icon name="heart" size="23" [strokeWidth]="2.5"></lucide-icon></i>
             <span>Favoris</span>
           </a>
+          }
           <a routerLink="/settings" (click)="closeMobileNav()">
             <i><lucide-icon name="settings" size="23" [strokeWidth]="2.5"></lucide-icon></i>
             <span>Param&egrave;tres</span>
           </a>
         </nav>
+
+        @if (professionalNavItems().length) {
+          <nav class="app-navbar__mobile-professional-links" aria-label="Pages professionnelles">
+            <a *ngFor="let item of professionalNavItems()"
+              [routerLink]="item.route"
+              [queryParams]="item.section ? (item.view ? { section: item.section, view: item.view } : { section: item.section }) : null"
+              (click)="closeMobileNav()">
+              <lucide-icon [name]="item.icon" size="20" [strokeWidth]="2.2"></lucide-icon>
+              <span>{{ item.label }}</span>
+            </a>
+          </nav>
+        }
 
         <nav class="app-navbar__mobile-card" aria-label="Compte et assistance">
           <button type="button" (click)="closeMobileNav(); toggleNotificationsMenu()">
@@ -569,26 +568,6 @@
           <span>Administration</span>
           <lucide-icon name="chevron-right" size="20" [strokeWidth]="2.4"></lucide-icon>
         </a>
-        <a
-          *ngIf="showDoctorSpace()"
-          routerLink="/medecine/espace"
-          class="app-navbar__mobile-role-card"
-          (click)="closeMobileNav()"
-        >
-          <lucide-icon name="heart-plus" size="22" [strokeWidth]="2.4"></lucide-icon>
-          <span>Espace M&eacute;decin</span>
-          <lucide-icon name="chevron-right" size="20" [strokeWidth]="2.4"></lucide-icon>
-        </a>
-        <a
-          *ngIf="showProviderSpace()"
-          routerLink="/prestataire/espace"
-          class="app-navbar__mobile-role-card"
-          (click)="closeMobileNav()"
-        >
-          <lucide-icon name="user-round-cog" size="22" [strokeWidth]="2.4"></lucide-icon>
-          <span>Espace Prestataire</span>
-          <lucide-icon name="chevron-right" size="20" [strokeWidth]="2.4"></lucide-icon>
-        </a>
         <button
           type="button"
           class="app-navbar__mobile-logout"
@@ -614,16 +593,15 @@
   </aside>
 
   <nav class="app-navbar__bottom-nav" aria-label="Navigation mobile principale">
-    <a routerLink="/services" [class.app-navbar__bottom-nav-item--active]="isActive('/services')">
-      <i><lucide-icon name="house" size="22" [strokeWidth]="2.3"></lucide-icon></i>
-      <span>Services</span>
-    </a>
-    <a
-      routerLink="/appointments"
-      [class.app-navbar__bottom-nav-item--active]="isActive('/appointments')"
+    <a *ngFor="let item of (professionalNavItems().length ? professionalNavItems().slice(0, 2) : navItems().slice(0, 2))"
+      [routerLink]="item.route"
+      [queryParams]="item.section ? { section: item.section } : null"
+      [class.app-navbar__bottom-nav-item--active]="isNavItemActive(item)"
+      [attr.aria-label]="item.label"
+      [title]="item.label"
     >
-      <i><lucide-icon name="calendar-days" size="22" [strokeWidth]="2.3"></lucide-icon></i>
-      <span>RDV &amp; négociation</span>
+      <i><lucide-icon [name]="item.icon" size="22" [strokeWidth]="2.3"></lucide-icon></i>
+      <span>{{ item.label }}</span>
     </a>
     <a routerLink="/messages" [class.app-navbar__bottom-nav-item--active]="isActive('/messages')">
       <i>

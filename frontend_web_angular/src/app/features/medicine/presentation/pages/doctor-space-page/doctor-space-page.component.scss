@@ -1,8 +1,8 @@
-@use './styles/doctor-space-provider-history';
 @use './styles/doctor-space-agenda';
 @use './styles/doctor-space-schedule';
 @use './styles/doctor-space-motifs';
 @use './styles/doctor-space-wallet';
+@use './styles/doctor-space-patients-layout';
 
 :host {
   display: block;
@@ -12,13 +12,13 @@
   background: #fbf6ed;
   color: #111;
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   min-height: 100vh;
   width: 100%;
 }
 
 .doctor-space__content {
-  grid-column: 2;
+  grid-column: 1;
   min-width: 0;
   padding: 41px 28px 68px 28px;
   width: 100%;
@@ -64,6 +64,222 @@
   .doctor-space__header p {
     font-size: 13px;
   }
+}
+
+.doctor-space__management-tabs {
+  align-items: flex-end;
+  border-bottom: 1px solid #ead7c4;
+  display: flex;
+  gap: 8px;
+  margin: 0 0 22px;
+  min-width: 0;
+  padding: 0 12px;
+}
+
+.doctor-space__management-tabs button {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 13px 13px 0 0;
+  color: #815b3a;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.2;
+  min-height: 46px;
+  padding: 12px 18px;
+  position: relative;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.doctor-space__management-tabs button:hover {
+  color: #3d2511;
+}
+
+.doctor-space__management-tabs button.doctor-space__management-tab--active {
+  background: #fffaf4;
+  border-color: #ead7c4;
+  color: #21150d;
+  font-weight: 800;
+  margin-bottom: -1px;
+  padding-bottom: 13px;
+}
+
+.doctor-space__management-tabs button:focus-visible {
+  outline: 3px solid #915a22;
+  outline-offset: 2px;
+  z-index: 1;
+}
+
+@media (max-width: 560px) {
+  .doctor-space__management-tabs {
+    gap: 4px;
+    padding-inline: 0;
+  }
+
+  .doctor-space__management-tabs button {
+    flex: 1 1 0;
+    font-size: 13px;
+    min-width: 0;
+    padding-inline: 8px;
+    white-space: normal;
+  }
+}
+
+.doctor-space__requests-tabs {
+  background: #fffaf4;
+  border: 1px solid #ead7c4;
+  border-radius: 17px;
+  box-shadow: 0 8px 24px rgb(87 53 20 / 7%);
+  display: inline-flex;
+  gap: 5px;
+  margin-bottom: 26px;
+  padding: 5px;
+  width: fit-content;
+}
+
+.doctor-space__requests-tabs button {
+  border: 0;
+  border-radius: 12px;
+  color: #6f5945;
+  font-size: 14px;
+  font-weight: 750;
+  margin: 0;
+  min-height: 44px;
+  padding: 10px 20px;
+}
+
+.doctor-space__requests-tabs button.doctor-space__management-tab--active {
+  background: var(--color-brand, #865221);
+  box-shadow: 0 5px 12px rgb(87 53 20 / 18%);
+  color: #fff;
+  margin: 0;
+  padding: 10px 20px;
+}
+
+.doctor-space__requests-heading {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.doctor-space__requests-heading h2 {
+  color: #21150d;
+  font-size: clamp(22px, 2.2vw, 28px);
+  font-weight: 850;
+  margin: 0 0 4px;
+}
+
+.doctor-space__requests-heading p {
+  color: #786b60;
+  font-size: 14px;
+  margin: 0;
+}
+
+.doctor-space__requests-month {
+  align-items: center;
+  background: #fffaf4;
+  border: 1px solid #ead7c4;
+  border-radius: 13px;
+  display: flex;
+  gap: 4px;
+  min-height: 42px;
+  padding: 4px;
+}
+
+.doctor-space__requests-month button {
+  align-items: center;
+  background: #fff;
+  border: 0;
+  border-radius: 9px;
+  color: var(--color-brand, #865221);
+  cursor: pointer;
+  display: inline-flex;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.doctor-space__requests-month button:hover,
+.doctor-space__requests-month button:focus-visible {
+  background: var(--color-brand-soft, #fff3e5);
+}
+
+.doctor-space__requests-month select {
+  background: transparent;
+  border: 0;
+  color: #21150d;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  min-width: 140px;
+  padding: 5px;
+  text-align: center;
+}
+
+@media (max-width: 560px) {
+  .doctor-space__requests-tabs {
+    display: flex;
+    width: 100%;
+  }
+
+  .doctor-space__requests-tabs button {
+    padding-inline: 8px;
+  }
+
+  .doctor-space__requests-month {
+    width: 100%;
+  }
+
+  .doctor-space__requests-month select {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+.doctor-space__management-section {
+  background: #fffaf4;
+  border: 1px solid #ead7c4;
+  border-radius: 20px;
+  box-shadow: 0 8px 28px rgb(87 53 20 / 6%);
+  margin-bottom: 28px;
+  min-width: 0;
+  padding: clamp(16px, 2.2vw, 28px);
+}
+
+.doctor-space__management-section-header {
+  border-bottom: 1px solid #ead7c4;
+  margin-bottom: 22px;
+  padding-bottom: 18px;
+}
+
+.doctor-space__management-section-header h2 {
+  color: #915a22;
+  font-size: clamp(21px, 2.2vw, 28px);
+  font-weight: 800;
+  line-height: 1.2;
+  margin: 0 0 6px;
+}
+
+.doctor-space__management-section-header p {
+  color: #5f6875;
+  font-size: 14px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.doctor-space__management-section .doctor-space__cards {
+  margin-bottom: 0;
+}
+
+.doctor-space__motifs .doctor-space__management-section-header {
+  margin-bottom: 0;
 }
 
 .doctor-space__cards {
@@ -1724,81 +1940,4 @@
     margin-left: 0;
   }
 
-  .doctor-space__medical-history {
-    gap: 12px;
-  }
-
-  .doctor-space__medical-row {
-    background: #fffefd;
-    border-color: #e8ddd1;
-    border-radius: 18px;
-    gap: 13px;
-    min-height: 0;
-    padding: 16px;
-  }
-
-  .doctor-space__medical-patient {
-    align-items: center;
-    gap: 12px;
-  }
-
-  .doctor-space__medical-avatar {
-    height: 52px;
-    width: 52px;
-  }
-
-  .doctor-space__medical-patient strong {
-    font-size: 14px;
-  }
-
-  .doctor-space__medical-patient small {
-    font-size: 11px;
-  }
-
-  .doctor-space__medical-patient em {
-    font-size: 9px;
-    margin-top: 6px;
-  }
-
-  .doctor-space__medical-documents {
-    gap: 7px;
-  }
-
-  .doctor-space__medical-document {
-    font-size: 10px;
-    min-height: 29px;
-    padding-inline: 10px;
-  }
-
-  .doctor-space__medical-next {
-    background: #f7fbff;
-    border: 1px solid #e3edf8;
-    border-radius: 12px;
-    padding: 10px 11px;
-    width: 100%;
-  }
-
-  .doctor-space__medical-next small {
-    font-size: 9px;
-  }
-
-  .doctor-space__medical-next strong {
-    font-size: 12px;
-    margin-top: 3px;
-  }
-
-  .doctor-space__medical-open {
-    align-items: center;
-    background: #fff;
-    border-color: #cbdcec;
-    border-radius: 12px;
-    color: #1c69bd;
-    display: inline-flex;
-    font-size: 11px;
-    font-weight: 800;
-    gap: 7px;
-    justify-content: center;
-    min-height: 38px;
-    width: 100%;
-  }
 }

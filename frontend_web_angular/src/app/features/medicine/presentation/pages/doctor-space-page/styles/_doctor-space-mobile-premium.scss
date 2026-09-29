@@ -44,16 +44,11 @@
   .doctor-space__motif-form,
   .doctor-space__motif-list,
   .doctor-space__negotiation-card,
-  .doctor-space__next-card,
-  .doctor-space__patient-card,
-  .doctor-space__patient-hero,
   .doctor-space__wallet-balance,
   .doctor-space__wallet-revenue,
   .doctor-space__wallet-escrow,
   .doctor-space__wallet-history,
-  .doctor-space__agenda-board,
-  .doctor-space__provider-history-stat,
-  .doctor-space__provider-history-row {
+  .doctor-space__agenda-board {
     border-radius: 18px;
     max-width: 100%;
     min-width: 0;
@@ -66,22 +61,7 @@
     max-width: 100%;
   }
 
-  .doctor-space__medical-toolbar {
-    align-items: stretch;
-    display: grid;
-    gap: 10px;
-    grid-template-columns: 1fr;
-  }
 
-  .doctor-space__medical-search,
-  .doctor-space__medical-select {
-    min-width: 0;
-    width: 100%;
-  }
-
-  .doctor-space__medical-tabs,
-  .doctor-space__medical-filters,
-  .doctor-space__provider-history-tabs,
   .doctor-space__negotiation-filters {
     max-width: 100%;
     overflow-x: auto;
@@ -89,16 +69,10 @@
     -webkit-overflow-scrolling: touch;
   }
 
-  .doctor-space__medical-tabs::-webkit-scrollbar,
-  .doctor-space__medical-filters::-webkit-scrollbar,
-  .doctor-space__provider-history-tabs::-webkit-scrollbar,
   .doctor-space__negotiation-filters::-webkit-scrollbar {
     display: none;
   }
 
-  .doctor-space__medical-tabs button,
-  .doctor-space__medical-filters button,
-  .doctor-space__provider-history-tabs button,
   .doctor-space__negotiation-filters button {
     flex: 0 0 auto;
     white-space: nowrap;
@@ -132,8 +106,6 @@
   .doctor-space__calendar,
   .doctor-space__motif-form,
   .doctor-space__motif-list,
-  .doctor-space__patient-card,
-  .doctor-space__patient-hero,
   .doctor-space__wallet-balance,
   .doctor-space__wallet-revenue,
   .doctor-space__wallet-escrow,

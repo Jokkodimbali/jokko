@@ -1,4 +1,6 @@
-import { Component, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { AuthSessionService } from '../../../core/auth/auth-session.service';
+import { professionalHomeRoute } from '../../../core/auth/professional-space-role.utils';
 import { RouterLink } from '@angular/router';
 
 @Component({
@@ -9,6 +11,9 @@ import { RouterLink } from '@angular/router';
   styleUrl: './app-footer.component.scss',
 })
 export class AppFooterComponent {
+  private readonly authSession = inject(AuthSessionService);
+  protected readonly isProfessional = computed(() => !!professionalHomeRoute(this.authSession.currentUser()?.role));
+  protected readonly homeRoute = computed(() => professionalHomeRoute(this.authSession.currentUser()?.role) ?? '/services');
   protected readonly newsletterMessage = signal<string | null>(null);
 
   protected subscribeNewsletter(event: Event, email: string): void {

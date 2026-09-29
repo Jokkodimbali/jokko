@@ -1,0 +1,17 @@
+.doctor-space--patients .doctor-space__content {
+  margin-inline: auto;
+  max-width: 1440px;
+  padding-inline: clamp(24px, 4vw, 64px);
+}
+
+@media (max-width: 860px) {
+  .doctor-space--patients .doctor-space__content {
+    padding-inline: 24px;
+  }
+}
+
+@media (max-width: 560px) {
+  .doctor-space--patients .doctor-space__content {
+    padding-inline: 16px;
+  }
+}

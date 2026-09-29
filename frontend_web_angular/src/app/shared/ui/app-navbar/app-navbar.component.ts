@@ -22,10 +22,7 @@ import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { EMPTY, Subscription, catchError, finalize, forkJoin, of } from 'rxjs';
 import { AuthSessionService } from '../../../core/auth/auth-session.service';
-import {
-  isDoctorAccount,
-  isProviderAccount,
-} from '../../../core/auth/professional-space-role.utils';
+import { professionalHomeRoute } from '../../../core/auth/professional-space-role.utils';
 import { AppFeedbackService } from '../../../core/feedback/app-feedback.service';
 import { getHttpErrorMessage } from '../../../core/http/api-response.utils';
 import { SessionPresenceService } from '../../../core/presence/session-presence.service';
@@ -51,12 +48,16 @@ import { AUTH_UI_MESSAGES } from '../../../features/auth/domain/auth-ui.messages
 import { AppointmentsService } from '../../../features/appointments/data-access/appointments.service';
 import { MessagesRealtimeService } from '../../../features/messages/data-access/messages-realtime.service';
 import { MessagesService } from '../../../features/messages/data-access/messages.service';
+import { PharmacyOrdersService } from '../../../features/pharmacy-orders/data-access/pharmacy-orders.service';
+import { MaterialOrdersService } from '../../../features/material-orders/data-access/material-orders.service';
 import { userInitials } from '../../utils/user-initials';
 
 interface AppNavItem {
   label: string;
-  icon: 'users' | 'calendar-days' | 'message-circle';
+  icon: string;
   route: string;
+  section?: string;
+  view?: 'availability' | 'services';
 }
 
 interface AppInfoNavItem {
@@ -96,6 +97,8 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
   private readonly appointmentsService = inject(AppointmentsService);
   private readonly messagesService = inject(MessagesService);
   private readonly messagesRealtime = inject(MessagesRealtimeService);
+  private readonly pharmacyOrders = inject(PharmacyOrdersService);
+  private readonly materialOrders = inject(MaterialOrdersService);
   private readonly presence = inject(SessionPresenceService);
   private unreadMessagesIntervalId: ReturnType<typeof setInterval> | null = null;
   private notificationsIntervalId: ReturnType<typeof setInterval> | null = null;
@@ -106,9 +109,33 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
 
   protected readonly logo = '/logojokko.png';
   protected readonly currentUser = this.authSession.currentUser;
+  protected readonly isProfessional = computed(() => !!professionalHomeRoute(this.currentUser()?.role));
+  protected readonly homeRoute = computed(() => professionalHomeRoute(this.currentUser()?.role) ?? '/services');
   protected readonly isMenuOpen = signal(false);
   protected readonly isMobileNavOpen = signal(false);
   protected readonly isNotificationsOpen = signal(false);
+  protected readonly hasPharmacyAccess = signal(false);
+  protected readonly hasHardwareAccess = signal(false);
+  private professionalAccessUserId: string | null = null;
+  private readonly syncProfessionalAccess = effect(() => {
+    const user = this.currentUser();
+    const providerId = user?.role === 'PRESTATAIRE' ? user.id : null;
+    if (providerId === this.professionalAccessUserId) return;
+    this.professionalAccessUserId = providerId;
+    untracked(() => {
+      this.hasPharmacyAccess.set(false);
+      this.hasHardwareAccess.set(false);
+    });
+    if (!providerId) return;
+    this.subscriptions.add(this.pharmacyOrders.getAccess().pipe(catchError(() => of({ isPharmacy: false })))
+      .subscribe((access) => {
+        if (this.professionalAccessUserId === providerId) this.hasPharmacyAccess.set(access.isPharmacy);
+      }));
+    this.subscriptions.add(this.materialOrders.getAccess().pipe(catchError(() => of({ isHardwareStore: false })))
+      .subscribe((access) => {
+        if (this.professionalAccessUserId === providerId) this.hasHardwareAccess.set(access.isHardwareStore);
+      }));
+  });
   protected readonly isInfoMenuOpen = signal(false);
   protected readonly isNotificationsLoading = signal(false);
   protected readonly isLoggingOut = signal(false);
@@ -164,8 +191,6 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     if (role === 'ADMIN') return 'Compte administrateur';
     return 'Compte client';
   });
-  protected readonly showDoctorSpace = computed(() => isDoctorAccount(this.currentUser()));
-  protected readonly showProviderSpace = computed(() => isProviderAccount(this.currentUser()));
   protected readonly showAdminSpace = computed(() => this.currentUser()?.role === 'ADMIN');
   protected readonly showDisputeAccess = computed(() => {
     const role = this.currentUser()?.role;
@@ -180,7 +205,7 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     return count > 99 ? '99+' : String(count);
   });
 
-  protected readonly navItems = signal<AppNavItem[]>([
+  private readonly clientNavItems: AppNavItem[] = [
     {
       label: 'Services',
       icon: 'users',
@@ -196,7 +221,36 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
       icon: 'message-circle',
       route: '/messages',
     },
-  ]);
+  ];
+  protected readonly professionalNavItems = computed<AppNavItem[]>(() => {
+    const role = this.currentUser()?.role;
+    if (role !== 'PRESTATAIRE' && role !== 'MEDECIN') return [];
+    const route = role === 'MEDECIN' ? '/medecine/espace' : '/prestataire/espace';
+    const items: AppNavItem[] = [];
+    if (role === 'PRESTATAIRE') {
+      items.push({ label: 'Gestion des clients', icon: 'calendar-check', route, section: 'negotiations' });
+    } else {
+      items.push({ label: 'Gestion des patients', icon: 'calendar-check', route: '/medecine/espace/rdv-patients' });
+    }
+    items.push({
+      label: 'Disponibilités et services',
+      icon: 'calendar-days',
+      route,
+      section: 'consultation',
+      view: 'availability',
+    });
+    if (role === 'PRESTATAIRE') {
+      if (this.hasPharmacyAccess()) items.push({ label: 'Ordonnances', icon: 'pill', route: '/pharmacy-orders' });
+      if (this.hasHardwareAccess()) items.push({ label: 'Matériel', icon: 'package-search', route: '/material-orders' });
+    }
+    items.push({ label: 'Wallet', icon: 'wallet-cards', route, section: 'wallet' });
+    return items;
+  });
+  protected readonly navItems = computed<AppNavItem[]>(() => {
+    const professional = this.professionalNavItems();
+    if (!professional.length) return this.clientNavItems;
+    return [...professional, { label: 'Message', icon: 'message-circle', route: '/messages' }];
+  });
   protected readonly infoNavItems = signal<AppInfoNavItem[]>([
     {
       label: 'A propos',
@@ -226,6 +280,22 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
 
   protected isActive(route: string): boolean {
     return this.router.url.startsWith(route);
+  }
+
+  protected isNavItemActive(item: AppNavItem): boolean {
+    const current = this.router.parseUrl(this.router.url);
+    const path = current.root.children['primary']?.segments.map((segment) => segment.path).join('/') ?? '';
+    const currentPath = `/${path}`;
+    if (item.route === '/medecine/espace/rdv-patients') {
+      return currentPath === item.route || (currentPath === '/medecine/espace' && !current.queryParams['section']);
+    }
+    if (item.section) {
+      return currentPath === item.route &&
+        (current.queryParams['section'] === item.section ||
+          (item.section === 'consultation' && current.queryParams['section'] === 'availability') ||
+          (!current.queryParams['section'] && item.section === 'negotiations'));
+    }
+    return this.isActive(item.route);
   }
 
   protected isInfoActive(): boolean {

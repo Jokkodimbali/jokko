@@ -10,3 +10,9 @@ export function isDoctorAccount(user: AccountRoleSource): boolean {
 export function isProviderAccount(user: AccountRoleSource): boolean {
   return user?.role === 'PRESTATAIRE';
 }
+
+export function professionalHomeRoute(role: string | null | undefined): string | null {
+  if (role === 'MEDECIN') return '/medecine/espace';
+  if (role === 'PRESTATAIRE') return '/prestataire/espace';
+  return null;
+}

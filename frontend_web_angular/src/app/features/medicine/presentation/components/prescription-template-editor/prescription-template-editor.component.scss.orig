@@ -1,0 +1,317 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.prescription-editor {
+  color: #294056;
+}
+.prescription-editor__heading {
+  align-items: center;
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+.prescription-editor__heading h2 {
+  font-size: 22px;
+  margin: 0 0 5px;
+}
+.prescription-editor__heading p {
+  color: #617283;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+.prescription-editor__heading > button {
+  background: #865221;
+  border: 0;
+  border-radius: 10px;
+  color: white;
+  cursor: pointer;
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  min-height: 42px;
+  padding: 0 18px;
+}
+.prescription-editor__heading > button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+.prescription-editor__layout {
+  align-items: start;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 1fr);
+}
+.prescription-editor__fields {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+.prescription-editor__card {
+  background: #fff;
+  border: 1px solid #eadfd4;
+  border-radius: 18px;
+  padding: 20px;
+}
+.prescription-editor__card h3 {
+  color: #294056;
+  font-size: 16px;
+  margin: 0 0 16px;
+}
+.prescription-editor__grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.prescription-editor__grid label,
+.prescription-editor__footer-field {
+  color: #4b575f;
+  display: grid;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 5px;
+  min-width: 0;
+}
+.prescription-editor__wide {
+  grid-column: 1 / -1;
+}
+.prescription-editor input:not([type='file']):not([type='checkbox']) {
+  background: #f5f9fc;
+  border: 1px solid #cbd9e4;
+  border-radius: 10px;
+  color: #294056;
+  font: inherit;
+  font-size: 14px;
+  height: 40px;
+  min-width: 0;
+  padding: 0 12px;
+  width: 100%;
+}
+.prescription-editor input:focus-visible,
+.prescription-editor button:focus-visible,
+.prescription-editor__asset-actions label:focus-within {
+  outline: 2px solid #865221;
+  outline-offset: 2px;
+}
+.prescription-editor__assets {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.prescription-editor__asset {
+  min-width: 0;
+}
+.prescription-editor__asset > strong {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 7px;
+}
+.prescription-editor__asset-preview {
+  align-items: center;
+  background: #f5f9fc;
+  border: 1px dashed #cbd9e4;
+  border-radius: 12px;
+  color: #8aa0b2;
+  display: flex;
+  height: 90px;
+  justify-content: center;
+  overflow: hidden;
+}
+.prescription-editor__asset-preview img {
+  height: 100%;
+  object-fit: contain;
+  width: 100%;
+}
+.prescription-editor__asset-preview span {
+  font-size: 11px;
+}
+.prescription-editor__asset-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.prescription-editor__asset-actions label,
+.prescription-editor__asset-actions button {
+  background: #fff;
+  border: 1px solid #865221;
+  border-radius: 8px;
+  color: #865221;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 7px 9px;
+}
+.prescription-editor__asset-actions input {
+  display: none;
+}
+.prescription-editor__asset-actions button {
+  background: #f5f9fc;
+  border-color: transparent;
+  color: #4b575f;
+}
+.prescription-editor__filter {
+  align-items: center;
+  color: #4b575f;
+  display: flex;
+  font-size: 11px;
+  font-weight: 700;
+  gap: 6px;
+  margin-top: 9px;
+}
+.prescription-editor__filter input {
+  accent-color: #865221;
+  height: 15px;
+  width: 15px;
+}
+.prescription-editor__hint {
+  color: #617283;
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 14px 0;
+}
+.prescription-editor__preview {
+  min-width: 0;
+  position: sticky;
+  top: calc(var(--app-navbar-height, 104px) + 16px);
+}
+.prescription-editor__preview-label {
+  color: #617283;
+  font-size: 12px;
+  font-weight: 800;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+.prescription-editor__sheet {
+  aspect-ratio: 640 / 905;
+  background: #fff;
+  box-shadow: 0 12px 36px #29405620;
+  display: flex;
+  flex-direction: column;
+  font-size: clamp(8px, 0.82vw, 11px);
+  padding: 7.5% 6% 4%;
+}
+.prescription-editor__sheet-top {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+.prescription-editor__issuer {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+.prescription-editor__issuer img {
+  height: 44px;
+  object-fit: contain;
+  width: 44px;
+}
+.prescription-editor__issuer div {
+  display: grid;
+  gap: 2px;
+}
+.prescription-editor__issuer small {
+  color: #4b575f;
+  text-transform: uppercase;
+}
+.prescription-editor__issuer strong {
+  font-size: 1.15em;
+}
+.prescription-editor__issuer span {
+  color: #4b575f;
+}
+.prescription-editor__patient {
+  display: grid;
+  flex: 0 0 38%;
+  gap: 5px;
+}
+.prescription-editor__patient span {
+  border-bottom: 1px dotted #9db0bf;
+}
+.prescription-editor__sheet h3 {
+  align-self: center;
+  border: 1px solid #1d2b38;
+  font-size: 1.5em;
+  letter-spacing: 0.06em;
+  margin: 24px 0 20px;
+  padding: 5px 20px;
+}
+.prescription-editor__body {
+  flex: 1;
+}
+.prescription-editor__body p {
+  color: #8294a3;
+  font-style: italic;
+  line-height: 1.6;
+  max-width: 70%;
+}
+.prescription-editor__signatures {
+  align-self: flex-end;
+  min-height: 110px;
+  text-align: center;
+  width: 48%;
+}
+.prescription-editor__signatures > div {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+}
+.prescription-editor__signatures img {
+  height: 70px;
+  max-width: 50%;
+  object-fit: contain;
+}
+.prescription-editor__sheet footer {
+  border-top: 1px solid #1d2b38;
+  font-style: italic;
+  padding-top: 5px;
+  text-align: center;
+}
+@media (max-width: 1000px) {
+  .prescription-editor__layout {
+    grid-template-columns: 1fr;
+  }
+  .prescription-editor__preview {
+    max-width: 640px;
+    position: static;
+    width: 100%;
+  }
+  .prescription-editor__sheet {
+    font-size: clamp(8px, 1.5vw, 11px);
+  }
+}
+@media (max-width: 620px) {
+  .prescription-editor__heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .prescription-editor__layout {
+    gap: 18px;
+  }
+  .prescription-editor__grid {
+    grid-template-columns: 1fr;
+  }
+  .prescription-editor__assets {
+    grid-template-columns: 1fr;
+  }
+  .prescription-editor__asset {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 8px;
+  }
+  .prescription-editor__asset > strong {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+  .prescription-editor__asset-actions {
+    align-content: start;
+    margin: 0;
+  }
+  .prescription-editor__sheet {
+    font-size: clamp(6px, 1.8vw, 9px);
+  }
+}

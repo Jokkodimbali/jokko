@@ -5,7 +5,7 @@ export const NOTIFICATION_DISPLAY_MS = 15_000;
 export const NOTIFICATION_TRANSITION_MS = 160;
 export const NAVBAR_NOTIFICATION_TRANSITION_MS = 160;
 
-/** Displays notifications immediately and serializes simultaneous arrivals. */
+/** Displays notifications immediately and keeps the latest arrival during transitions. */
 export class AnimatedNotificationDisplay<T extends { id: string }> {
   readonly notification = signal<T | null>(null);
   readonly phase = signal<'entering' | 'visible' | 'leaving'>('visible');
@@ -29,13 +29,17 @@ export class AnimatedNotificationDisplay<T extends { id: string }> {
 
     if (!notification) {
       this.queue.length = 0;
-      if (current && this.isPersistent(current)) this.leave();
+      if (current) this.leave();
       return;
     }
 
+    if (this.phase() === 'leaving') {
+      this.enqueue(notification);
+      return;
+    }
     this.enqueue(notification);
     if (!current) {
-      this.showNext(false);
+      this.showNext();
       return;
     }
 
@@ -43,10 +47,12 @@ export class AnimatedNotificationDisplay<T extends { id: string }> {
     // next persisted state arrives (en route -> on site -> completed).
     if (this.isPersistent(current)) {
       this.clearTimers();
-      this.showNext(true);
+      this.showNext();
+      return;
     }
-    // A transient item keeps its full deadline. Concurrent notifications stay
-    // queued and are mounted one by one, never on top of each other.
+    // Replace a transient item after its short exit. Newer arrivals can still
+    // supersede the pending one without leaving stale cards on screen.
+    this.leave();
   }
 
   destroy(): void {
@@ -55,15 +61,11 @@ export class AnimatedNotificationDisplay<T extends { id: string }> {
   }
 
   private enqueue(notification: T): void {
-    const index = this.queue.findIndex((queued) => queued.id === notification.id);
-    if (index >= 0) {
-      this.queue[index] = notification;
-      return;
-    }
-    this.queue.push(notification);
+    // The featured slot keeps the newest pending event; older events remain in history.
+    this.queue.splice(0, this.queue.length, notification);
   }
 
-  private showNext(animateReplacement: boolean): void {
+  private showNext(): void {
     const notification = this.queue.shift() ?? null;
     this.notification.set(notification);
     if (!notification) {
@@ -71,37 +73,36 @@ export class AnimatedNotificationDisplay<T extends { id: string }> {
       return;
     }
 
-    // The node is mounted synchronously. The short animation only polishes a
-    // replacement and never delays access to its content.
-    this.phase.set(animateReplacement ? 'entering' : 'visible');
-    if (animateReplacement) {
-      this.transitionTimer = setTimeout(() => {
-        this.transitionTimer = null;
-        this.phase.set('visible');
-      }, this.transitionMs);
-    }
+    // Mount immediately, then let the content slide in before its display timer starts.
+    this.phase.set('entering');
+    this.transitionTimer = setTimeout(() => {
+      this.transitionTimer = null;
+      this.phase.set('visible');
+      if (!this.isPersistent(notification)) this.scheduleExpiry(notification);
+    }, this.transitionMs);
+  }
 
-    if (this.isPersistent(notification)) return;
+  private scheduleExpiry(notification: T): void {
     const remainingMs = Math.max(0, this.expiresIn(notification));
     this.expiryTimer = setTimeout(() => {
       this.expiryTimer = null;
       this.dismiss(notification.id);
-      if (this.queue.length > 0) {
-        this.clearTimers();
-        this.showNext(true);
-      } else {
-        this.leave();
-      }
+      this.leave();
     }, remainingMs);
   }
 
   private leave(): void {
+    if (this.phase() === 'leaving') return;
     this.clearTimers();
     this.phase.set('leaving');
     this.transitionTimer = setTimeout(() => {
       this.transitionTimer = null;
-      this.notification.set(null);
-      this.phase.set('visible');
+      if (this.queue.length > 0) {
+        this.showNext();
+      } else {
+        this.notification.set(null);
+        this.phase.set('visible');
+      }
     }, this.transitionMs);
   }
 

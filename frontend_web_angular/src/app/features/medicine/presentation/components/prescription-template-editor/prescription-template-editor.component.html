@@ -1,0 +1,175 @@
+<section class="prescription-editor" aria-labelledby="prescription-editor-title">
+  <header class="prescription-editor__heading">
+    <div>
+      <h2 id="prescription-editor-title">Personnaliser mon ordonnance</h2>
+      <p>
+        Votre modèle sera utilisé avec les prescriptions de chaque consultation. Les données du
+        patient ne sont pas enregistrées ici.
+      </p>
+    </div>
+    <button type="button" (click)="save()" [disabled]="loading || saving || !!uploading">
+      {{ saving ? 'Enregistrement…' : 'Enregistrer le modèle' }}
+    </button>
+  </header>
+
+  <p *ngIf="loading" role="status">Chargement du modèle…</p>
+
+  <div *ngIf="!loading" class="prescription-editor__layout">
+    <form class="prescription-editor__fields" (ngSubmit)="save()">
+      <section class="prescription-editor__card">
+        <h3>Bloc émetteur</h3>
+        <div class="prescription-editor__grid">
+          <label class="prescription-editor__wide"
+            >Tutelle<input
+              name="tutelle"
+              maxlength="160"
+              [(ngModel)]="template.tutelle"
+              placeholder="Ministère de la Santé et de l'Action sociale"
+          /></label>
+          <label
+            >Région / district<input
+              name="region"
+              maxlength="160"
+              [(ngModel)]="template.region"
+              placeholder="Région médicale de Dakar"
+          /></label>
+          <label
+            >Structure / clinique<input
+              name="structure"
+              maxlength="160"
+              [(ngModel)]="template.structure"
+              placeholder="Clinique…"
+          /></label>
+          <label
+            >Prescripteur<input
+              name="prescripteur"
+              maxlength="160"
+              [(ngModel)]="template.prescripteur"
+              placeholder="Dr Prénom Nom"
+          /></label>
+          <label
+            >Qualification<input
+              name="qualification"
+              maxlength="160"
+              [(ngModel)]="template.qualification"
+              placeholder="Médecin généraliste"
+          /></label>
+          <label
+            >Adresse<input
+              name="adresse"
+              maxlength="240"
+              [(ngModel)]="template.adresse"
+              placeholder="Dakar, Sénégal"
+          /></label>
+          <label class="prescription-editor__wide"
+            >Téléphone<input
+              name="telephone"
+              maxlength="40"
+              [(ngModel)]="template.telephone"
+              placeholder="+221 …"
+          /></label>
+        </div>
+      </section>
+
+      <section class="prescription-editor__card">
+        <h3>Logo, signature et cachet</h3>
+        <div class="prescription-editor__assets">
+          <div
+            *ngFor="
+              let asset of [
+                { field: 'logoUrl', label: 'Logo' },
+                { field: 'signatureUrl', label: 'Signature' },
+                { field: 'cachetUrl', label: 'Cachet' },
+              ]
+            "
+            class="prescription-editor__asset"
+          >
+            <strong>{{ asset.label }}</strong>
+            <div class="prescription-editor__asset-preview">
+              <img
+                *ngIf="imageUrl($any(asset.field)) as url; else noImage"
+                [src]="url"
+                [alt]="asset.label"
+              />
+              <ng-template #noImage><span>Aucune image</span></ng-template>
+            </div>
+            <div class="prescription-editor__asset-actions">
+              <label
+                >Importer<input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  (change)="upload($event, $any(asset.field))"
+                  [disabled]="!!uploading"
+              /></label>
+              <button
+                type="button"
+                (click)="removeImage($any(asset.field))"
+                [disabled]="!!uploading"
+              >
+                Retirer
+              </button>
+            </div>
+            <label class="prescription-editor__filter">
+              <input
+                type="checkbox"
+                [name]="asset.field + 'Filter'"
+                [ngModel]="imageFilterEnabled(asset.field)"
+                (ngModelChange)="setImageFilter(asset.field, $event)"
+              />
+              Retirer le fond clair (optionnel)
+            </label>
+          </div>
+        </div>
+        <p class="prescription-editor__hint">
+          Les images sont importées directement. Activez le retrait du fond uniquement si
+          nécessaire. La signature et le cachet apparaîtront sur les ordonnances générées.
+        </p>
+        <label class="prescription-editor__footer-field"
+          >Pied de page<input name="piedDePage" maxlength="300" [(ngModel)]="template.piedDePage"
+        /></label>
+      </section>
+    </form>
+
+    <aside class="prescription-editor__preview" aria-label="Aperçu du modèle d'ordonnance">
+      <div class="prescription-editor__preview-label">Aperçu du document</div>
+      <article class="prescription-editor__sheet">
+        <div class="prescription-editor__sheet-top">
+          <div class="prescription-editor__issuer">
+            <img *ngIf="imageUrl('logoUrl') as logo" [src]="logo" alt="" />
+            <div>
+              <small>{{ template.tutelle }}</small>
+              <small>{{ template.region }}</small>
+              <strong>{{ template.structure || 'Votre structure' }}</strong>
+              <b>{{ template.prescripteur || doctorName || 'Dr Prénom Nom' }}</b>
+              <span>{{ template.qualification || 'Qualification' }}</span>
+              <span>{{ template.adresse }}</span>
+              <span>{{ template.telephone }}</span>
+            </div>
+          </div>
+          <div class="prescription-editor__patient">
+            <span>Date : {{ today | date: 'dd/MM/yyyy' }}</span>
+            <span>Prénom : —</span>
+            <span>Nom : —</span>
+            <span>Âge : —</span>
+            <span>Adresse : —</span>
+          </div>
+        </div>
+        <h3>ORDONNANCE</h3>
+        <div class="prescription-editor__body">
+          <p>
+            Les traitements, vaccins et actes prescrits au patient apparaîtront ici après la
+            consultation.
+          </p>
+        </div>
+        <div class="prescription-editor__signatures">
+          <small>Signature et cachet</small>
+          <div>
+            <img *ngIf="imageUrl('signatureUrl') as signature" [src]="signature" alt="Signature" />
+            <img *ngIf="imageUrl('cachetUrl') as stamp" [src]="stamp" alt="Cachet" />
+          </div>
+        </div>
+        <footer>{{ template.piedDePage }}</footer>
+      </article>
+    </aside>
+  </div>
+</section>

@@ -17,6 +17,7 @@ import {
 } from '../../services/domain/models/services.models';
 import { BackendReservation } from '../../appointments/domain/appointments.models';
 
+import { MedicalPrescriptionTemplate } from '../../appointments/domain/medical-prescription-template';
 export type DoctorWalletTransaction = {
   id: string;
   title: string;
@@ -75,6 +76,14 @@ type CategoryStructureApiView = Omit<CategoryStructure, 'subCategories'> & {
 export class DoctorSpaceService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.apiUrl;
+
+  getMyPrescriptionTemplate(): Observable<MedicalPrescriptionTemplate | null> {
+    return this.http.get<ApiResponse<MedicalPrescriptionTemplate | null>>(this.apiUrl + "/professionals/me/prescription-template").pipe(map(unwrapApiResponse));
+  }
+
+  updateMyPrescriptionTemplate(template: MedicalPrescriptionTemplate): Observable<MedicalPrescriptionTemplate> {
+    return this.http.put<ApiResponse<MedicalPrescriptionTemplate>>(this.apiUrl + "/professionals/me/prescription-template", template).pipe(map(unwrapApiResponse));
+  }
 
   getMyProfile(): Observable<BackendProfessionalProfile> {
     return this.http

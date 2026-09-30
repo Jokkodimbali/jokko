@@ -1,11 +1,11 @@
-<main class="doctor-space" [class.doctor-space--patients]="activeSection() === 'patient-appointments'">
+<main class="doctor-space" [class.doctor-space--patients]="activeSection() === 'patient-appointments'" [class.doctor-space--management]="activeSection() === 'consultation'">
   <section class="doctor-space__content">
     <header
       class="doctor-space__header"
       [class.doctor-space__header--agenda]="activeSection() === 'agenda'"
       [class.doctor-space__header--negotiations]="activeSection() === 'negotiations'"
     >
-      <h1>{{ pageTitle() }}</h1>
+      <h1><ng-container *ngIf="activeSection() === 'consultation'; else otherPageTitle">Disponibilité et <span>services</span></ng-container><ng-template #otherPageTitle>{{ pageTitle() }}</ng-template></h1>
       <p *ngIf="pageSubtitle()">{{ pageSubtitle() }}</p>
     </header>
 
@@ -38,7 +38,16 @@
         [attr.aria-selected]="managementTab() === 'availability'"
         [class.doctor-space__management-tab--active]="managementTab() === 'availability'"
         (click)="selectManagementTab('availability')"
-      >Disponibilités</button>
+      ><span class="doctor-space__management-step">1</span><span><strong>Horaires et créneaux</strong><small>Quand travaillez-vous ?</small></span><span class="doctor-space__management-count">{{ weeklyAppointmentCapacity() }} / sem</span></button>
+      <button
+        id="doctor-space-travel-tab"
+        type="button"
+        role="tab"
+        aria-controls="doctor-space-travel-panel"
+        [attr.aria-selected]="managementTab() === 'travel'"
+        [class.doctor-space__management-tab--active]="managementTab() === 'travel'"
+        (click)="selectManagementTab('travel')"
+      ><span class="doctor-space__management-step">2</span><span><strong>Déplacement</strong><small>Comment intervenez-vous ?</small></span></button>
       <button
         id="doctor-space-services-tab"
         type="button"
@@ -47,7 +56,27 @@
         [attr.aria-selected]="managementTab() === 'services'"
         [class.doctor-space__management-tab--active]="managementTab() === 'services'"
         (click)="selectManagementTab('services')"
-      >{{ isProviderSpace() ? 'Services' : 'Services / motifs' }}</button>
+      ><span class="doctor-space__management-step">3</span><span><strong>{{ isProviderSpace() ? 'Services et tarifs' : 'Motifs et tarifs' }}</strong><small>Que proposez-vous, à quel prix ?</small></span><span class="doctor-space__management-count">{{ motifs().length }} motifs</span></button>
+      <button
+        *ngIf="!isProviderSpace()"
+        id="doctor-space-prescription-tab"
+        type="button"
+        role="tab"
+        aria-controls="doctor-space-prescription-panel"
+        [attr.aria-selected]="managementTab() === 'prescription'"
+        [class.doctor-space__management-tab--active]="managementTab() === 'prescription'"
+        (click)="selectManagementTab('prescription')"
+      ><span class="doctor-space__management-step">4</span><span><strong>Ordonnance</strong><small>Votre modèle personnalisé</small></span></button>
+      <button
+        *ngIf="isProviderSpace()"
+        id="doctor-space-invoices-tab"
+        type="button"
+        role="tab"
+        aria-controls="doctor-space-invoices-panel"
+        [attr.aria-selected]="managementTab() === 'invoices'"
+        [class.doctor-space__management-tab--active]="managementTab() === 'invoices'"
+        (click)="selectManagementTab('invoices')"
+      ><span class="doctor-space__management-step">4</span><span><strong>Facture</strong><small>Vos documents de paiement</small></span></button>
     </div>
 
     <section
@@ -57,17 +86,14 @@
       role="tabpanel"
       aria-labelledby="doctor-space-availability-tab"
     >
-      <header class="doctor-space__management-section-header">
-        <h2 id="doctor-space-availability-title">Disponibilités</h2>
-        <p>Définissez vos jours, vos horaires et les créneaux proposés aux clients.</p>
-      </header>
+
       <section class="doctor-space__cards" aria-label="Parametres rapides">
         <article class="doctor-space__blocked-card">
           <header>
             <lucide-icon name="calendar-days" size="22" [strokeWidth]="2.1"></lucide-icon>
-            <span>Jours bloqu&eacute;</span>
+            <span>Jours bloqués</span>
           </header>
-          <p>Ces dates seront indisponibles dans l'agenda</p>
+          <p>Touchez une date pour la rendre indisponible dans l'agenda.</p>
 
           <div class="doctor-space__calendar">
             <div class="doctor-space__calendar-head">
@@ -110,7 +136,7 @@
                 <span class="doctor-space__calendar-day-number">
                   {{ day.isOutside ? '' : day.dayOfMonth }}
                 </span>
-                <span *ngIf="!day.isOutside" class="doctor-space__calendar-day-glow"></span>
+
               </button>
             </div>
             <div
@@ -129,6 +155,13 @@
                 </button>
               </div>
             </div>
+            <div class="doctor-space__calendar-legend" aria-label="Légende du calendrier">
+              <span><i class="doctor-space__calendar-legend-swatch doctor-space__calendar-legend-swatch--blocked" aria-hidden="true"></i>Bloqué</span>
+              <span><i class="doctor-space__calendar-legend-swatch doctor-space__calendar-legend-swatch--today" aria-hidden="true"></i>Aujourd’hui</span>
+              <span><i class="doctor-space__calendar-legend-swatch doctor-space__calendar-legend-swatch--available" aria-hidden="true"></i>Disponible</span>
+              <span><i class="doctor-space__calendar-legend-swatch doctor-space__calendar-legend-swatch--closed" aria-hidden="true"></i>Fermé</span>
+              <small>{{ blockedCalendarDateLabels().length }} jour(s) bloqué(s)</small>
+            </div>
           </div>
         </article>
 
@@ -145,35 +178,57 @@
             }}
           </p>
 
-          <label>
-            <span>{{ isProviderSpace() ? "Durée d'une prestation" : "Durée d'un rendez-vous" }}</span>
-            <output>{{ appointmentDuration() }} min</output>
-            <input
-              type="range"
-              min="0"
-              max="90"
-              step="5"
-              [ngModel]="appointmentDuration()"
-              (ngModelChange)="updateAppointmentDuration($event)"
-              (change)="persistAppointmentSettings()"
-              [style.--progress]="durationProgress() + '%'"
-            />
-          </label>
+          <div class="doctor-space__params-option-group">
+            <span>{{ isProviderSpace() ? "Durée d'une prestation" : "Durée par défaut" }}</span>
+            <div class="doctor-space__params-preset-options" aria-label="Durée par défaut">
+              <button
+                *ngFor="let duration of [10, 15, 20, 30, 45, 60]"
+                type="button"
+                [class.doctor-space__params-preset--active]="appointmentDuration() === duration"
+                [attr.aria-pressed]="appointmentDuration() === duration"
+                (click)="updateAppointmentDuration(duration); persistAppointmentSettings()"
+              >{{ duration === 60 ? '1h' : duration + ' min' }}</button>
+            </div>
+            <label class="doctor-space__params-range">
+              <span>Ajuster la durée : <output>{{ appointmentDuration() }} min</output></span>
+              <input
+                type="range"
+                min="0"
+                max="90"
+                step="5"
+                [ngModel]="appointmentDuration()"
+                (ngModelChange)="updateAppointmentDuration($event)"
+                (change)="persistAppointmentSettings()"
+                [style.--progress]="durationProgress() + '%'"
+              />
+            </label>
+          </div>
 
-          <label>
-            <span>{{ isProviderSpace() ? 'Pause entre prestations' : 'Pause entre rendez-vous' }}</span>
-            <output>{{ appointmentPause() }} min</output>
-            <input
-              type="range"
-              min="0"
-              max="60"
-              step="5"
-              [ngModel]="appointmentPause()"
-              (ngModelChange)="updateAppointmentPause($event)"
-              (change)="persistAppointmentSettings()"
-              [style.--progress]="pauseProgress() + '%'"
-            />
-          </label>
+          <div class="doctor-space__params-option-group">
+            <span>{{ isProviderSpace() ? 'Pause entre prestations' : 'Pause entre deux rendez-vous' }}</span>
+            <div class="doctor-space__params-preset-options" aria-label="Pause entre rendez-vous">
+              <button
+                *ngFor="let pause of [0, 5, 10, 15]"
+                type="button"
+                [class.doctor-space__params-preset--active]="appointmentPause() === pause"
+                [attr.aria-pressed]="appointmentPause() === pause"
+                (click)="updateAppointmentPause(pause); persistAppointmentSettings()"
+              >{{ pause === 0 ? 'Aucune' : pause + ' min' }}</button>
+            </div>
+            <label class="doctor-space__params-range">
+              <span>Ajuster la pause : <output>{{ appointmentPause() }} min</output></span>
+              <input
+                type="range"
+                min="0"
+                max="60"
+                step="5"
+                [ngModel]="appointmentPause()"
+                (ngModelChange)="updateAppointmentPause($event)"
+                (change)="persistAppointmentSettings()"
+                [style.--progress]="pauseProgress() + '%'"
+              />
+            </label>
+          </div>
 
           <div class="doctor-space__appointment-rule">
             <strong>{{ appointmentStepMinutes() }} min</strong>
@@ -186,6 +241,152 @@
         </article>
       </section>
 
+
+      <section class="doctor-space__schedule">
+        <header>
+          <div>
+            <h2>Horaires hebdomadaires</h2>
+            <p>Activez les jours travaill&eacute;s et d&eacute;finissez vos plages horaires</p>
+          </div>
+          <span class="doctor-space__schedule-badge">
+            <lucide-icon name="calendar-days" size="15" [strokeWidth]="2.2"></lucide-icon>
+            {{ weeklyAppointmentCapacity() }} creneau(x) / semaine
+          </span>
+        </header>
+
+        <article
+          *ngFor="let day of days(); trackBy: trackDay"
+          class="doctor-space__day"
+          [class.doctor-space__day--disabled]="!day.enabled"
+        >
+          <div class="doctor-space__day-head">
+            <div class="doctor-space__day-main">
+              <button
+                type="button"
+                class="doctor-space__switch"
+                [class.doctor-space__switch--active]="day.enabled"
+                [disabled]="isSaving()"
+                (click)="toggleDay(day)"
+                [attr.aria-label]="day.enabled ? 'Desactiver ' + day.label : 'Activer ' + day.label"
+              >
+                <span></span>
+              </button>
+              <h3>{{ day.label }}</h3>
+            </div>
+
+            <button
+              *ngIf="day.enabled"
+              type="button"
+              class="doctor-space__add"
+              [disabled]="isSaving()"
+              [attr.aria-label]="'Ajouter une plage pour ' + day.label"
+              (click)="addSlot(day)"
+            >
+              <lucide-icon name="plus" size="15" [strokeWidth]="2.7"></lucide-icon>
+              Ajouter
+            </button>
+          </div>
+
+          <div class="doctor-space__slots" *ngIf="day.enabled">
+            <div *ngFor="let slot of day.slots; trackBy: trackSlot" class="doctor-space__slot">
+              <div class="doctor-space__slot-times">
+                <label>
+                  <span>
+                    <select
+                      [ngModel]="slot.startTime"
+                      [disabled]="isSaving()"
+                      (ngModelChange)="slot.startTime = $event; saveSlot(day, slot)"
+                    >
+                      <option
+                        *ngFor="let option of timeOptionsFor(slot.startTime, slot.endTime)"
+                        [value]="option"
+                      >
+                        {{ option }}
+                      </option>
+                    </select>
+                    <lucide-icon name="clock-3" size="15" [strokeWidth]="2"></lucide-icon>
+                  </span>
+                </label>
+                <span class="doctor-space__arrow">&rarr;</span>
+                <label>
+                  <span>
+                    <select
+                      [ngModel]="slot.endTime"
+                      [disabled]="isSaving()"
+                      (ngModelChange)="slot.endTime = $event; saveSlot(day, slot)"
+                    >
+                      <option
+                        *ngFor="let option of timeOptionsFor(slot.startTime, slot.endTime)"
+                        [value]="option"
+                      >
+                        {{ option }}
+                      </option>
+                    </select>
+                    <lucide-icon name="clock-3" size="15" [strokeWidth]="2"></lucide-icon>
+                  </span>
+                </label>
+              </div>
+              <button
+                type="button"
+                class="doctor-space__remove"
+                [disabled]="isSaving()"
+                (click)="removeSlot(day, slot)"
+                aria-label="Supprimer ce cr&eacute;neau"
+              >
+                <lucide-icon name="x" size="16" [strokeWidth]="2.5"></lucide-icon>
+              </button>
+            </div>
+            <p class="doctor-space__empty-slot" *ngIf="day.slots.length === 0">
+              Aucune plage — cliquez sur "Ajouter"
+            </p>
+          </div>
+        </article>
+      </section>
+
+      <article class="doctor-space__available-slots">
+        <header>
+          <div>
+            <h3>Aperçu des créneaux</h3>
+            <p>Ce que vos clients voient au moment de réserver.</p>
+          </div>
+          <span class="doctor-space__available-total">{{ availabilityPreviewTotal() }} créneaux sur 7 jours</span>
+        </header>
+
+        <div class="doctor-space__available-grid" aria-label="Choisir un jour de prévisualisation">
+          <button
+            *ngFor="let day of availabilityPreviewDays()"
+            type="button"
+            class="doctor-space__available-day"
+            [class.doctor-space__available-day--active]="activeAvailabilityPreviewDay().key === day.key"
+            [class.doctor-space__available-day--blocked]="day.isBlocked"
+            [attr.aria-pressed]="activeAvailabilityPreviewDay().key === day.key"
+            [attr.aria-label]="day.label + ', ' + (day.isBlocked ? 'bloqué' : day.previews.length + ' créneaux')"
+            (click)="selectAvailabilityPreviewDay(day)"
+          >
+            <span class="doctor-space__available-weekday">{{ day.weekday }}</span>
+            <strong class="doctor-space__available-date">{{ day.dayNumber }}</strong>
+            <small class="doctor-space__available-status">{{ day.isBlocked ? 'bloqué' : day.previews.length }}</small>
+          </button>
+        </div>
+        <div *ngIf="activeAvailabilityPreviewDay() as previewDay" class="doctor-space__available-list">
+          <button
+            *ngFor="let preview of previewDay.previews"
+            type="button"
+            [class.doctor-space__available-choice--selected]="isAvailablePreviewSelected(previewDay, preview)"
+            (click)="selectAvailablePreview(previewDay, preview)"
+          >{{ preview.startTime }}</button>
+          <em *ngIf="previewDay.previews.length === 0">{{ previewDay.isBlocked ? 'Ce jour est bloqué.' : 'Aucun créneau disponible pour ce jour.' }}</em>
+        </div>
+      </article>
+    </section>
+
+    <section
+      *ngIf="!isLoading() && !errorMessage() && activeSection() === 'consultation' && managementTab() === 'travel'"
+      id="doctor-space-travel-panel"
+      class="doctor-space__management-section doctor-space__management-section--travel"
+      role="tabpanel"
+      aria-labelledby="doctor-space-travel-tab"
+    >
       <section class="doctor-space__travel-mode" aria-labelledby="travel-mode-title">
         <header>
           <span class="doctor-space__travel-mode-icon">
@@ -197,10 +398,7 @@
           </div>
         </header>
 
-        <div
-          class="doctor-space__travel-layout"
-          [class.doctor-space__travel-layout--with-map]="shouldShowInterventionMap()"
-        >
+        <div class="doctor-space__travel-layout">
           <div
             class="doctor-space__travel-options"
             role="radiogroup"
@@ -302,145 +500,6 @@
           </button>
         </section>
       </section>
-
-      <section class="doctor-space__schedule">
-        <header>
-          <div>
-            <h2>Horaires hebdomadaires</h2>
-            <p>Activez les jours travaill&eacute;s et d&eacute;finissez vos plages horaires</p>
-          </div>
-          <span class="doctor-space__schedule-badge">
-            <lucide-icon name="calendar-days" size="15" [strokeWidth]="2.2"></lucide-icon>
-            {{ weeklyAppointmentCapacity() }} creneau(x) / semaine
-          </span>
-        </header>
-
-        <article
-          *ngFor="let day of days(); trackBy: trackDay"
-          class="doctor-space__day"
-          [class.doctor-space__day--disabled]="!day.enabled"
-        >
-          <div class="doctor-space__day-head">
-            <div class="doctor-space__day-main">
-              <button
-                type="button"
-                class="doctor-space__switch"
-                [class.doctor-space__switch--active]="day.enabled"
-                [disabled]="isSaving()"
-                (click)="toggleDay(day)"
-                [attr.aria-label]="day.enabled ? 'Desactiver ' + day.label : 'Activer ' + day.label"
-              >
-                <span></span>
-              </button>
-              <h3>{{ day.label }}</h3>
-            </div>
-
-            <button
-              *ngIf="day.enabled"
-              type="button"
-              class="doctor-space__add"
-              [disabled]="isSaving()"
-              (click)="addSlot(day)"
-            >
-              <lucide-icon name="plus" size="15" [strokeWidth]="2.7"></lucide-icon>
-              Ajouter
-            </button>
-          </div>
-
-          <div class="doctor-space__slots" *ngIf="day.enabled">
-            <div *ngFor="let slot of day.slots; trackBy: trackSlot" class="doctor-space__slot">
-              <div class="doctor-space__slot-times">
-                <label>
-                  <span>
-                    <select
-                      [ngModel]="slot.startTime"
-                      [disabled]="isSaving()"
-                      (ngModelChange)="slot.startTime = $event; saveSlot(day, slot)"
-                    >
-                      <option
-                        *ngFor="let option of timeOptionsFor(slot.startTime, slot.endTime)"
-                        [value]="option"
-                      >
-                        {{ option }}
-                      </option>
-                    </select>
-                    <lucide-icon name="clock-3" size="15" [strokeWidth]="2"></lucide-icon>
-                  </span>
-                </label>
-                <span class="doctor-space__arrow">&rarr;</span>
-                <label>
-                  <span>
-                    <select
-                      [ngModel]="slot.endTime"
-                      [disabled]="isSaving()"
-                      (ngModelChange)="slot.endTime = $event; saveSlot(day, slot)"
-                    >
-                      <option
-                        *ngFor="let option of timeOptionsFor(slot.startTime, slot.endTime)"
-                        [value]="option"
-                      >
-                        {{ option }}
-                      </option>
-                    </select>
-                    <lucide-icon name="clock-3" size="15" [strokeWidth]="2"></lucide-icon>
-                  </span>
-                </label>
-              </div>
-              <button
-                type="button"
-                class="doctor-space__remove"
-                [disabled]="isSaving()"
-                (click)="removeSlot(day, slot)"
-                aria-label="Supprimer ce cr&eacute;neau"
-              >
-                <lucide-icon name="x" size="16" [strokeWidth]="2.5"></lucide-icon>
-              </button>
-            </div>
-            <p class="doctor-space__empty-slot" *ngIf="day.slots.length === 0">
-              Aucune plage — cliquez sur "Ajouter"
-            </p>
-          </div>
-        </article>
-
-        <article class="doctor-space__available-slots">
-          <header>
-            <span class="doctor-space__available-icon">
-              <lucide-icon name="calendar-check" size="20" [strokeWidth]="2.4"></lucide-icon>
-            </span>
-            <div>
-              <h3>Creneaux disponibles</h3>
-              <p>{{ weeklyAppointmentCapacity() }} creneau(x) generes sur les 7 prochains jours</p>
-            </div>
-          </header>
-
-          <div class="doctor-space__available-grid">
-            <section
-              *ngFor="let day of availabilityPreviewDays()"
-              class="doctor-space__available-day"
-            >
-              <strong>{{ day.label }}</strong>
-              <div
-                *ngIf="day.previews.length > 0; else unavailableDay"
-                class="doctor-space__available-list"
-              >
-                <button
-                  *ngFor="let preview of day.previews"
-                  type="button"
-                  [class.doctor-space__available-choice--selected]="
-                    isAvailablePreviewSelected(day, preview)
-                  "
-                  (click)="selectAvailablePreview(day, preview)"
-                >
-                  {{ preview.startTime }}
-                </button>
-              </div>
-              <ng-template #unavailableDay>
-                <em>Indisponible</em>
-              </ng-template>
-            </section>
-          </div>
-        </article>
-      </section>
     </section>
 
     <section
@@ -450,136 +509,26 @@
       role="tabpanel"
       aria-labelledby="doctor-space-services-tab"
     >
-      <header class="doctor-space__management-section-header">
-        <h2 id="doctor-space-services-title">{{ isProviderSpace() ? 'Mes services' : 'Services et motifs' }}</h2>
-        <p>{{ isProviderSpace() ? 'Créez et gérez les prestations proposées aux clients.' : 'Créez et gérez les motifs de consultation proposés aux patients.' }}</p>
-      </header>
-      <form class="doctor-space__motif-form" (ngSubmit)="addMotif()">
-        <header>
-          <span class="doctor-space__motif-header-icon">
-            <lucide-icon name="plus" size="18" [strokeWidth]="2.6"></lucide-icon>
-          </span>
-          <div>
-            <strong>{{ serviceFormTitle() }}</strong>
-            <span>{{ serviceFormSubtitle() }}</span>
-          </div>
-        </header>
-
-        <div class="doctor-space__motif-fields">
-          <label class="doctor-space__motif-field">
-            <span>{{ serviceNameLabel() }}</span>
-            <input
-              type="text"
-              name="motifName"
-              [placeholder]="serviceNamePlaceholder()"
-              [(ngModel)]="motifForm.name"
-              required
-            />
-          </label>
-          <label class="doctor-space__motif-field">
-            <span>{{ servicePriceFieldLabel() }}</span>
-            <span class="doctor-space__motif-input-wrap">
-              <input
-                type="number"
-                name="motifPrice"
-                min="1"
-                [step]="servicePriceFieldStep()"
-                [(ngModel)]="motifForm.price"
-                required
-              />
-              <lucide-icon name="circle-dollar-sign" size="17" [strokeWidth]="2"></lucide-icon>
-            </span>
-            <small>{{ servicePriceHelp() }}</small>
-          </label>
-          <label
-            class="doctor-space__motif-field doctor-space__motif-image-field doctor-space__motif-image-field--dropzone"
-          >
-            <span>Image du service</span>
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              (change)="selectProfessionalAsset($event, 'service-image')"
-            />
-            <div class="doctor-space__motif-image-preview">
-              <img
-                *ngIf="serviceImagePreview()?.url as imageUrl; else serviceImagePlaceholder"
-                [src]="imageUrl"
-                alt=""
-              />
-              <ng-template #serviceImagePlaceholder>
-                <lucide-icon name="image-plus" size="20" [strokeWidth]="2.2"></lucide-icon>
-              </ng-template>
-              <strong>{{ serviceImageFileName() || 'Ajouter une image' }}</strong>
-            </div>
-            <small>{{
-              uploadingProfessionalAsset() === 'service-image'
-                ? 'Upload en cours...'
-                : 'Cette image sera affichee sur la fiche publique.'
-            }}</small>
-          </label>
-          <div class="doctor-space__motif-field doctor-space__motif-field--toggle">
-            <span>Statut</span>
-            <div class="doctor-space__motif-required-card">
-              <div>
-                <strong>{{ isProviderSpace() ? 'Service principal' : 'Motif obligatoire' }}</strong>
-                <span>{{
-                  isProviderSpace()
-                    ? 'Mis en avant sur votre fiche'
-                    : 'Coche automatiquement lors du RDV'
-                }}</span>
-              </div>
-              <button
-                type="button"
-                class="doctor-space__motif-switch"
-                [class.doctor-space__motif-switch--active]="motifForm.isRequired"
-                (click)="motifForm.isRequired = !motifForm.isRequired"
-                aria-label="Changer le statut obligatoire"
-              >
-                <span></span>
-              </button>
-            </div>
-            <div *ngIf="!isProviderSpace()" class="doctor-space__motif-required-card">
-              <div>
-                <strong>Téléconsultation</strong>
-                <span>Proposer ce motif en consultation vidéo au client</span>
-              </div>
-              <button
-                type="button"
-                class="doctor-space__motif-switch"
-                [class.doctor-space__motif-switch--active]="motifForm.teleconsultationEnabled"
-                (click)="motifForm.teleconsultationEnabled = !motifForm.teleconsultationEnabled"
-                aria-label="Activer ou désactiver la téléconsultation"
-              >
-                <span></span>
-              </button>
-            </div>
-          </div>
-          <div class="doctor-space__motif-form-actions">
-            <button type="submit" class="doctor-space__motif-submit" [disabled]="isSaving()">
-              <lucide-icon name="plus" size="15" [strokeWidth]="2.6"></lucide-icon>
-              {{ isProviderSpace() ? 'Ajouter ce service' : 'Ajouter ce motif' }}
-            </button>
-          </div>
-        </div>
-      </form>
 
       <section class="doctor-space__motif-list">
-        <header>
-          <div class="doctor-space__motif-list-title">
-            <span class="doctor-space__motif-list-icon">
-              <lucide-icon name="clipboard" size="20" [strokeWidth]="2.2"></lucide-icon>
-            </span>
-            <h3>{{ serviceListTitle() }}</h3>
-            <span class="doctor-space__motif-count">{{ motifs().length }}</span>
-          </div>
-          <p>
-            <lucide-icon name="info" size="16" [strokeWidth]="2.3"></lucide-icon>
-            {{
+        <header class="doctor-space__motif-list-header">
+          <div class="doctor-space__motif-list-heading">
+            <h2 id="doctor-space-services-title">{{ serviceListTitle() }}</h2>
+            <p>{{
               isProviderSpace()
-                ? 'Les services negotiables ouvrent une discussion avec le client'
-                : 'Les motifs obligatoires sont coches automatiquement'
-            }}
-          </p>
+                ? 'Les services négociables ouvrent une discussion avec le client.'
+                : 'Les motifs obligatoires sont cochés automatiquement à la prise de rendez-vous.'
+            }}</p>
+          </div>
+          <button
+            type="button"
+            class="doctor-space__motif-add-button"
+            [disabled]="isSaving()"
+            (click)="openMotifCreateModal()"
+          >
+            <lucide-icon name="plus" size="17" [strokeWidth]="2.4"></lucide-icon>
+            {{ isProviderSpace() ? 'Nouveau service' : 'Nouveau motif' }}
+          </button>
         </header>
 
         <p *ngIf="motifs().length === 0" class="doctor-space__motif-empty">
@@ -685,6 +634,132 @@
             </strong>
           </footer>
         </div>
+      </section>
+
+      <section
+        *ngIf="isMotifCreateModalOpen()"
+        class="doctor-space__motif-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="motif-create-title"
+        (keydown.escape)="closeMotifCreateModal()"
+      >
+        <div class="doctor-space__motif-modal-backdrop" (click)="closeMotifCreateModal()"></div>
+        <form class="doctor-space__motif-modal-panel doctor-space__motif-add-panel" (ngSubmit)="addMotif()">
+          <button
+            type="button"
+            class="doctor-space__motif-modal-close"
+            (click)="closeMotifCreateModal()"
+            [disabled]="isSaving()"
+            aria-label="Fermer l'ajout de motif"
+          >
+            <lucide-icon name="x" size="24" [strokeWidth]="2.2"></lucide-icon>
+          </button>
+          <header>
+            <small>Création</small>
+            <h2 id="motif-create-title">{{ serviceFormTitle() }}</h2>
+            <p>{{ serviceFormSubtitle() }}</p>
+          </header>
+
+        <div class="doctor-space__motif-fields">
+          <label class="doctor-space__motif-field">
+            <span>{{ serviceNameLabel() }}</span>
+            <input
+              type="text"
+              name="motifName"
+              [placeholder]="serviceNamePlaceholder()"
+              [(ngModel)]="motifForm.name"
+              autofocus
+              required
+            />
+          </label>
+          <label class="doctor-space__motif-field">
+            <span>{{ servicePriceFieldLabel() }}</span>
+            <span class="doctor-space__motif-input-wrap">
+              <input
+                type="number"
+                name="motifPrice"
+                min="1"
+                [step]="servicePriceFieldStep()"
+                [(ngModel)]="motifForm.price"
+                required
+              />
+              <lucide-icon name="circle-dollar-sign" size="17" [strokeWidth]="2"></lucide-icon>
+            </span>
+            <small>{{ servicePriceHelp() }}</small>
+          </label>
+          <label
+            class="doctor-space__motif-field doctor-space__motif-image-field doctor-space__motif-image-field--dropzone"
+          >
+            <span>Image du service</span>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              (change)="selectProfessionalAsset($event, 'service-image')"
+            />
+            <div class="doctor-space__motif-image-preview">
+              <img
+                *ngIf="serviceImagePreview()?.url as imageUrl; else serviceImagePlaceholder"
+                [src]="imageUrl"
+                alt=""
+              />
+              <ng-template #serviceImagePlaceholder>
+                <lucide-icon name="image-plus" size="20" [strokeWidth]="2.2"></lucide-icon>
+              </ng-template>
+              <strong>{{ serviceImageFileName() || 'Ajouter une image' }}</strong>
+            </div>
+            <small>{{
+              uploadingProfessionalAsset() === 'service-image'
+                ? 'Upload en cours...'
+                : 'Cette image sera affichee sur la fiche publique.'
+            }}</small>
+          </label>
+          <div class="doctor-space__motif-field doctor-space__motif-field--toggle">
+            <span>Statut</span>
+            <div class="doctor-space__motif-required-card">
+              <div>
+                <strong>{{ isProviderSpace() ? 'Service principal' : 'Motif obligatoire' }}</strong>
+                <span>{{
+                  isProviderSpace()
+                    ? 'Mis en avant sur votre fiche'
+                    : 'Coche automatiquement lors du RDV'
+                }}</span>
+              </div>
+              <button
+                type="button"
+                class="doctor-space__motif-switch"
+                [class.doctor-space__motif-switch--active]="motifForm.isRequired"
+                (click)="motifForm.isRequired = !motifForm.isRequired"
+                aria-label="Changer le statut obligatoire"
+              >
+                <span></span>
+              </button>
+            </div>
+            <div *ngIf="!isProviderSpace()" class="doctor-space__motif-required-card">
+              <div>
+                <strong>Téléconsultation</strong>
+                <span>Proposer ce motif en consultation vidéo au client</span>
+              </div>
+              <button
+                type="button"
+                class="doctor-space__motif-switch"
+                [class.doctor-space__motif-switch--active]="motifForm.teleconsultationEnabled"
+                (click)="motifForm.teleconsultationEnabled = !motifForm.teleconsultationEnabled"
+                aria-label="Activer ou désactiver la téléconsultation"
+              >
+                <span></span>
+              </button>
+            </div>
+          </div>
+          <div class="doctor-space__motif-form-actions">
+            <button type="button" class="doctor-space__motif-cancel" [disabled]="isSaving()" (click)="closeMotifCreateModal()">Annuler</button>
+            <button type="submit" class="doctor-space__motif-submit" [disabled]="isSaving()">
+              <lucide-icon name="plus" size="15" [strokeWidth]="2.6"></lucide-icon>
+              {{ isProviderSpace() ? 'Ajouter ce service' : 'Ajouter ce motif' }}
+            </button>
+          </div>
+        </div>
+        </form>
       </section>
 
       <section
@@ -825,6 +900,62 @@
           </footer>
         </form>
       </section>
+    </section>
+
+    <section
+      *ngIf="!isLoading() && !errorMessage() && activeSection() === 'consultation' && managementTab() === 'invoices'"
+      id="doctor-space-invoices-panel"
+      class="doctor-space__management-section doctor-space__invoices"
+      role="tabpanel"
+      aria-labelledby="doctor-space-invoices-tab"
+    >
+      <header class="doctor-space__invoices-header">
+        <div>
+          <h2>Factures des rendez-vous terminés</h2>
+          <p>Retrouvez chaque rendez-vous et ouvrez son détail pour télécharger la facture existante.</p>
+        </div>
+        <button type="button" (click)="reloadInvoices()" [disabled]="!invoicesLoaded() && !invoicesError()">
+          Actualiser
+        </button>
+      </header>
+
+      <p *ngIf="!invoicesLoaded() && !invoicesError()" class="doctor-space__invoices-state" role="status">
+        Chargement des factures…
+      </p>
+      <p *ngIf="invoicesError()" class="doctor-space__invoices-state doctor-space__invoices-state--error" role="alert">
+        {{ invoicesError() }}
+      </p>
+      <p *ngIf="invoicesLoaded() && invoiceReservations().length === 0" class="doctor-space__invoices-state">
+        Aucune facture pour le moment. Vos rendez-vous terminés apparaîtront ici.
+      </p>
+
+      <div *ngIf="invoicesLoaded() && invoiceReservations().length > 0" class="doctor-space__invoices-list">
+        <article *ngFor="let reservation of invoiceReservations()" class="doctor-space__invoice-row">
+          <span class="doctor-space__invoice-ref">N° {{ reservation.id.slice(0, 8).toUpperCase() }}</span>
+          <div class="doctor-space__invoice-details">
+            <strong>{{ reservation.service?.nom || 'Prestation' }}</strong>
+            <small>{{ reservation.client?.nom || 'Client' }} · {{ reservation.dateHeure | date:'dd/MM/yyyy' }}</small>
+          </div>
+          <button type="button" (click)="openInvoiceReservation(reservation.id)">
+            Voir la facture
+          </button>
+        </article>
+      </div>
+    </section>
+
+    <section
+      *ngIf="!isProviderSpace() && !isLoading() && !errorMessage() && activeSection() === 'consultation' && managementTab() === 'prescription'"
+      id="doctor-space-prescription-panel"
+      class="doctor-space__management-section doctor-space__prescription-section"
+      role="tabpanel"
+      aria-labelledby="doctor-space-prescription-tab"
+    >
+      <app-prescription-template-editor
+        [doctorName]="professionalName()"
+        [doctorPhone]="professionalProfile()?.utilisateur?.numeroTelephone || ''"
+        [doctorAddress]="professionalProfile()?.utilisateur?.adresse || professionalProfile()?.ville || ''"
+        [doctorQualification]="professionalProfile()?.subCategoryNames?.[0] || ''"
+      ></app-prescription-template-editor>
     </section>
 
     <nav

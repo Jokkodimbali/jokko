@@ -4,6 +4,7 @@ import {
   AfterViewInit,
   Component,
   ElementRef,
+  HostListener,
   OnDestroy,
   OnInit,
   ViewChild,
@@ -13,7 +14,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { DomSanitizer, SafeHtml, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import type { RemoteTrack } from 'livekit-client';
@@ -27,6 +28,7 @@ import {
   firstValueFrom,
   from,
   merge,
+  map,
   of,
   switchMap,
   timer,
@@ -49,6 +51,7 @@ import { PharmacyOrderEntryComponent } from '../../../../pharmacy-orders/present
 import { PharmacyOrdersService } from '../../../../pharmacy-orders/data-access/pharmacy-orders.service';
 import { OrderCompletionDocumentService } from '../../../../../shared/documents/order-completion-document.service';
 import { AppointmentsService } from '../../../data-access/appointments.service';
+import { DoctorSpaceService } from '../../../../medicine/data-access/doctor-space.service';
 import { ReservationsRealtimeService } from '../../../data-access/reservations-realtime.service';
 import {
   AppointmentTrackingView,
@@ -231,6 +234,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private readonly navigationService = inject(AppointmentNavigationService);
   private readonly routeService = inject(AppointmentRouteService);
   private readonly documentBuilder = inject(AppointmentDocumentBuilderService);
+  private readonly doctorSpace = inject(DoctorSpaceService);
   private readonly documentRenderer = inject(AppointmentDocumentRendererService);
   private readonly orderCompletionDocument = inject(OrderCompletionDocumentService);
   private readonly medicalPrescriptionService = inject(AppointmentMedicalPrescriptionService);
@@ -447,9 +451,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly currentMedicalVaccine = signal('');
   protected readonly currentMedicalTreatment = signal('');
   protected readonly isPrescriptionPreviewOpen = signal(false);
-  protected readonly medicalPrescriptionPreviewItems = computed(() =>
-    this.documentBuilder.medicalPrescriptionItems(this.currentMedicalPrescriptionPayload()),
-  );
+  protected readonly prescriptionPreviewHtml = signal<SafeHtml | null>(null);
+  protected readonly prescriptionPreviewLoading = signal(false);
+  protected readonly prescriptionPreviewZoom = signal(1);
+  private prescriptionPreviewVersion = 0;
+  private prescriptionPreviewSource: AppointmentView | null = null;
   protected readonly destinationStatus = signal<'idle' | 'resolving' | 'ready' | 'unavailable'>(
     'idle',
   );
@@ -1707,6 +1713,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   ngOnDestroy(): void {
     this.componentDestroyed = true;
     this.closeTeleconsultationDocumentPreview();
+    this.closePrescriptionPreview();
     this.clearRouteJoiningTimer();
     window.removeEventListener('focus', this.refreshParcelCheckpoints);
     window.removeEventListener('storage', this.refreshParcelCheckpoints);
@@ -1980,26 +1987,66 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.feedback.info('Element retire du dossier medical.');
   }
 
-  protected medicalPrescriptionPatientName(appointment: AppointmentView): string {
-    return (
-      this.extractAppointmentNoteValue(appointment.notes, 'Patient') ||
-      appointment.clientName ||
-      'Client non renseigne'
-    );
-  }
-
-  protected medicalPrescriptionPatientPhone(appointment: AppointmentView): string | null {
-    return (
-      this.extractAppointmentNoteValue(appointment.notes, 'Telephone') || appointment.clientPhone
-    );
-  }
-
   protected openPrescriptionPreview(): void {
+    const appointment = this.appointment();
+    if (!appointment) return;
+    const version = ++this.prescriptionPreviewVersion;
+    this.prescriptionPreviewHtml.set(null);
+    this.prescriptionPreviewLoading.set(true);
     this.isPrescriptionPreviewOpen.set(true);
+    this.updatePrescriptionPreviewZoom();
+
+    this.appointmentsService.getAppointmentById(appointment.id).pipe(
+      catchError(() => of(appointment)),
+      switchMap((updated) => {
+        const source = {
+          ...updated,
+          prescriptionTemplate: updated.prescriptionTemplate ?? appointment.prescriptionTemplate,
+        };
+        if (this.hasConfiguredPrescriptionTemplate(source.prescriptionTemplate) || !this.isDoctorViewer() || source.status === 'TERMINEE') return of(source);
+        return this.doctorSpace.getMyPrescriptionTemplate().pipe(
+          map((template) => ({ ...source, prescriptionTemplate: template })),
+          catchError(() => of(source)),
+        );
+      }),
+    ).subscribe((source) => {
+      if (version !== this.prescriptionPreviewVersion || !this.isPrescriptionPreviewOpen()) return;
+      this.prescriptionPreviewSource = source;
+      const draft = this.currentMedicalPrescriptionPayload();
+      const prescription = this.isDoctorViewer() && this.medicalPrescriptionService.hasContent(draft)
+        ? draft
+        : this.medicalPrescriptionForDocument(source);
+      const html = this.buildMedicalPrescriptionHtml(source, prescription);
+      this.prescriptionPreviewHtml.set(this.sanitizer.bypassSecurityTrustHtml(html));
+      this.prescriptionPreviewLoading.set(false);
+    });
+  }
+
+  @HostListener('window:resize')
+  protected resizePrescriptionPreview(): void {
+    if (this.isPrescriptionPreviewOpen()) this.updatePrescriptionPreviewZoom();
+  }
+
+  private updatePrescriptionPreviewZoom(): void {
+    const width = Math.max(320, window.innerWidth - 96);
+    const height = Math.max(360, window.innerHeight * 0.92 - 205);
+    this.prescriptionPreviewZoom.set(Math.min(1, width / 794, height / 1123));
+  }
+
+  private hasConfiguredPrescriptionTemplate(template: AppointmentView['prescriptionTemplate']): boolean {
+    return !!template && Object.values(template).some((value) => typeof value === 'string' && value.trim().length > 0);
+  }
+
+  protected downloadPrescriptionFromPreview(appointment: AppointmentView): void {
+    this.downloadMedicalPrescription(this.prescriptionPreviewSource ?? appointment);
   }
 
   protected closePrescriptionPreview(): void {
+    ++this.prescriptionPreviewVersion;
     this.isPrescriptionPreviewOpen.set(false);
+    this.prescriptionPreviewHtml.set(null);
+    this.prescriptionPreviewLoading.set(false);
+    this.prescriptionPreviewSource = null;
   }
 
   protected downloadMedicalReceipt(appointment: AppointmentView): void {
@@ -2028,7 +2075,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
               current ? this.mergeMedicalPrescriptionUpdate(current, updated) : updated,
             );
             return this.loadAppointmentForDocument(
-              this.mergeMedicalPrescriptionUpdate(this.appointment() ?? appointment, updated),
+              this.mergeMedicalPrescriptionUpdate(appointment, updated),
             );
           }),
         )
@@ -2047,11 +2094,16 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return this.appointmentsService.getAppointmentById(fallback.id).pipe(
       catchError(() => of(fallback)),
       switchMap((updated) => {
+        const source = this.isDoctorViewer() &&
+          !this.hasConfiguredPrescriptionTemplate(updated.prescriptionTemplate) &&
+          this.hasConfiguredPrescriptionTemplate(fallback.prescriptionTemplate)
+          ? { ...updated, prescriptionTemplate: fallback.prescriptionTemplate }
+          : updated;
         this.appointment.update((current) =>
-          current ? this.mergeAppointment(current, updated) : updated,
+          current ? this.mergeAppointment(current, source) : source,
         );
-        this.hydrateMedicalPrescriptionFromAppointment(updated);
-        return of(updated);
+        this.hydrateMedicalPrescriptionFromAppointment(source);
+        return of(source);
       }),
     );
   }
@@ -6075,6 +6127,9 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       ...current,
       notes: updated.notes,
       medicalPrescription: updated.medicalPrescription,
+      prescriptionTemplate: this.hasConfiguredPrescriptionTemplate(updated.prescriptionTemplate)
+        ? updated.prescriptionTemplate
+        : current.prescriptionTemplate ?? updated.prescriptionTemplate,
     };
     this.hydrateMedicalPrescriptionFromAppointment(merged);
     return merged;

@@ -3,6 +3,7 @@
 @use './styles/doctor-space-motifs';
 @use './styles/doctor-space-wallet';
 @use './styles/doctor-space-patients-layout';
+@use './styles/doctor-space-management-refactor';
 
 :host {
   display: block;
@@ -274,35 +275,8 @@
   margin: 0;
 }
 
-.doctor-space__management-section .doctor-space__cards {
-  margin-bottom: 0;
-}
-
 .doctor-space__motifs .doctor-space__management-section-header {
   margin-bottom: 0;
-}
-
-.doctor-space__cards {
-  display: grid;
-  gap: 18px;
-  grid-template-columns: minmax(330px, 0.92fr) minmax(420px, 1.08fr);
-  margin: 0 0 22px;
-  width: 100%;
-}
-
-.doctor-space__blocked-card,
-.doctor-space__params-card,
-.doctor-space__schedule,
-.doctor-space__placeholder {
-  background: #fffefd;
-  border: 1px solid #ead7c4;
-  border-radius: 10px;
-  box-shadow: none;
-}
-
-.doctor-space__blocked-card {
-  min-height: 300px;
-  padding: 18px 20px 20px;
 }
 
 .doctor-space__blocked-card header,
@@ -313,19 +287,6 @@
   gap: 8px;
   font-size: 16px;
   font-weight: 700;
-}
-
-.doctor-space__blocked-card header lucide-icon,
-.doctor-space__params-card header lucide-icon {
-  color: #9a5c20;
-}
-
-.doctor-space__blocked-card p,
-.doctor-space__params-card p {
-  color: #4b4844;
-  font-size: 12px;
-  line-height: 1.4;
-  margin: 14px 0 16px;
 }
 
 .doctor-space__travel-mode {
@@ -384,16 +345,6 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
-.doctor-space__travel-layout--with-map {
-  align-items: stretch;
-  grid-template-columns: minmax(260px, 0.8fr) minmax(320px, 1.2fr);
-}
-
-.doctor-space__travel-layout--with-map .doctor-space__travel-options {
-  gap: 12px;
-  grid-template-columns: 1fr;
-}
-
 .doctor-space__travel-option {
   background: #f8f4ef;
   border: 1px solid #eadccd;
@@ -410,12 +361,6 @@
     border-color 160ms ease,
     box-shadow 160ms ease,
     transform 160ms ease;
-}
-
-.doctor-space__travel-layout--with-map .doctor-space__travel-option {
-  gap: 8px;
-  min-height: 92px;
-  padding: 14px 44px 13px 14px;
 }
 
 .doctor-space__travel-option:hover,
@@ -461,12 +406,6 @@
   right: 12px;
   top: 12px;
   width: 20px;
-}
-
-.doctor-space__travel-mode footer {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 24px;
 }
 
 .doctor-space__travel-save {
@@ -692,16 +631,6 @@
   width: 100%;
 }
 
-.doctor-space__calendar::before {
-  background: linear-gradient(90deg, transparent, rgba(134, 82, 33, 0.18), transparent);
-  content: '';
-  height: 1px;
-  left: 18px;
-  position: absolute;
-  right: 18px;
-  top: 58px;
-}
-
 .doctor-space__calendar-head,
 .doctor-space__calendar-week,
 .doctor-space__calendar-grid {
@@ -813,20 +742,6 @@
   z-index: 2;
 }
 
-.doctor-space__calendar-day-glow {
-  background: rgba(255, 255, 255, 0.32);
-  border-radius: 50%;
-  height: 6px;
-  opacity: 0;
-  position: absolute;
-  transform: scale(0.4);
-  transition:
-    opacity 0.22s ease,
-    transform 0.22s ease;
-  width: 6px;
-  z-index: 1;
-}
-
 .doctor-space__calendar-day--empty {
   color: transparent !important;
   cursor: default !important;
@@ -834,7 +749,6 @@
 }
 
 .doctor-space__calendar-day--selected {
-  animation: doctor-calendar-select 0.42s cubic-bezier(0.18, 0.95, 0.22, 1.25);
   background: #8c4a12 !important;
   border-color: #8c4a12;
   border-radius: 18px;
@@ -842,12 +756,6 @@
   color: #ffffff !important;
   font-weight: 950;
   transform: translateY(-3px) scale(1.08);
-}
-
-.doctor-space__calendar-day--selected .doctor-space__calendar-day-glow {
-  animation: doctor-calendar-pulse 1.45s ease infinite;
-  opacity: 1;
-  transform: scale(5);
 }
 
 .doctor-space__calendar-day--today:not(.doctor-space__calendar-day--selected) {
@@ -919,35 +827,6 @@
   line-height: 1;
 }
 
-.doctor-space__params-card {
-  min-height: 300px;
-  padding: 20px 22px;
-}
-
-.doctor-space__params-card label {
-  display: grid;
-  gap: 12px;
-  margin-top: 34px;
-  position: relative;
-}
-
-.doctor-space__params-card label span {
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.doctor-space__params-card output {
-  background: #e5d9cf;
-  border-radius: 99px;
-  color: #7d4c22;
-  font-size: 11px;
-  font-weight: 800;
-  padding: 6px 10px;
-  position: absolute;
-  right: 0;
-  top: -5px;
-}
-
 .doctor-space__params-card input[type='range'] {
   --progress: 0%;
   accent-color: #915a22;
@@ -1004,33 +883,6 @@
   color: #70665c;
   font-size: 12px;
   font-weight: 700;
-}
-
-.doctor-space__placeholder {
-  margin: 0;
-  max-width: none;
-  padding: 34px;
-  width: 100%;
-}
-
-.doctor-space__placeholder h2 {
-  font-size: 26px;
-  margin: 0 0 12px;
-}
-
-.doctor-space__placeholder p {
-  line-height: 1.6;
-  margin: 0 0 22px;
-}
-
-.doctor-space__placeholder button {
-  background: #915a22;
-  border: 0;
-  border-radius: 9px;
-  color: #fff;
-  cursor: pointer;
-  font-weight: 800;
-  padding: 12px 18px;
 }
 
 .doctor-space__state {
@@ -1737,20 +1589,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .doctor-space__cards {
-    grid-template-columns: 1fr;
-  }
-
-  .doctor-space__blocked-card,
-  .doctor-space__params-card {
-    min-height: auto;
-  }
-
   .doctor-space__travel-options {
-    grid-template-columns: 1fr;
-  }
-
-  .doctor-space__travel-layout--with-map {
     grid-template-columns: 1fr;
   }
 

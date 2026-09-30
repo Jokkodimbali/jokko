@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { AppointmentView, MedicalPrescriptionPayload } from '../../../domain/appointments.models';
+import { buildPersonalizedMedicalPrescription } from "./medical-prescription-document-template";
 
 export interface MissionInvoiceDocumentData {
   appointment: AppointmentView;
@@ -17,10 +18,7 @@ export interface MedicalReceiptDocumentData {
   generatedAtIso: string;
 }
 
-export type MedicalPrescriptionItem = {
-  label: string;
-  text: string;
-};
+export type MedicalPrescriptionItem = { text: string };
 
 @Injectable({ providedIn: 'root' })
 export class AppointmentDocumentBuilderService {
@@ -165,84 +163,11 @@ export class AppointmentDocumentBuilderService {
     appointment: AppointmentView,
     prescription: MedicalPrescriptionPayload,
   ): string {
-    const issuedAt = new Date();
-    const prescriptionItems = this.medicalPrescriptionItems(prescription);
-    const patientName = this.medicalPatientName(appointment);
-    const patientPhone = this.medicalPatientPhone(appointment);
-
-    return `
-      <article class="medical-prescription">
-        <header class="medical-prescription__header">
-          <div class="medical-prescription__doctor">
-            <small>${this.escapeHtml(appointment.specialty || 'Medecin generaliste')}</small>
-            <h1>${this.escapeHtml(appointment.doctorName)}</h1>
-            <p>${this.escapeHtml(appointment.professionalAddressLabel || 'Cabinet medical Jokko Dimbali, Dakar')}</p>
-            <p>${this.escapeHtml(appointment.professionalPhone || 'Telephone non renseigne')}</p>
-          </div>
-          <div class="medical-prescription__meta">
-            <span>Ref.</span>
-            <strong>${this.escapeHtml(this.medicalPrescriptionReference(appointment))}</strong>
-            <small>${this.escapeHtml(this.formatInvoiceIssueDate(issuedAt))}</small>
-          </div>
-        </header>
-
-        <section class="medical-prescription__banner">
-          <h2>Ordonnance medicale</h2>
-        </section>
-
-        <section class="medical-prescription__body">
-          <section class="medical-prescription__patient">
-            <div>
-              <small>Patient</small>
-              <strong>${this.escapeHtml(patientName)}</strong>
-              <span>Date de naissance non renseignee</span>
-            </div>
-            <div>
-              <em>${this.escapeHtml(patientPhone || 'Telephone non renseigne')}</em>
-              <em>${this.escapeHtml(appointment.addressLabel || 'Adresse non renseignee')}</em>
-            </div>
-          </section>
-
-          <h3 class="medical-prescription__section-title">Prescriptions</h3>
-          ${
-            prescriptionItems.length
-              ? `<ol class="medical-prescription__list">${prescriptionItems
-                  .map(
-                    (item, index) => `
-                      <li class="medical-prescription__item">
-                        <span class="medical-prescription__index" aria-hidden="true">
-                          ${this.medicalPrescriptionIndexSvg(index + 1)}
-                        </span>
-                        <span>
-                          <b>${this.formatDocumentText(item.text)}</b>
-                          <em>${this.escapeHtml(item.label)}</em>
-                        </span>
-                      </li>
-                    `,
-                  )
-                  .join('')}</ol>`
-              : '<p class="medical-prescription__empty">Aucune prescription renseignee sur cette ordonnance.</p>'
-          }
-        </section>
-
-        <footer class="medical-prescription__footer">
-          <div class="medical-prescription__signature">
-            <span>Cachet &amp; Signature du medecin</span>
-            <strong>Signature</strong>
-          </div>
-          <div class="medical-prescription__generated">
-            <span>Document genere via</span>
-            <div class="medical-prescription__brand">
-              <img src="${this.escapeHtml(this.invoiceLogoUrl())}" alt="Jokko Dimbali">
-              <div>
-                <b>Jokko Dimbali</b>
-                <small>jokko-dimbali.sn</small>
-              </div>
-            </div>
-          </div>
-        </footer>
-      </article>
-    `;
+    return buildPersonalizedMedicalPrescription(
+      appointment,
+      appointment.prescriptionTemplate,
+      this.medicalPrescriptionItems(prescription),
+    );
   }
 
   private missionInvoiceReference(appointment: AppointmentView): string {
@@ -294,60 +219,10 @@ export class AppointmentDocumentBuilderService {
 
   medicalPrescriptionItems(prescription: MedicalPrescriptionPayload): MedicalPrescriptionItem[] {
     return [
-      ...prescription.treatments.map((treatment) => ({
-        label: 'Traitement',
-        text: treatment,
-      })),
-      ...prescription.vaccines.map((vaccine) => ({
-        label: 'Vaccin administre',
-        text: vaccine,
-      })),
-      ...prescription.acts.map((act) => ({
-        label: 'Acte medical',
-        text: act,
-      })),
+      ...prescription.treatments.map((text) => ({ text })),
+      ...prescription.vaccines.map((text) => ({ text })),
+      ...prescription.acts.map((text) => ({ text })),
     ];
-  }
-
-  private medicalPatientName(appointment: AppointmentView): string {
-    return (
-      this.extractAppointmentNoteValue(appointment.notes, 'Patient') ||
-      appointment.clientName ||
-      'Client non renseigne'
-    );
-  }
-
-  private medicalPatientPhone(appointment: AppointmentView): string | null {
-    return (
-      this.extractAppointmentNoteValue(appointment.notes, 'Telephone') || appointment.clientPhone
-    );
-  }
-
-  private extractAppointmentNoteValue(notes: string | null, key: string): string | null {
-    if (!notes) return null;
-    const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const pattern = new RegExp(
-      `${escapedKey}\\s*[:=-]\\s*(.*?)(?=\\.\\s+(?:Patient|Lien|Telephone|Lieu|Adresse selectionnee|Notes patient|Motif|Type de livraison|Expediteur|Depart colis|Destinataire|Arrivee destinataire)\\s*[:(]|$)`,
-      'i',
-    );
-    return notes.match(pattern)?.[1]?.trim().replace(/\.$/, '').trim() || null;
-  }
-
-  private medicalPrescriptionReference(appointment: AppointmentView): string {
-    const compact = appointment.id.replace(/-/g, '').toUpperCase();
-    return `ORD-${new Date().getFullYear()}-${compact.slice(-5) || '00000'}`;
-  }
-
-  private medicalPrescriptionIndexSvg(index: number): string {
-    const fontSize = index >= 10 ? 10 : 12;
-    return `
-      <svg viewBox="0 0 24 24" focusable="false">
-        <circle cx="12" cy="12" r="12"></circle>
-        <text x="12" y="12" text-anchor="middle" dominant-baseline="central" font-size="${fontSize}">
-          ${this.escapeHtml(index)}
-        </text>
-      </svg>
-    `;
   }
 
   private formatCurrency(value: number): string {

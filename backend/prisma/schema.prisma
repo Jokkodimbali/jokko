@@ -405,6 +405,7 @@ model ProfilProfessionnel {
   biographie            String?                                @map("bio") @db.Text
   nomEntreprise         String?                                @map("company_name") @db.VarChar(150)
   urlBanniere           String?                                @map("banner_url") @db.VarChar(2048)
+  modeleOrdonnance       Json?                                  @map("prescription_template")
   urlPieceIdentiteRecto String?                                @map("id_card_url_recto") @db.VarChar(500)
   urlPieceIdentiteVerso String?                                @map("id_card_url_verso") @db.VarChar(500)
   statutKyc             StatutKyc                              @default(EN_ATTENTE) @map("kyc_status")
@@ -610,6 +611,7 @@ model Reservation {
   actesPrescriptionMedicale       String[]                        @default([]) @map("medical_prescription_acts")
   vaccinsPrescriptionMedicale     String[]                        @default([]) @map("medical_prescription_vaccines")
   traitementsPrescriptionMedicale String[]                        @default([]) @map("medical_prescription_treatments")
+  modeleOrdonnanceSnapshot       Json?                           @map("prescription_template_snapshot")
   prixConvenu                     Decimal?                        @map("agreed_price") @db.Decimal(10, 2)
   statutAjustementPrix            StatutAjustementPrixReservation @default(AUCUN) @map("price_adjustment_status")
   prixAjustementPropose           Decimal?                        @map("proposed_adjusted_price") @db.Decimal(10, 2)

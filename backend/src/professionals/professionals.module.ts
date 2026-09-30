@@ -8,6 +8,7 @@ import { AdminKycController } from './presentation/controllers/admin-kyc.control
 import { ProfessionalsRepository } from './infrastructure/repositories/professionals.repository';
 import { PROFESSIONALS_REPOSITORY_PORT } from './application/ports/professionals-repository.port';
 import { ProfileService } from './application/services/profile.service';
+import { PrescriptionTemplateService } from './application/services/prescription-template.service';
 import { KycService } from './application/services/kyc.service';
 import { ServiceManagementService } from './application/services/service-management.service';
 import { PortfolioService } from './application/services/portfolio.service';
@@ -33,6 +34,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     },
     // Application services
     ProfileService,
+    PrescriptionTemplateService,
     KycService,
     ServiceManagementService,
     PortfolioService,

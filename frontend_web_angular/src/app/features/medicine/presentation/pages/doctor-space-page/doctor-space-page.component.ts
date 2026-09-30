@@ -48,12 +48,13 @@ import {
   DoctorWalletView,
   ProfessionalUploadView,
 } from '../../../data-access/doctor-space.service';
+import { PrescriptionTemplateEditorComponent } from "../../components/prescription-template-editor/prescription-template-editor.component";
 import {
   DoctorSpaceSectionData,
   DoctorSpaceSectionLoaderService,
 } from '../../../data-access/doctor-space-section-loader.service';
 
-type ManagementTab = 'availability' | 'services';
+type ManagementTab = 'availability' | 'travel' | 'services' | 'invoices' | 'prescription';
 type RequestsTab = 'requests' | 'agenda';
 
 type DoctorSpaceSection =
@@ -90,6 +91,9 @@ type AppointmentSlotPreview = {
 type AvailabilityPreviewDay = {
   key: string;
   label: string;
+  weekday: string;
+  dayNumber: number;
+  isBlocked: boolean;
   previews: AppointmentSlotPreview[];
 };
 
@@ -254,6 +258,7 @@ type UploadPreview = {
     RouterLink,
     LucideAngularModule,
     ServiceProposalInteractiveMapComponent,
+    PrescriptionTemplateEditorComponent,
   ],
   templateUrl: './doctor-space-page.component.html',
   styleUrl: './doctor-space-page.component.scss',
@@ -292,8 +297,11 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   protected readonly motifs = signal<ConsultationMotif[]>([]);
   protected readonly editingMotifId = signal<string | null>(null);
   protected readonly editingMotif = signal<ConsultationMotif | null>(null);
+  protected readonly isMotifCreateModalOpen = signal(false);
   protected readonly categories = signal<CategoryStructure[]>([]);
   protected readonly reservations = signal<BackendReservation[]>([]);
+  protected readonly invoicesLoaded = signal(false);
+  protected readonly invoicesError = signal<string | null>(null);
   protected readonly negotiations = signal<NegotiationView[]>([]);
   protected readonly wallet = signal<DoctorWalletView | null>(null);
   protected readonly releasingEscrowId = signal<string | null>(null);
@@ -315,6 +323,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   protected readonly selectedNegotiationDate = signal<string | null>(null);
   protected readonly selectedAgendaReservation = signal<AgendaReservationDetail | null>(null);
   protected readonly selectedAvailabilityPreviewKey = signal<string | null>(null);
+  protected readonly selectedAvailabilityPreviewDayKey = signal<string | null>(null);
   protected readonly isAgendaReservationLoading = signal(false);
   protected readonly isAgendaReservationCancelling = signal(false);
   protected readonly agendaReservationError = signal<string | null>(null);
@@ -609,6 +618,22 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     this.days().reduce((total, day) => total + this.dayAppointmentCapacity(day), 0),
   );
   protected readonly availabilityPreviewDays = computed(() => this.buildAvailabilityPreviewDays());
+  protected readonly availabilityPreviewTotal = computed(() =>
+    this.availabilityPreviewDays().reduce((total, day) => total + day.previews.length, 0),
+  );
+  protected readonly invoiceReservations = computed(() =>
+    this.reservations()
+      .filter((reservation) => reservation.statut === 'TERMINEE')
+      .sort((left, right) => right.dateHeure.localeCompare(left.dateHeure)),
+  );
+  protected readonly activeAvailabilityPreviewDay = computed(() => {
+    const days = this.availabilityPreviewDays();
+    return (
+      days.find((day) => day.key === this.selectedAvailabilityPreviewDayKey()) ??
+      days.find((day) => day.previews.length > 0) ??
+      days[0]
+    );
+  });
   protected readonly agendaWeekDays = computed(() => this.buildAgendaWeekDays(this.agendaCursor()));
   protected readonly agendaDateLabel = computed(() =>
     new Intl.DateTimeFormat('fr-FR', {
@@ -961,9 +986,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
         return 'Completez votre fiche publique, vos justificatifs KYC et vos realisations.';
       case 'availability':
       case 'consultation':
-        return this.isProviderSpace()
-          ? 'Gérez vos disponibilités, vos services et leurs tarifs au même endroit.'
-          : 'Gérez vos disponibilités, vos motifs de consultation et leurs tarifs au même endroit.';
+        return "Les modifications s'appliquent immédiatement lors de la prise de rendez-vous.";
       case 'negotiations':
         return '';
       case 'patient-appointments':
@@ -981,6 +1004,9 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     this.managementTab.set(this.resolveManagementTabFromRoute());
     this.routeSectionSubscription = this.route.queryParamMap.subscribe(() => {
       this.managementTab.set(this.resolveManagementTabFromRoute());
+      if (this.managementTab() === 'invoices' && this.professionalProfileId() && !this.invoicesLoaded()) {
+        this.refreshReservations();
+      }
       this.requestsTab.set(this.resolveRequestsTabFromRoute());
       const section = this.resolveSectionFromRoute();
       if (section === this.activeSection()) return;
@@ -1058,13 +1084,16 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   private resolveManagementTabFromRoute(): ManagementTab {
     const query = this.route.snapshot.queryParamMap;
     const view = query.get('view');
-    if (view === 'services' || view === 'availability') return view;
+    if (view === 'prescription') return this.isProviderSpace() ? 'services' : view;
+    if (view === 'invoices') return this.isProviderSpace() ? view : 'services';
+    if (view === 'services' || view === 'availability' || view === 'travel') return view;
     return query.get('section') === 'availability' ? 'availability' : 'services';
   }
 
   protected selectManagementTab(tab: ManagementTab): void {
     if (this.managementTab() === tab) return;
     this.managementTab.set(tab);
+    if (tab === 'invoices') this.reloadInvoices();
     void this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { section: 'consultation', view: tab },
@@ -2101,6 +2130,10 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     );
   }
 
+  protected selectAvailabilityPreviewDay(day: AvailabilityPreviewDay): void {
+    this.selectedAvailabilityPreviewDayKey.set(day.key);
+  }
+
   protected selectAvailablePreview(
     day: AvailabilityPreviewDay,
     preview: AppointmentSlotPreview,
@@ -2142,6 +2175,17 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       next.delete(key);
       return next;
     });
+  }
+
+  protected openMotifCreateModal(): void {
+    this.resetMotifForm();
+    this.isMotifCreateModalOpen.set(true);
+  }
+
+  protected closeMotifCreateModal(): void {
+    if (this.isSaving()) return;
+    this.isMotifCreateModalOpen.set(false);
+    this.resetMotifForm();
   }
 
   protected addMotif(): void {
@@ -2194,6 +2238,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       .subscribe({
         next: () => {
           this.feedback.success('Motif ajoute.');
+          this.isMotifCreateModalOpen.set(false);
           this.resetMotifForm();
           this.refreshServices();
         },
@@ -2394,6 +2439,9 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
         this.startNegotiationRealtime();
         this.startReservationRealtime();
         this.startProfessionalRealtimeFallback();
+        if (this.managementTab() === 'invoices' && !this.invoicesLoaded()) {
+          this.refreshReservations();
+        }
       });
   }
 
@@ -2530,6 +2578,16 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     });
   }
 
+  protected reloadInvoices(): void {
+    this.invoicesLoaded.set(false);
+    this.invoicesError.set(null);
+    this.refreshReservations();
+  }
+
+  protected openInvoiceReservation(reservationId: string): void {
+    this.openReservationDetail(reservationId);
+  }
+
   private refreshReservations(showErrors = true): void {
     if (!this.professionalProfileId()) return;
     if (this.isReservationsRefreshInProgress) return;
@@ -2546,8 +2604,15 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
         next: (reservations) => {
           this.reservations.set(reservations);
           this.syncAgendaCursorWithReservations(reservations);
+          this.invoicesLoaded.set(true);
+          this.invoicesError.set(null);
         },
         error: (error) => {
+          if (this.managementTab() === 'invoices') {
+            this.invoicesError.set(
+              getHttpErrorMessage(error, 'Impossible de charger les factures.'),
+            );
+          }
           if (showErrors) {
             this.feedback.error(
               getHttpErrorMessage(error, 'Impossible de charger les rendez-vous.'),
@@ -3317,16 +3382,25 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
 
   private buildAvailabilityPreviewDays(): AvailabilityPreviewDay[] {
     const days = this.days();
+    const blockedDates = this.blockedCalendarDates();
     const today = this.startOfDay(new Date());
 
     return Array.from({ length: 7 }, (_, index) => {
       const date = new Date(today);
       date.setDate(today.getDate() + index);
+      const key = this.dateKey(date);
+      const isBlocked = blockedDates.has(key);
       const schedule = days.find((day) => day.dayOfWeek === date.getDay());
       return {
-        key: this.dateKey(date),
+        key,
         label: this.formatAvailabilityPreviewDate(date),
-        previews: schedule ? this.dayAppointmentPreviews(schedule) : [],
+        weekday: new Intl.DateTimeFormat('fr-FR', { weekday: 'short' })
+          .format(date)
+          .replace('.', '')
+          .replace(/^\p{L}/u, (letter) => letter.toUpperCase()),
+        dayNumber: date.getDate(),
+        isBlocked,
+        previews: !isBlocked && schedule ? this.dayAppointmentPreviews(schedule) : [],
       };
     });
   }

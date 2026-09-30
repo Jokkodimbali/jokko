@@ -1,0 +1,970 @@
+/* Availability and services: visual-only layout, scoped to the management page. */
+.doctor-space--management {
+  background: #faf7f3;
+  color: #173455;
+}
+
+.doctor-space--management .doctor-space__content {
+  max-width: 1520px;
+  margin-inline: auto;
+  padding: 32px clamp(20px, 3vw, 40px) 80px;
+}
+
+.doctor-space--management .doctor-space__header {
+  margin-bottom: 23px;
+}
+
+.doctor-space--management .doctor-space__header h1 {
+  color: #173455;
+  font-size: clamp(29px, 3vw, 38px);
+  font-weight: 850;
+  letter-spacing: -0.035em;
+}
+
+.doctor-space--management .doctor-space__header h1 span {
+  color: #8b5121;
+}
+
+.doctor-space--management .doctor-space__header p {
+  color: #4f6175;
+  font-size: 15px;
+  margin-top: 7px;
+}
+
+.doctor-space--management .doctor-space__management-tabs {
+  border: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 24px;
+  padding: 0;
+}
+
+.doctor-space--management .doctor-space__management-tabs button {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #eadbcb;
+  border-radius: 18px;
+  color: #173455;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-start;
+  min-height: 66px;
+  min-width: 0;
+  padding: 12px 16px;
+  text-align: left;
+  white-space: normal;
+}
+
+.doctor-space--management .doctor-space__management-tabs button:hover,
+.doctor-space--management .doctor-space__management-tabs button.doctor-space__management-tab--active {
+  background: #fff2e5;
+  border-color: #94571f;
+  color: #173455;
+  margin: 0;
+  padding: 12px 16px;
+}
+
+.doctor-space--management .doctor-space__management-tabs button > span:nth-child(2) {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.doctor-space--management .doctor-space__management-tabs strong {
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.doctor-space--management .doctor-space__management-tabs small {
+  color: #4f6175;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.doctor-space--management .doctor-space__management-step {
+  align-items: center;
+  background: #f6efe8;
+  border-radius: 50%;
+  color: #8b5121;
+  display: inline-flex;
+  flex: 0 0 35px;
+  font-size: 14px;
+  font-weight: 800;
+  height: 35px;
+  justify-content: center;
+}
+
+.doctor-space--management .doctor-space__management-tab--active .doctor-space__management-step {
+  background: #8b5121;
+  color: #fff;
+}
+
+.doctor-space--management .doctor-space__management-count {
+  background: #ffe3c5;
+  border-radius: 999px;
+  color: #915116;
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 800;
+  margin-left: auto;
+  padding: 5px 8px;
+}
+
+.doctor-space--management .doctor-space__management-section {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  margin: 0;
+  padding: 0;
+}
+
+.doctor-space--management #doctor-space-availability-panel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  align-items: start;
+}
+
+.doctor-space--management #doctor-space-availability-panel > .doctor-space__cards {
+  display: contents;
+}
+
+.doctor-space--management .doctor-space__params-card,
+.doctor-space--management .doctor-space__schedule,
+.doctor-space--management .doctor-space__available-slots,
+.doctor-space--management .doctor-space__blocked-card {
+  background: #fff;
+  border: 1px solid #efdfcf;
+  border-radius: 20px;
+  box-shadow: none;
+  min-width: 0;
+  padding: 21px 22px;
+}
+
+.doctor-space--management .doctor-space__params-card {
+  grid-column: 1;
+  grid-row: 1;
+  min-height: 0;
+}
+
+.doctor-space--management .doctor-space__schedule {
+  grid-column: 1;
+  grid-row: 2;
+  gap: 0;
+}
+
+.doctor-space--management .doctor-space__available-slots {
+  grid-column: 2;
+  grid-row: 1;
+  margin: 0;
+  min-height: 0;
+}
+
+.doctor-space--management .doctor-space__blocked-card {
+  grid-column: 2;
+  grid-row: 2;
+  min-height: 0;
+}
+
+.doctor-space--management .doctor-space__params-card header,
+.doctor-space--management .doctor-space__blocked-card header {
+  color: #173455;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.doctor-space--management .doctor-space__params-card header lucide-icon,
+.doctor-space--management .doctor-space__blocked-card header lucide-icon {
+  display: none;
+}
+
+.doctor-space--management .doctor-space__params-card > p,
+.doctor-space--management .doctor-space__blocked-card > p,
+.doctor-space--management .doctor-space__schedule > header p,
+.doctor-space--management .doctor-space__available-slots > header p {
+  color: #4f6175;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+  margin: 3px 0 0;
+}
+
+.doctor-space--management .doctor-space__params-range {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+}
+
+.doctor-space--management .doctor-space__params-range > span {
+  align-items: center;
+  color: #4f6175;
+  display: flex;
+  font-size: 12px;
+  font-weight: 600;
+  justify-content: space-between;
+}
+
+.doctor-space--management .doctor-space__params-range output {
+  background: transparent;
+  color: #8b5121;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 0;
+  position: static;
+}
+
+.doctor-space--management .doctor-space__appointment-rule {
+  background: #fff8f1;
+  border-color: #efdfcf;
+  margin-top: 20px;
+}
+
+.doctor-space--management .doctor-space__schedule > header {
+  display: block;
+  padding: 0 0 13px;
+}
+
+.doctor-space--management .doctor-space__schedule > header h2,
+.doctor-space--management .doctor-space__available-slots h3 {
+  color: #173455;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.doctor-space--management .doctor-space__schedule-badge {
+  background: transparent;
+  color: #915116;
+  font-size: 11px;
+  min-height: 0;
+  padding: 8px 0 0;
+}
+
+.doctor-space--management .doctor-space__day,
+.doctor-space--management .doctor-space__day--disabled {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #efdfcf;
+  border-radius: 0;
+  align-items: center;
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr) 42px;
+  column-gap: 10px;
+  min-height: 48px;
+  padding: 12px 0;
+  opacity: 1;
+}
+
+.doctor-space--management .doctor-space__day:last-of-type {
+  border-bottom: 0;
+}
+
+.doctor-space--management .doctor-space__day-head {
+  display: contents;
+}
+
+.doctor-space--management .doctor-space__day-main {
+  align-self: center;
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.doctor-space--management .doctor-space__day h3,
+.doctor-space--management .doctor-space__day--disabled .doctor-space__day-main h3 {
+  color: #173455;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.doctor-space--management .doctor-space__day--disabled .doctor-space__day-main h3 {
+  color: #bda895;
+}
+
+.doctor-space--management .doctor-space__switch {
+  background: #e8ddd2;
+  box-shadow: none;
+  flex: 0 0 auto;
+}
+
+.doctor-space--management .doctor-space__switch--active {
+  background: #8b5121;
+}
+
+.doctor-space--management .doctor-space__slots {
+  align-self: center;
+  display: grid;
+  gap: 6px;
+  grid-column: 2;
+  grid-row: 1;
+  justify-items: start;
+  min-width: 0;
+}
+
+.doctor-space--management .doctor-space__slot {
+  background: #ffe2c3;
+  border-radius: 11px;
+  gap: 3px;
+  min-height: 32px;
+  padding: 2px 4px;
+  width: fit-content;
+}
+
+.doctor-space--management .doctor-space__slot label span {
+  background: transparent;
+  border-radius: 8px;
+  min-height: 26px;
+  padding: 0 5px;
+}
+
+.doctor-space--management .doctor-space__slot label lucide-icon {
+  display: none;
+}
+
+.doctor-space--management .doctor-space__slot select {
+  color: #834810;
+  font-size: 13px;
+  width: 48px;
+}
+
+.doctor-space--management .doctor-space__slot-times {
+  gap: 3px;
+}
+
+.doctor-space--management .doctor-space__remove {
+  color: #834810;
+  height: 26px;
+  width: 26px;
+}
+
+.doctor-space--management .doctor-space__add {
+  align-self: center;
+  background: transparent;
+  border: 1px dashed #e5c5a5;
+  border-radius: 10px;
+  color: #8b5121;
+  display: grid;
+  font-size: 0;
+  grid-column: 3;
+  grid-row: 1;
+  height: 34px;
+  justify-self: center;
+  line-height: 0;
+  min-height: 0;
+  padding: 0;
+  place-items: center;
+  width: 34px;
+}
+
+.doctor-space--management .doctor-space__add lucide-icon {
+  display: block;
+  height: 16px;
+  width: 16px;
+}
+
+.doctor-space--management .doctor-space__available-slots > header {
+  align-items: start;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.doctor-space--management .doctor-space__available-total {
+  color: #915116;
+  font-size: 11px;
+  font-weight: 750;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.doctor-space--management .doctor-space__available-grid {
+  display: grid;
+  gap: 5px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.doctor-space--management .doctor-space__available-day {
+  appearance: none;
+  align-content: center;
+  background: #fff;
+  border: 1px solid #efdfcf;
+  border-radius: 11px;
+  color: #173455;
+  cursor: pointer;
+  display: grid;
+  font-variant-numeric: tabular-nums;
+  grid-template-rows: 14px 23px 14px;
+  justify-items: center;
+  min-height: 68px;
+  min-width: 0;
+  padding: 7px 3px;
+  text-align: center;
+}
+
+.doctor-space--management .doctor-space__available-weekday {
+  align-self: center;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.doctor-space--management .doctor-space__available-day .doctor-space__available-date {
+  align-self: center;
+  color: inherit;
+  font-size: 17px;
+  font-weight: 850;
+  line-height: 1;
+}
+
+.doctor-space--management .doctor-space__available-day .doctor-space__available-status {
+  align-self: center;
+  color: #6d7a89;
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.doctor-space--management .doctor-space__available-day--blocked:not(.doctor-space__available-day--active):not(:hover) {
+  background: #f5eee7;
+  color: #bea998;
+}
+
+.doctor-space--management .doctor-space__available-day--blocked:not(.doctor-space__available-day--active):not(:hover) .doctor-space__available-status {
+  color: #bea998;
+}
+
+.doctor-space--management .doctor-space__available-day--active,
+.doctor-space--management .doctor-space__available-day:hover {
+  background: #8b5121;
+  border-color: #8b5121;
+  color: #fff;
+}
+
+.doctor-space--management .doctor-space__available-day--active .doctor-space__available-date,
+.doctor-space--management .doctor-space__available-day--active .doctor-space__available-status,
+.doctor-space--management .doctor-space__available-day:hover .doctor-space__available-date,
+.doctor-space--management .doctor-space__available-day:hover .doctor-space__available-status {
+  color: #fff;
+}
+
+.doctor-space--management .doctor-space__available-list {
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.doctor-space--management .doctor-space__available-list button {
+  background: #ffe2c3;
+  border-radius: 8px;
+  color: #834810;
+  font-size: 12px;
+  min-width: 65px;
+  justify-content: center;
+}
+
+.doctor-space--management .doctor-space__calendar {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  margin-top: 12px;
+  padding: 0;
+}
+
+
+.doctor-space--management .doctor-space__calendar-head {
+  grid-template-columns: 30px 30px minmax(0, 1fr) 30px 30px;
+}
+
+.doctor-space--management .doctor-space__calendar-head button {
+  background: #fff0e2;
+  border: 0;
+  box-shadow: none;
+}
+
+.doctor-space--management .doctor-space__calendar-head strong {
+  color: #173455;
+  font-size: 14px;
+}
+
+.doctor-space--management .doctor-space__calendar-week {
+  color: #8a6a50;
+  font-size: 10px;
+}
+
+.doctor-space--management .doctor-space__calendar-grid {
+  gap: 3px;
+}
+
+.doctor-space--management .doctor-space__calendar-grid button {
+  background: #fff;
+  border-radius: 9px;
+  box-shadow: none;
+  min-height: 34px;
+}
+
+.doctor-space--management .doctor-space__calendar-day--selected {
+  background: #8b5121 !important;
+  border-radius: 9px;
+  box-shadow: none;
+  transform: none;
+}
+
+.doctor-space--management .doctor-space__calendar-day--working:not(.doctor-space__calendar-day--selected) {
+  background: #fff;
+  color: #173455 !important;
+}
+
+.doctor-space--management .doctor-space__calendar-day--blocked:not(.doctor-space__calendar-day--selected) {
+  background: #f5eee7;
+  color: #bda895 !important;
+}
+
+.doctor-space--management .doctor-space__calendar-legend {
+  align-items: center;
+  border-top: 1px solid #efdfcf;
+  color: #4f6175;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 11px;
+  gap: 8px 13px;
+  margin-top: 15px;
+  padding-top: 12px;
+}
+
+.doctor-space--management .doctor-space__calendar-legend > span {
+  align-items: center;
+  display: inline-flex;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.doctor-space--management .doctor-space__calendar-legend small {
+  color: #8b5121;
+  font-size: 11px;
+  font-weight: 750;
+  margin-left: auto;
+}
+
+.doctor-space--management .doctor-space__calendar-legend-swatch {
+  border: 1px solid #efdfcf;
+  border-radius: 4px;
+  display: inline-block;
+  flex: 0 0 13px;
+  height: 13px;
+}
+
+.doctor-space--management .doctor-space__calendar-legend-swatch--blocked {
+  background: #8b5121;
+  border-color: #8b5121;
+}
+
+.doctor-space--management .doctor-space__calendar-legend-swatch--today {
+  background: #fff;
+  border-color: #8b5121;
+}
+
+.doctor-space--management .doctor-space__calendar-legend-swatch--available {
+  background: #fff;
+}
+
+.doctor-space--management .doctor-space__calendar-legend-swatch--closed {
+  background: #f5eee7;
+  border-color: #e5d7c9;
+}
+
+.doctor-space--management .doctor-space__management-section--travel .doctor-space__travel-mode {
+  margin: 0;
+}
+
+.doctor-space--management .doctor-space__motifs .doctor-space__management-section-header h2 {
+  color: #173455;
+}
+
+.doctor-space--management .doctor-space__motifs {
+  gap: 0;
+}
+
+.doctor-space--management .doctor-space__motif-list {
+  background: #fff;
+  border-color: #efdfcf;
+  border-radius: 20px;
+}
+
+.doctor-space--management .doctor-space__motif-list .doctor-space__motif-list-header {
+  align-items: center;
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  padding: 21px 22px;
+}
+
+.doctor-space--management .doctor-space__motif-list-heading {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.doctor-space--management .doctor-space__motif-list-heading h2 {
+  color: #173455;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.doctor-space--management .doctor-space__motif-list-header .doctor-space__motif-list-heading p {
+  color: #4f6175;
+  display: block;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.doctor-space--management .doctor-space__motif-add-button {
+  align-items: center;
+  background: #8b5121;
+  border: 1px solid #8b5121;
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 8px;
+  justify-content: center;
+  min-height: 40px;
+  padding: 8px 17px;
+  white-space: nowrap;
+}
+
+.doctor-space--management .doctor-space__motif-add-button:hover {
+  background: #714018;
+}
+
+.doctor-space--management .doctor-space__motif-add-button:disabled {
+  cursor: wait;
+  opacity: .6;
+}
+
+.doctor-space--management .doctor-space__motif-add-panel {
+  box-sizing: border-box;
+  width: min(720px, 100%);
+}
+
+.doctor-space--management .doctor-space__motif-add-panel header h2 {
+  color: #173455;
+}
+
+.doctor-space--management .doctor-space__motif-add-panel .doctor-space__motif-form-actions {
+  align-items: center;
+}
+
+.doctor-space--management .doctor-space__motif-add-panel .doctor-space__motif-cancel {
+  min-height: 46px;
+}
+
+.doctor-space--management .doctor-space__invoices {
+  background: #fff;
+  border: 1px solid #efdfcf;
+  border-radius: 20px;
+  min-height: 300px;
+  padding: clamp(20px, 2.5vw, 32px);
+}
+
+.doctor-space--management .doctor-space__invoices-header {
+  align-items: start;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.doctor-space--management .doctor-space__invoices-header h2 {
+  color: #173455;
+  font-size: 21px;
+  font-weight: 800;
+  margin: 0 0 6px;
+}
+
+.doctor-space--management .doctor-space__invoices-header p {
+  color: #4f6175;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.doctor-space--management .doctor-space__invoices-header button,
+.doctor-space--management .doctor-space__invoice-row button {
+  appearance: none;
+  background: #8b5121;
+  border: 1px solid #8b5121;
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+  min-height: 38px;
+  padding: 8px 14px;
+  white-space: nowrap;
+}
+
+.doctor-space--management .doctor-space__invoices-header button:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+.doctor-space--management .doctor-space__invoices-state {
+  background: #fff9f2;
+  border: 1px dashed #e8d2bd;
+  border-radius: 14px;
+  color: #4f6175;
+  font-size: 14px;
+  margin: 0;
+  padding: 22px;
+}
+
+.doctor-space--management .doctor-space__invoices-state--error {
+  color: #a83228;
+}
+
+.doctor-space--management .doctor-space__invoices-list {
+  display: grid;
+  gap: 10px;
+}
+
+.doctor-space--management .doctor-space__invoice-row {
+  align-items: center;
+  background: #fffaf5;
+  border: 1px solid #efdfcf;
+  border-radius: 14px;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 135px minmax(0, 1fr) auto;
+  padding: 14px 16px;
+}
+
+.doctor-space--management .doctor-space__invoice-ref {
+  color: #8b5121;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+}
+
+.doctor-space--management .doctor-space__invoice-details {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.doctor-space--management .doctor-space__invoice-details strong {
+  color: #173455;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.doctor-space--management .doctor-space__invoice-details small {
+  color: #4f6175;
+  font-size: 12px;
+}
+
+@media (max-width: 700px) {
+  .doctor-space--management .doctor-space__invoice-row {
+    gap: 8px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .doctor-space--management .doctor-space__invoice-row button {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 1120px) {
+  .doctor-space--management .doctor-space__management-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .doctor-space--management #doctor-space-availability-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .doctor-space--management .doctor-space__params-card,
+  .doctor-space--management .doctor-space__available-slots,
+  .doctor-space--management .doctor-space__schedule,
+  .doctor-space--management .doctor-space__blocked-card {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .doctor-space--management .doctor-space__params-card { order: 1; }
+  .doctor-space--management .doctor-space__available-slots { order: 2; }
+  .doctor-space--management .doctor-space__schedule { order: 3; }
+  .doctor-space--management .doctor-space__blocked-card { order: 4; }
+}
+
+@media (max-width: 620px) {
+  .doctor-space--management .doctor-space__content {
+    padding: 24px 14px 60px;
+  }
+
+  .doctor-space--management .doctor-space__header h1 {
+    font-size: 27px;
+    overflow: visible;
+    white-space: normal;
+  }
+
+  .doctor-space--management .doctor-space__management-tabs {
+    gap: 8px;
+  }
+
+  .doctor-space--management .doctor-space__management-tabs button {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 98px;
+    padding: 10px;
+  }
+
+  .doctor-space--management .doctor-space__management-tabs button.doctor-space__management-tab--active {
+    padding: 10px;
+  }
+
+  .doctor-space--management .doctor-space__management-tabs strong {
+    font-size: 11px;
+  }
+
+  .doctor-space--management .doctor-space__management-tabs small,
+  .doctor-space--management .doctor-space__management-count {
+    display: none;
+  }
+
+  .doctor-space--management .doctor-space__management-step {
+    flex-basis: 26px;
+    height: 26px;
+  }
+
+  .doctor-space--management .doctor-space__params-card,
+  .doctor-space--management .doctor-space__schedule,
+  .doctor-space--management .doctor-space__available-slots,
+  .doctor-space--management .doctor-space__blocked-card {
+    padding: 16px;
+  }
+
+  .doctor-space--management .doctor-space__available-grid {
+    display: flex;
+    gap: 5px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .doctor-space--management .doctor-space__available-day {
+    flex: 0 0 72px;
+  }
+
+  .doctor-space--management .doctor-space__available-day strong {
+    font-size: 9px;
+  }
+
+  .doctor-space--management .doctor-space__day,
+  .doctor-space--management .doctor-space__day--disabled {
+    grid-template-columns: minmax(0, 1fr) 34px;
+    row-gap: 7px;
+  }
+
+  .doctor-space--management .doctor-space__day-main {
+    gap: 7px;
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .doctor-space--management .doctor-space__day h3 {
+    font-size: 12px;
+  }
+
+  .doctor-space--management .doctor-space__slots {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .doctor-space--management .doctor-space__add {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+
+.doctor-space--management .doctor-space__params-option-group {
+  display: grid;
+  gap: 8px;
+  margin-top: 17px;
+}
+
+.doctor-space--management .doctor-space__params-option-group > span {
+  color: #173455;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.doctor-space--management .doctor-space__params-preset-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.doctor-space--management .doctor-space__params-preset-options button {
+  appearance: none;
+  background: #fff;
+  border: 1px solid #efdfcf;
+  border-radius: 9px;
+  color: #173455;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+  min-height: 35px;
+  padding: 0 13px;
+}
+
+.doctor-space--management .doctor-space__params-preset-options button:hover,
+.doctor-space--management .doctor-space__params-preset-options button.doctor-space__params-preset--active {
+  background: #8b5121;
+  border-color: #8b5121;
+  color: #fff;
+}
+
+.doctor-space--management .doctor-space__params-range input[type='range'] {
+  cursor: pointer;
+  margin: 0;
+}
+
+@media (max-width: 620px) {
+  .doctor-space--management .doctor-space__motif-list .doctor-space__motif-list-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 13px;
+    padding: 17px;
+  }
+
+  .doctor-space--management .doctor-space__motif-add-button {
+    width: 100%;
+  }
+
+  .doctor-space--management .doctor-space__motif-add-panel .doctor-space__motif-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .doctor-space--management .doctor-space__motif-add-panel .doctor-space__motif-form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .doctor-space--management .doctor-space__motif-add-panel .doctor-space__motif-submit,
+  .doctor-space--management .doctor-space__motif-add-panel .doctor-space__motif-cancel {
+    width: 100%;
+  }
+}

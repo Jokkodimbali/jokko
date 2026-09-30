@@ -26,6 +26,7 @@ const RESERVATION_SELECT = {
   actesPrescriptionMedicale: true,
   vaccinsPrescriptionMedicale: true,
   traitementsPrescriptionMedicale: true,
+  modeleOrdonnanceSnapshot: true,
   prixConvenu: true,
   statutAjustementPrix: true,
   prixAjustementPropose: true,
@@ -142,6 +143,7 @@ type ReservationRecord = {
   actesPrescriptionMedicale: string[];
   vaccinsPrescriptionMedicale: string[];
   traitementsPrescriptionMedicale: string[];
+  modeleOrdonnanceSnapshot: Prisma.JsonValue | null;
   prixConvenu: Prisma.Decimal | null;
   statutAjustementPrix: $Enums.StatutAjustementPrixReservation;
   prixAjustementPropose: Prisma.Decimal | null;
@@ -510,6 +512,21 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
         throw ReservationDomainError.timeSlotUnavailable();
       }
 
+      const hasPrescription =
+        reservation.actesPrescriptionMedicale.length > 0 ||
+        reservation.vaccinsPrescriptionMedicale.length > 0 ||
+        reservation.traitementsPrescriptionMedicale.length > 0;
+      const previous = hasPrescription
+        ? await tx.reservation.findUnique({
+            where: { id: reservation.id },
+            select: {
+              modeleOrdonnanceSnapshot: true,
+              professionnel: { select: { modeleOrdonnance: true } },
+            },
+          })
+        : null;
+      const captureTemplate = previous?.modeleOrdonnanceSnapshot === null;
+
       return tx.reservation.update({
         where: { id: reservation.id },
         data: {
@@ -532,6 +549,12 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
           clientRating: reservation.clientRating,
           clientReview: reservation.clientReview,
           clientReviewedAt: reservation.clientReviewedAt,
+          ...(captureTemplate
+            ? {
+                modeleOrdonnanceSnapshot: (previous?.professionnel
+                  .modeleOrdonnance ?? {}) as Prisma.InputJsonValue,
+              }
+            : {}),
           misAJourLe: reservation.misAJourLe,
         },
         select: RESERVATION_SELECT,
@@ -839,6 +862,14 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
       },
       professionnel: {
         ...record.professionnel,
+        modeleOrdonnance:
+          record.professionnel.utilisateur.role === 'MEDECIN' &&
+          (record.actesPrescriptionMedicale.length > 0 ||
+            record.vaccinsPrescriptionMedicale.length > 0 ||
+            record.traitementsPrescriptionMedicale.length > 0 ||
+            record.notes?.includes('---JOKKO_MEDICAL_PRESCRIPTION---'))
+            ? record.modeleOrdonnanceSnapshot
+            : null,
         noteGlobale: record.professionnel.noteGlobale.toNumber(),
       },
       conversation: record.conversation,

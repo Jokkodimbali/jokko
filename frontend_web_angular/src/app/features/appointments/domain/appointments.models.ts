@@ -1,3 +1,5 @@
+import { MedicalPrescriptionTemplate } from "./medical-prescription-template";
+
 export type AppointmentStatus =
   | 'CONFIRMEE'
   | 'PAYEE_SEQUESTRE'
@@ -79,6 +81,7 @@ export interface BackendReservation {
     noteGlobale: number;
     nombreAvis: number;
     typeVehicule?: AppointmentVehicleType | null;
+    modeleOrdonnance?: MedicalPrescriptionTemplate | null;
     utilisateur: {
       id: string;
       nom: string;
@@ -130,6 +133,7 @@ export interface AppointmentView {
   professionalRating: number | null;
   professionalReviews: number;
   clientName: string;
+  patientAddress?: string | null;
   clientPhone: string | null;
   clientAvatarUrl: string;
   serviceName: string;
@@ -143,6 +147,7 @@ export interface AppointmentView {
   consultationType: MedicalConsultationType;
   conversationId: string | null;
   medicalPrescription: MedicalPrescriptionPayload | null;
+  prescriptionTemplate?: MedicalPrescriptionTemplate | null;
   agreedPrice: number | null;
   priceAdjustmentStatus: 'AUCUN' | 'EN_ATTENTE_CLIENT' | 'ACCEPTE' | 'REFUSE';
   proposedAdjustedPrice: number | null;

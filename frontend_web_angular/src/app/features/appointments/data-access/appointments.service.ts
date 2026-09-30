@@ -545,6 +545,7 @@ export class AppointmentsService {
       professionalReviews:
         professional.professionalReviews ?? reservation.professionnel?.nombreAvis ?? 0,
       clientName: reservation.client?.nom || 'Client non renseigne',
+      patientAddress: reservation.client?.adresse || reservation.adresseClient || null,
       clientPhone: reservation.client?.numeroTelephone || null,
       clientAvatarUrl: publicAssetUrl(reservation.client?.urlAvatar) || '',
       serviceName: serviceName || 'Service non renseigne',
@@ -572,6 +573,7 @@ export class AppointmentsService {
         vaccines: this.normalizePrescriptionItems(reservation.vaccinsPrescriptionMedicale),
         treatments: this.normalizePrescriptionItems(reservation.traitementsPrescriptionMedicale),
       },
+      prescriptionTemplate: reservation.professionnel?.modeleOrdonnance ?? null,
       agreedPrice,
       priceAdjustmentStatus: reservation.statutAjustementPrix || 'AUCUN',
       proposedAdjustedPrice: reservation.prixAjustementPropose,

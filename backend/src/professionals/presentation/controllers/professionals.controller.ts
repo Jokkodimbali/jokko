@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   UploadedFile,
   UseGuards,
@@ -24,6 +25,8 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { ProfessionalsFacade } from '../../application/services/professionals-facade.service';
+import { PrescriptionTemplateService } from '../../application/services/prescription-template.service';
+import { UpdatePrescriptionTemplateDto } from '../dto/update-prescription-template.dto';
 import { SearchQueryService } from '../../../search/application/services/search-query.service';
 import { SearchProfessionalsQueryDto } from '../../../search/presentation/dto/search-professionals-query.dto';
 import { JwtAuthGuard } from '../../../auth/security/jwt-auth.guard';
@@ -71,6 +74,7 @@ const allowedProfessionalAssetMimeTypes = new Set([
 export class ProfessionalsController {
   constructor(
     private readonly professionalsFacade: ProfessionalsFacade,
+    private readonly prescriptionTemplateService: PrescriptionTemplateService,
     private readonly searchQueryService: SearchQueryService,
     private readonly cloudinaryMedia: CloudinaryMediaService,
   ) {}
@@ -153,6 +157,27 @@ export class ProfessionalsController {
     return createApiResponse(
       result,
       appMessage('PROFESSIONALS_PROFILE_UPDATED').message,
+    );
+  }
+
+  @Get('me/prescription-template')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async getMyPrescriptionTemplate(@CurrentUser() user: AuthUser) {
+    return createApiResponse(
+      await this.prescriptionTemplateService.getMine(user),
+    );
+  }
+
+  @Put('me/prescription-template')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async updateMyPrescriptionTemplate(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: UpdatePrescriptionTemplateDto,
+  ) {
+    return createApiResponse(
+      await this.prescriptionTemplateService.updateMine(user, dto),
     );
   }
 

@@ -1,0 +1,41 @@
+<section class="invoice-settings" aria-labelledby="invoice-settings-title">
+  <header class="invoice-settings__header">
+    <div><p class="eyebrow">MODÈLE COMMUN</p><h2 id="invoice-settings-title">Personnalisation des factures</h2>
+      <p>Une identité unique pour les factures de tous les prestataires, médecins, pharmacies et quincailleries.</p></div>
+    <button class="primary" type="button" (click)="save()" [disabled]="busy() || !draft()?.brandName?.trim()">
+      {{ saving() ? 'Enregistrement…' : 'Enregistrer le modèle' }}
+    </button>
+  </header>
+  <p class="invoice-settings__notice">Les numéros, dates, coordonnées, prestations, montants et paiements proviennent automatiquement du système. Seul l’administrateur personnalise ce modèle.</p>
+  <p *ngIf="loading()" role="status">Chargement du modèle…</p>
+  <div *ngIf="error()" role="alert" class="invoice-settings__error">{{ error() }} <button type="button" (click)="load()">Réessayer</button></div>
+  <div class="invoice-settings__layout">
+    <form *ngIf="draft() as model" (ngSubmit)="save()" class="invoice-settings__form">
+      <fieldset [disabled]="busy()">
+        <section class="settings-card">
+          <h3>Identité et textes</h3>
+          <label>Nom affiché sur la facture<input name="brandName" maxlength="120" required [ngModel]="model.brandName" (ngModelChange)="update('brandName', $event)"></label>
+          <label>Texte en pied de page<input name="footerText" maxlength="300" [ngModel]="model.footerText" (ngModelChange)="update('footerText', $event)"></label>
+          <label>Libellé des frais inclus<input name="feesLabel" maxlength="80" [ngModel]="model.feesLabel" (ngModelChange)="update('feesLabel', $event)"></label>
+          <small>Ce texte ne modifie aucun tarif. Les frais enregistrés sont déjà compris dans le total payé.</small>
+        </section>
+        <section class="settings-card">
+          <h3>Logo, signature et cachet</h3>
+          <p class="hint">PNG, JPEG ou WebP · 5 Mo maximum. Vous pouvez importer une image, prendre une photo cadrée ou retirer un fond uni avec « Filtrer l’image ».</p>
+          <div *ngFor="let field of imageFields" class="image-setting">
+            <app-document-image-input [label]="field.label" [kind]="field.kind" [imageUrl]="model[field.key]" [busy]="busy()" (imageSelected)="upload(field.key, $event)" (imageRemoved)="update(field.key, '')" (imageError)="showImageError($event)"></app-document-image-input>
+            <button *ngIf="field.key === 'logoUrl'" class="image-setting__default" type="button" (click)="update('logoUrl', '/logojokko.png')">Logo JOKKO</button>
+          </div>
+        </section>
+      </fieldset>
+      <p class="hint">Les modifications prennent effet après enregistrement. Les données des prestations et des paiements restent inchangées.</p>
+    </form>
+    <section class="invoice-settings__preview" aria-label="Aperçu du modèle de facture">
+      <header><h3>Aperçu de la facture</h3><span>Données d’exemple</span></header>
+      <div #previewHost class="invoice-settings__preview-host" [style.height.px]="previewHeight()">
+        <div class="invoice-settings__preview-page" [style.transform]="'scale(' + previewScale() + ')'" [innerHTML]="preview()"></div>
+      </div>
+      <p class="hint">Même présentation pour les téléchargements PDF. Les montants ci-dessus servent uniquement à illustrer le modèle.</p>
+    </section>
+  </div>
+</section>

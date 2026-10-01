@@ -1,0 +1,25 @@
+<div class="document-image-input">
+  <div class="document-image-input__preview">
+    <img *ngIf="previewUrl || imageUrl; else emptyImage" [src]="previewUrl || imageUrl" [alt]="label" />
+    <ng-template #emptyImage><span>Aucune image</span></ng-template>
+  </div>
+  <div class="document-image-input__content">
+    <strong>{{ label }}</strong>
+    <span class="document-image-input__size">{{ kind === 'logo' ? 'Carré' : 'Horizontal' }} · {{ kind === 'logo' ? '512 × 512' : '800 × 500' }} px</span>
+    <div class="document-image-input__actions">
+      <label class="document-image-input__button">Importer<input type="file" accept="image/png,image/jpeg,image/webp" [disabled]="busy || processing" (change)="importImage($event)" /></label>
+      <button type="button" [disabled]="busy || processing" (click)="openCamera()">Prendre une photo</button>
+      <button type="button" [disabled]="busy || processing || (!sourceFile && !imageUrl)" (click)="filterImage()">{{ processing ? 'Traitement…' : 'Filtrer l’image' }}</button>
+      <button *ngIf="previewUrl || imageUrl" type="button" [disabled]="busy || processing" (click)="remove()">Retirer</button>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="cameraOpen" class="document-camera" role="dialog" aria-modal="true" [attr.aria-label]="'Photographier : ' + label">
+  <div class="document-camera__panel">
+    <h3>Photographier : {{ label }}</h3>
+    <p>Placez l’image dans le cadre. La photo sera recadrée et redimensionnée automatiquement.</p>
+    <div class="document-camera__viewport"><video #cameraVideo autoplay playsinline muted></video><div #cameraGuide class="document-camera__guide" [style.aspect-ratio]="ratio"></div></div>
+    <div class="document-camera__actions"><button type="button" (click)="closeCamera()">Annuler</button><button type="button" [disabled]="!cameraReady" (click)="takePhoto()">{{ cameraReady ? 'Prendre la photo' : 'Ouverture de la caméra…' }}</button></div>
+  </div>
+</div>

@@ -1,3 +1,4 @@
+import { AdminInvoiceSettingsComponent } from '../../components/admin-invoice-settings/admin-invoice-settings.component';
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -59,7 +60,7 @@ type AdminSection =
   | 'notifications'
   | 'settings';
 
-type SettingsSubPage = 'banners' | 'pricing';
+type SettingsSubPage = 'banners' | 'pricing' | 'invoice';
 
 interface EditableAppBanner {
   id: string;
@@ -85,6 +86,7 @@ const APP_BANNER_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp
   selector: 'app-admin-dashboard-page',
   standalone: true,
   imports: [
+    AdminInvoiceSettingsComponent,
     CommonModule,
     RouterLink,
     LucideAngularModule,

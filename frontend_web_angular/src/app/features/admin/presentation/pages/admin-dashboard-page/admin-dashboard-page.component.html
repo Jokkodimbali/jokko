@@ -50,7 +50,7 @@
             <div>
               <p>PARAMÈTRES DE L'APPLICATION</p>
               <h1>Gestion du contenu</h1>
-              <span>Gérez les éléments visuels et la tarification de livraison.</span>
+              <span>Gérez les éléments visuels, la tarification et le modèle commun de facture.</span>
             </div>
           </header>
 
@@ -69,9 +69,10 @@
             >
               Tarification
             </button>
+            <button type="button" [class.app-settings__switcher-button--active]="settingsSubPage() === 'invoice'" (click)="selectSettingsSubPage('invoice')">Facture</button>
           </nav>
 
-          <ng-container *ngIf="settingsSubPage() === 'banners'; else pricingPage">
+          <ng-container *ngIf="settingsSubPage() === 'banners'">
             <div class="app-settings__notice">
               <lucide-icon name="sparkles" size="18"></lucide-icon
               ><span
@@ -176,7 +177,7 @@
             </footer>
           </ng-container>
 
-          <ng-template #pricingPage>
+          <ng-container *ngIf="settingsSubPage() === 'pricing'">
             <section class="delivery-pricing-settings" aria-labelledby="delivery-pricing-title">
               <header>
                 <span><lucide-icon name="truck" size="21"></lucide-icon></span>
@@ -223,7 +224,8 @@
                 </button>
               </footer>
             </section>
-          </ng-template>
+          </ng-container>
+          <app-admin-invoice-settings *ngIf="settingsSubPage() === 'invoice'"></app-admin-invoice-settings>
         </section>
       </ng-container>
       <ng-template #nonSettingsContent>

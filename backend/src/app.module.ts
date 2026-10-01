@@ -1,4 +1,5 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { InvoicesModule } from './invoices/invoices.module';
 import { CoreModule } from './core/core.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SanteModule } from './sante/sante.module';
@@ -25,6 +26,7 @@ import { MaterialOrdersModule } from './material-orders/material-orders.module';
 
 @Module({
   imports: [
+    InvoicesModule,
     SharedModule,
     CoreModule,
     PrismaModule,

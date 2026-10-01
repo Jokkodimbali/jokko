@@ -38,7 +38,7 @@ export function resolveTrackingDestinationAddress(
     : pickupAddress || context.adresseClient;
 }
 
-function extractAppointmentNoteValue(
+export function extractAppointmentNoteValue(
   notes: string | null,
   key: string,
 ): string | null {

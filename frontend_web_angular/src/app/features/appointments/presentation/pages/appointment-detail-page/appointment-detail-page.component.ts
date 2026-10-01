@@ -1,3 +1,4 @@
+import { InvoiceDocumentService } from '../../../../../shared/documents/invoice-document.service';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
@@ -233,6 +234,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   private readonly geo = inject(AppointmentGeoService);
   private readonly navigationService = inject(AppointmentNavigationService);
   private readonly routeService = inject(AppointmentRouteService);
+  private readonly invoiceDocuments = inject(InvoiceDocumentService);
   private readonly documentBuilder = inject(AppointmentDocumentBuilderService);
   private readonly doctorSpace = inject(DoctorSpaceService);
   private readonly documentRenderer = inject(AppointmentDocumentRendererService);
@@ -582,28 +584,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     return this.formatter.formatCurrency(
       appointment?.proposedAdjustedPrice ?? appointment?.agreedPrice ?? 0,
     );
-  });
-  protected readonly finalPriceAmount = computed(() => {
-    const appointment = this.appointment();
-    return appointment?.proposedAdjustedPrice ?? appointment?.agreedPrice ?? 0;
-  });
-  protected readonly medicalTotalAmount = computed(() => {
-    const base = this.finalPriceAmount();
-    const extraActs = Math.max(0, this.medicalActs().length - 1) * 5000;
-    const vaccines = this.medicalVaccines().length * 3000;
-    return base + extraActs + vaccines;
-  });
-  protected readonly medicalTotalLabel = computed(() =>
-    this.formatter.formatCurrency(this.medicalTotalAmount()),
-  );
-  protected readonly invoiceNumberLabel = computed(() => {
-    const appointmentId = this.appointment()?.id ?? '';
-    const suffix = appointmentId.replace(/-/g, '').slice(-4).toUpperCase();
-    return `Facture Numero ${suffix || '----'}`;
-  });
-  protected readonly invoiceCodeLabel = computed(() => {
-    const compact = (this.appointment()?.id ?? '').replace(/-/g, '').toUpperCase();
-    return `#FCT-${compact.slice(0, 4) || '----'}-${compact.slice(-4) || '----'}`;
   });
   protected readonly completedAtLabel = computed(() => {
     const tracking = this.tracking();
@@ -2050,12 +2030,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   }
 
   protected downloadMedicalReceipt(appointment: AppointmentView): void {
-    this.downloadHtmlDocument(
-      `recu-medical-jokko-${appointment.id.slice(0, 8)}.pdf`,
-      'Recu medical Jokko',
-      this.buildMedicalReceiptHtml(appointment),
-      'Recu medical genere.',
-    );
+    void this.invoiceDocuments.downloadReservation(appointment.id);
   }
 
   protected downloadMedicalPrescription(appointment: AppointmentView): void {
@@ -2129,12 +2104,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       return;
     }
 
-    this.downloadHtmlDocument(
-      `${this.invoiceNumberLabel().replace(/\s+/g, '-').toLowerCase()}.pdf`,
-      'Facture mission Jokko',
-      this.buildMissionInvoiceHtml(appointment),
-      'Facture mission generee.',
-    );
+    void this.invoiceDocuments.downloadReservation(appointment.id);
   }
 
   protected downloadDeliveryOrderReceipt(appointment: AppointmentView): void {
@@ -2142,23 +2112,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       this.pharmacyOrders.getByDeliveryReservation(appointment.id).subscribe({
         next: (order) => {
           void this.orderCompletionDocument
-            .download({
-              kind: 'MEDICAMENTS',
-              orderId: order.id,
-              merchantName: order.pharmacy.name,
-              clientName: order.client.nom,
-              items: order.medicineItems
-                .filter((item) => item.isAvailable && item.price !== null)
-                .map((item) => ({ name: item.name, unitPrice: item.price ?? 0 })),
-              deliveryRequested: order.deliveryRequested,
-              deliveryAmount: order.deliveryAmount,
-              totalAmount: order.totalAmount,
-            })
-            .then((downloaded) => {
-              if (downloaded) this.feedback.success('Ordonnance et reçu de livraison générés.');
+            .download({ kind: 'MEDICAMENTS', orderId: order.id }).then((downloaded) => {
+              if (downloaded) this.feedback.success('Facture de médicaments générée.');
             });
         },
-        error: () => this.feedback.error('Impossible de charger le reçu détaillé de cette livraison.'),
+        error: () => this.feedback.error('Impossible de charger la facture détaillée de cette livraison.'),
       });
       return;
     }
@@ -2167,27 +2125,11 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.materialOrders.getByDeliveryReservation(appointment.id).subscribe({
       next: (order) => {
         void this.orderCompletionDocument
-          .download({
-            kind: 'MATERIEL',
-            orderId: order.id,
-            merchantName: order.hardwareStore.name,
-            clientName: order.client.nom,
-            items: order.items
-              .filter((item) => item.isAvailable && item.unitPrice !== null)
-              .map((item) => ({
-                name: item.name,
-                quantity: item.quantity,
-                unitPrice: item.unitPrice ?? 0,
-              })),
-            deliveryRequested: order.deliveryRequested,
-            deliveryAmount: order.deliveryAmount,
-            totalAmount: order.totalAmount,
-          })
-          .then((downloaded) => {
-            if (downloaded) this.feedback.success('Reçu de livraison généré.');
+          .download({ kind: 'MATERIEL', orderId: order.id }).then((downloaded) => {
+            if (downloaded) this.feedback.success('Facture de livraison généré.');
           });
       },
-      error: () => this.feedback.error('Impossible de charger le reçu détaillé de cette livraison.'),
+      error: () => this.feedback.error('Impossible de charger la facture détaillée de cette livraison.'),
     });
   }
 
@@ -4773,32 +4715,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
       .then((downloaded) => {
         if (downloaded) this.feedback.success(successMessage);
       });
-  }
-
-  private buildMissionInvoiceHtml(appointment: AppointmentView): string {
-    return this.documentBuilder.buildMissionInvoiceHtml({
-      appointment,
-      subtotal: this.finalPriceAmount(),
-      isParcelTransport: this.isParcelTransportAppointment(appointment),
-    });
-  }
-
-  private travelModeInvoiceLabel(appointment: AppointmentView): string {
-    if (appointment.travelMode === 'TRANSPORT_COLIS') return 'Transport de colis';
-    if (appointment.travelMode === 'CLIENT_SE_DEPLACE') return 'Client se deplace';
-    return 'Prestataire se deplace';
-  }
-
-  private buildMedicalReceiptHtml(appointment: AppointmentView): string {
-    return this.documentBuilder.buildMedicalReceiptHtml({
-      appointment,
-      acts: this.medicalActs(),
-      vaccines: this.medicalVaccines(),
-      invoiceCodeLabel: this.invoiceCodeLabel(),
-      finalPriceAmount: this.finalPriceAmount(),
-      medicalTotalLabel: this.medicalTotalLabel(),
-      generatedAtIso: new Date().toISOString(),
-    });
   }
 
   private buildMedicalPrescriptionHtml(

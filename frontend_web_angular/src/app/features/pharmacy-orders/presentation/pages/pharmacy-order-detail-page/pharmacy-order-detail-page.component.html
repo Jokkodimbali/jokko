@@ -218,13 +218,13 @@
               pickupTitle="QR à présenter au livreur"
             ></app-parcel-pickup-qr-card>
             <button
-              *ngIf="current.deliveryRequested && current.status === 'LIVREE'"
+              *ngIf="current.status === 'LIVREE' || (!current.deliveryRequested && current.status === 'PAYEE_PHARMACIE')"
               type="button"
               class="pharmacy-order__download"
               (click)="downloadCompletedOrder(current)"
             >
               <lucide-icon name="download" size="17"></lucide-icon>
-              Télécharger l’ordonnance et le reçu
+              Télécharger la facture de médicaments
             </button>
           </article>
         </ng-template>
@@ -248,6 +248,7 @@
         <small>Montant des médicaments payé</small>
         <strong>{{ current.medicineAmount | number: '1.0-0' }} FCFA</strong>
       </div>
+      <button type="button" class="pharmacy-order__download" (click)="downloadCompletedOrder(current)">Télécharger la facture de médicaments</button>
     </section>
 
     <section
@@ -258,12 +259,12 @@
       <span>LIVRAISON TERMINÉE</span>
       <h1>Vos médicaments ont été livrés</h1>
       <p>
-        Téléchargez l’ordonnance et le reçu pour retrouver le prix de chaque médicament et les
+        Téléchargez la facture pour retrouver le montant des médicaments et les
         frais de livraison.
       </p>
       <button type="button" class="pharmacy-order__download" (click)="downloadCompletedOrder(current)">
         <lucide-icon name="download" size="17"></lucide-icon>
-        Télécharger l’ordonnance et le reçu
+        Télécharger la facture de médicaments
       </button>
     </section>
 

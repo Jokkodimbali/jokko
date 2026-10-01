@@ -17,30 +17,12 @@ export class AppointmentDocumentRendererService {
   <style>
     body{font-family:var(--font-app,Inter,system-ui,sans-serif);color:#111827;margin:0;background:#f8fafc}
     .sheet{background:#fff;margin:24px auto;max-width:820px;padding:42px;border:1px solid #e5e7eb}
-    .top{display:flex;justify-content:space-between;gap:24px;border-bottom:2px solid #111827;padding-bottom:22px;margin-bottom:28px}
-    h1{font-size:24px;margin:0 0 8px;text-transform:uppercase}
-    h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#865221;border-bottom:1px solid #eadccd;padding-bottom:8px;margin:28px 0 14px}
-    p{margin:4px 0;line-height:1.5}.muted{color:#667085}.box{background:#f9fafb;border:1px solid #eef0f3;border-radius:12px;padding:16px}
-    .order-completion-document{letter-spacing:.012em;line-height:1.55;word-spacing:.08em}.order-completion-document h1,.order-completion-document h2{letter-spacing:.06em;word-spacing:normal}.order-completion-document td,.order-completion-document th{letter-spacing:.008em;line-height:1.45;word-spacing:.06em}.order-completion-document .right{font-variant-numeric:tabular-nums;white-space:nowrap}.order-completion-document .invoice-total{word-spacing:.1em}.order-completion-document .footer-note{line-height:1.6}
-    table{border-collapse:collapse;width:100%;font-size:13px;table-layout:fixed}th{text-align:left;color:#667085;border-bottom:1px solid #e5e7eb;padding:10px 8px}td{border-bottom:1px solid #f0f2f4;padding:10px 8px;vertical-align:top}.document-text,td{overflow-wrap:anywhere;word-break:break-word}.right{text-align:right}.total{font-size:18px;font-weight:800;color:#865221}
-    .brand{display:inline-flex;align-items:center;gap:10px;color:#865221;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.pill{display:inline-block;border-radius:999px;background:#ecfdf3;color:#067647;font-size:12px;font-weight:800;padding:6px 12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.invoice-total{background:#111827;color:#fff;border-radius:14px;padding:18px 22px;text-align:right}.invoice-total .total{color:#fff;font-size:24px}.footer-note{border-top:1px solid #e5e7eb;margin-top:28px;padding-top:18px;font-size:12px;color:#667085}
-    ol,ul{padding-left:22px}li{margin:8px 0;line-height:1.45}.signature{display:flex;justify-content:space-between;gap:24px;margin-top:54px}.stamp{border:1px solid #eadccd;border-radius:12px;background:#fff8f1;color:#865221;padding:18px 24px;text-align:center;font-weight:800}
-    @media(max-width:720px){.top,.grid,.signature{display:block}.right{text-align:left}.invoice-total{text-align:left}}
     @media print{body{background:#fff}.sheet{border:0;margin:0;max-width:none}}
     body.invoice-document{background:#fff}.sheet.invoice-sheet{border:0;border-radius:0;box-shadow:none;margin:0;max-width:none;min-height:1123px;overflow:visible;padding:0;width:794px}
     .sheet.prescription-sheet{border-radius:0;box-shadow:none;max-width:none;width:794px}
-    .mission-invoice{background:#fff;color:#151b29;display:flex;flex-direction:column;letter-spacing:.012em;line-height:1.5;min-height:1123px;word-spacing:.08em}.mission-invoice__header{align-items:center;background:#9b6429;color:#fff;display:grid;grid-template-columns:1fr auto;gap:24px;padding:30px 38px;word-spacing:normal}
-    .mission-invoice__brand{align-items:center;display:flex;gap:16px}.mission-invoice__brand img{background:#fff;border-radius:12px;box-shadow:0 0 0 4px rgba(255,255,255,.18);height:52px;object-fit:contain;padding:6px;width:52px}.mission-invoice__brand h1{color:#fff;font-size:23px;letter-spacing:.02em;margin:0;text-transform:uppercase}
-    .mission-invoice__meta{text-align:right}.mission-invoice__meta span{color:#ead9c6;display:block;font-size:13px;letter-spacing:.16em;margin-bottom:6px;text-transform:uppercase}.mission-invoice__meta strong{display:block;font-size:17px;margin-bottom:4px}.mission-invoice__meta small{color:#ead9c6;font-size:14px}
-    .mission-invoice__parties{border-bottom:1px solid #eadccd;display:grid;grid-template-columns:1fr 1fr}.mission-invoice__party{padding:28px 36px}.mission-invoice__party + .mission-invoice__party{border-left:1px solid #eadccd}.mission-invoice__party small,.mission-invoice__table-head span{color:#9b6429;font-size:13px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;word-spacing:normal}.mission-invoice__party strong{display:block;font-size:19px;margin:16px 0 8px}.mission-invoice__party p{color:#6b7280;font-size:16px;margin:4px 0}
-    .mission-invoice__body{flex:1;padding:22px 38px 0}.mission-invoice__notice{align-items:start;background:#f6ecdd;border:1px solid #dbb98f;border-radius:14px;color:#43515d;display:grid;gap:14px;grid-template-columns:30px 1fr;line-height:1.45;margin-bottom:20px;padding:18px 22px}.mission-invoice__notice b{color:#8a5522;display:block;font-size:16px;margin-bottom:4px}.mission-invoice__pin{align-items:center;color:#9b6429;display:inline-flex;height:26px;justify-content:center;width:26px}.mission-invoice__pin svg{display:block;height:25px;stroke:currentColor;width:25px}
-    .mission-invoice__table-head{background:#f3eadc;border-radius:12px;display:grid;grid-template-columns:minmax(0,1fr) 130px 150px;margin-bottom:8px;padding:11px 18px}.mission-invoice__row{border-bottom:1px solid #eadccd;display:grid;grid-template-columns:minmax(0,1fr) 130px 150px;padding:18px;break-inside:avoid}.mission-invoice__row strong{font-size:16px;overflow-wrap:anywhere;word-break:break-word}.mission-invoice__row span,.mission-invoice__summary span{color:#5f6b7a;overflow-wrap:anywhere;word-break:break-word}.mission-invoice__row .right,.mission-invoice__table-head .right{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
-    .mission-invoice__summary{display:grid;gap:10px;justify-content:end;margin:24px 0 34px}.mission-invoice__summary-line{display:grid;gap:18px;grid-template-columns:150px 130px;text-align:right}.mission-invoice__commission{color:#8a5522}.mission-invoice__total{align-items:center;background:#9b6429;border-radius:13px;color:#fff;display:grid;font-size:18px;font-weight:900;gap:18px;grid-template-columns:1fr auto;min-width:290px;padding:16px 18px}.mission-invoice__total span,.mission-invoice__total strong{color:#fff}.mission-invoice__total strong{font-size:20px}
-    .mission-invoice__footer{align-items:center;background:#f7efe4;border-top:1px solid #dbb98f;color:#8b95a5;display:flex;font-size:14px;justify-content:space-between;padding:22px 36px}.mission-invoice__footer b{color:#9b6429}
-    @media(max-width:720px){.sheet.invoice-sheet{border-radius:0;margin:0}.mission-invoice__header,.mission-invoice__parties,.mission-invoice__table-head,.mission-invoice__row{grid-template-columns:1fr}.mission-invoice__meta{text-align:left}.mission-invoice__party + .mission-invoice__party{border-left:0;border-top:1px solid #eadccd}.mission-invoice__table-head .right,.mission-invoice__row .right{text-align:left}.mission-invoice__footer{align-items:flex-start;display:grid;gap:8px}}
   </style>
 </head>
-<body class="${body.includes('mission-invoice') || body.includes('medical-prescription') ? 'invoice-document' : ''}"><main class="sheet${body.includes('mission-invoice') || body.includes('medical-prescription') ? ' invoice-sheet' : ''}${body.includes('medical-prescription') ? ' prescription-sheet' : ''}">${body}</main></body>
+<body class="${body.includes('system-invoice') || body.includes('medical-prescription') ? 'invoice-document' : ''}"><main class="sheet${body.includes('system-invoice') || body.includes('medical-prescription') ? ' invoice-sheet' : ''}${body.includes('medical-prescription') ? ' prescription-sheet' : ''}">${body}</main></body>
 </html>`;
     const pdfFileName = fileName.replace(/\.html?$/i, '.pdf');
     return this.renderDesignedDocumentAsPdf(html, pdfFileName);
@@ -227,13 +209,13 @@ export class AppointmentDocumentRendererService {
       '.custom-prescription__item',
       '.custom-prescription__signatures',
       '.custom-prescription__footer',
-      '.mission-invoice__notice',
-      '.mission-invoice__row',
-      '.mission-invoice__summary',
-      '.mission-invoice__footer',
-      'tbody tr',
-      '.box',
-      '.total',
+      '.invoice-header',
+      '.invoice-parties',
+      '.invoice-location',
+      '.invoice-row',
+      '.invoice-summary',
+      '.invoice-auth',
+      '.invoice-footer',
     ].join(',');
 
     return Array.from(host.querySelectorAll<HTMLElement>(protectedSelectors))

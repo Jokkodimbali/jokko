@@ -1292,3 +1292,12 @@ model DemandeRetrait {
   @@index([statut, demandeLe])
   @@map("withdrawal_requests")
 }
+
+/// Singleton: invoice branding is administered centrally, never by providers.
+model InvoiceSettings {
+  id        Int      @id @default(1)
+  template  Json     @default("{}")
+  updatedAt DateTime @default(now()) @map("updated_at")
+
+  @@map("invoice_settings")
+}

@@ -304,12 +304,12 @@
           </button>
 
           <button
-            *ngIf="current.deliveryRequested && current.status === 'LIVREE'"
+            *ngIf="current.status === 'LIVREE' || (!current.deliveryRequested && current.status === 'PAYEE_QUINCAILLERIE')"
             type="button"
             class="material-summary__primary"
             (click)="downloadCompletedOrder(current)"
           >
-            Télécharger le reçu de livraison
+            Télécharger la facture de matériel
             <lucide-icon name="download" size="17"></lucide-icon>
           </button>
 

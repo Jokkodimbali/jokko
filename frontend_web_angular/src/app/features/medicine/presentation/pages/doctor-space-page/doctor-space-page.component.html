@@ -931,7 +931,7 @@
 
       <div *ngIf="invoicesLoaded() && invoiceReservations().length > 0" class="doctor-space__invoices-list">
         <article *ngFor="let reservation of invoiceReservations()" class="doctor-space__invoice-row">
-          <span class="doctor-space__invoice-ref">N° {{ reservation.id.slice(0, 8).toUpperCase() }}</span>
+          <span class="doctor-space__invoice-ref">N° JD-PRE-{{ reservation.id.toUpperCase() }}</span>
           <div class="doctor-space__invoice-details">
             <strong>{{ reservation.service?.nom || 'Prestation' }}</strong>
             <small>{{ reservation.client?.nom || 'Client' }} · {{ reservation.dateHeure | date:'dd/MM/yyyy' }}</small>

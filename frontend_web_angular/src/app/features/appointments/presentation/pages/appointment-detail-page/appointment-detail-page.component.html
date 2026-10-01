@@ -1052,10 +1052,10 @@
               <lucide-icon name="receipt" size="17" [strokeWidth]="2.5"></lucide-icon>
               {{
                 isMedicineDelivery()
-                  ? "Télécharger l'ordonnance et le reçu"
+                  ? "Télécharger la facture de médicaments"
                   : isMaterialDelivery()
-                    ? 'Télécharger le reçu de livraison matériel'
-                    : 'Récapitulatif mission'
+                    ? 'Télécharger la facture de livraison de matériel'
+                    : 'Télécharger la facture'
               }}
             </button>
             <button
@@ -1269,9 +1269,9 @@
                 <lucide-icon name="file-text" size="17" [strokeWidth]="2.5"></lucide-icon>
                 {{
                   isMedicineDelivery()
-                    ? "Télécharger l'ordonnance et le reçu"
+                    ? "Télécharger la facture de médicaments"
                     : isMaterialDelivery()
-                      ? 'Télécharger le reçu de livraison matériel'
+                      ? 'Télécharger la facture de livraison de matériel'
                       : isMedicalAppointment() && !isParcelTransportAppointment(appointment)
                         ? "Telecharger l'ordonnance medicale"
                         : 'Telecharger la facture PDF'

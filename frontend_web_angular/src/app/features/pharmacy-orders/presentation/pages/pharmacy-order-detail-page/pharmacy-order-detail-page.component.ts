@@ -286,15 +286,9 @@ export class PharmacyOrderDetailPageComponent implements OnInit {
   }
 
   protected downloadCompletedOrder(order: PharmacyOrderView): void {
-    if (!order.deliveryRequested || order.status !== 'LIVREE') return;
-    void this.completionDocument.download({
-      kind: 'MEDICAMENTS', orderId: order.id, merchantName: order.pharmacy.name,
-      clientName: order.client.nom,
-      items: order.medicineItems.filter((item) => item.isAvailable && item.price !== null)
-        .map((item) => ({ name: item.name, unitPrice: item.price! })),
-      deliveryRequested: true, deliveryAmount: order.deliveryAmount, totalAmount: order.totalAmount,
-    }).then((downloaded) => {
-      if (downloaded) this.feedback.success('Ordonnance et reçu de livraison téléchargés.');
+    if (order.deliveryRequested ? order.status !== 'LIVREE' : order.status !== 'PAYEE_PHARMACIE') return;
+    void this.completionDocument.download({ kind: 'MEDICAMENTS', orderId: order.id }).then((downloaded) => {
+      if (downloaded) this.feedback.success('Facture de médicaments téléchargée.');
     });
   }
 

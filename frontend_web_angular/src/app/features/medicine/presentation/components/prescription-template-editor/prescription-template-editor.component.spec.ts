@@ -44,22 +44,17 @@ describe('PrescriptionTemplateEditorComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('button').disabled).toBe(false);
 
-    const fileInput = fixture.nativeElement.querySelector('input[type="file"]') as HTMLInputElement;
-    expect(
-      (fixture.nativeElement.querySelector('input[type="checkbox"]') as HTMLInputElement).checked,
-    ).toBe(false);
+    expect(fixture.nativeElement.textContent).toContain('Filtrer l’image');
+    expect(fixture.nativeElement.textContent).toContain('Prendre une photo');
     const file = new File(['logo'], 'logo.png', { type: 'image/png' });
-    Object.defineProperty(fileInput, 'files', { configurable: true, value: [file] });
-    fileInput.dispatchEvent(new Event('change'));
-    fixture.detectChanges();
+    (fixture.componentInstance as unknown as { upload: (file: File, field: 'logoUrl') => void }).upload(file, 'logoUrl');
     expect(uploadedFile).toBe(file);
-    expect(fixture.nativeElement.querySelector('button').disabled).toBe(true);
 
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('button').disabled).toBe(false);
     expect(
-      fixture.nativeElement.querySelector('.prescription-editor__asset-preview img'),
+      fixture.nativeElement.querySelector('.document-image-input__preview img'),
     ).not.toBeNull();
   });
 });

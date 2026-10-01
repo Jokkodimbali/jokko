@@ -257,15 +257,9 @@ export class MaterialOrderDetailPageComponent implements OnInit {
   }
 
   protected downloadCompletedOrder(order: MaterialOrderView): void {
-    if (!order.deliveryRequested || order.status !== 'LIVREE') return;
-    void this.completionDocument.download({
-      kind: 'MATERIEL', orderId: order.id, merchantName: order.hardwareStore.name,
-      clientName: order.client.nom,
-      items: order.items.filter((item) => item.isAvailable && item.unitPrice !== null)
-        .map((item) => ({ name: item.name, quantity: item.quantity, unitPrice: item.unitPrice! })),
-      deliveryRequested: true, deliveryAmount: order.deliveryAmount, totalAmount: order.totalAmount,
-    }).then((downloaded) => {
-      if (downloaded) this.feedback.success('Reçu de livraison téléchargé.');
+    if (order.deliveryRequested ? order.status !== 'LIVREE' : order.status !== 'PAYEE_QUINCAILLERIE') return;
+    void this.completionDocument.download({ kind: 'MATERIEL', orderId: order.id }).then((downloaded) => {
+      if (downloaded) this.feedback.success('Facture de matériel téléchargée.');
     });
   }
 

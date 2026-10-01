@@ -84,45 +84,20 @@
             "
             class="prescription-editor__asset"
           >
-            <strong>{{ asset.label }}</strong>
-            <div class="prescription-editor__asset-preview">
-              <img
-                *ngIf="imageUrl($any(asset.field)) as url; else noImage"
-                [src]="url"
-                [alt]="asset.label"
-              />
-              <ng-template #noImage><span>Aucune image</span></ng-template>
-            </div>
-            <div class="prescription-editor__asset-actions">
-              <label
-                >Importer<input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  (change)="upload($event, $any(asset.field))"
-                  [disabled]="!!uploading"
-              /></label>
-              <button
-                type="button"
-                (click)="removeImage($any(asset.field))"
-                [disabled]="!!uploading"
-              >
-                Retirer
-              </button>
-            </div>
-            <label class="prescription-editor__filter">
-              <input
-                type="checkbox"
-                [name]="asset.field + 'Filter'"
-                [ngModel]="imageFilterEnabled(asset.field)"
-                (ngModelChange)="setImageFilter(asset.field, $event)"
-              />
-              Retirer le fond clair (optionnel)
-            </label>
+            <app-document-image-input
+              [label]="asset.label"
+              [kind]="asset.field === 'logoUrl' ? 'logo' : asset.field === 'signatureUrl' ? 'signature' : 'stamp'"
+              [imageUrl]="imageUrl($any(asset.field)) || ''"
+              [busy]="!!uploading"
+              (imageSelected)="upload($event, $any(asset.field))"
+              (imageRemoved)="removeImage($any(asset.field))"
+              (imageError)="showImageError($event)"
+            />
           </div>
         </div>
         <p class="prescription-editor__hint">
-          Les images sont importées directement. Activez le retrait du fond uniquement si
-          nécessaire. La signature et le cachet apparaîtront sur les ordonnances générées.
+          Importez une image ou prenez une photo cadrée. « Filtrer l’image » retire un fond uni
+          autour du logo, de la signature ou du cachet. Ces images apparaîtront sur les ordonnances générées.
         </p>
         <label class="prescription-editor__footer-field"
           >Pied de page<input name="piedDePage" maxlength="300" [(ngModel)]="template.piedDePage"

@@ -1,10 +1,11 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { firstValueFrom, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../../core/http/api-response.models';
 import { unwrapApiResponse, getHttpErrorMessage } from '../../core/http/api-response.utils';
 import { AppFeedbackService } from '../../core/feedback/app-feedback.service';
+import { SKIP_HTTP_CACHE } from '../../core/http/http-cache.interceptor';
 import { AppointmentDocumentRendererService } from '../../features/appointments/presentation/pages/appointment-detail-page/appointment-document-renderer.service';
 import { buildInvoiceDocument, InvoiceDocument, InvoiceTemplate } from './invoice-document';
 
@@ -16,7 +17,9 @@ export class InvoiceDocumentService {
   private readonly base = environment.apiUrl;
 
   loadTemplate() {
-    return this.http.get<ApiResponse<InvoiceTemplate>>(`${this.base}/admin/app-settings/invoice`)
+    return this.http.get<ApiResponse<InvoiceTemplate>>(`${this.base}/admin/app-settings/invoice`, {
+      context: new HttpContext().set(SKIP_HTTP_CACHE, true),
+    })
       .pipe(map(unwrapApiResponse));
   }
 
@@ -42,7 +45,9 @@ export class InvoiceDocumentService {
 
   private async download(path: string): Promise<boolean> {
     try {
-      const data = await firstValueFrom(this.http.get<ApiResponse<InvoiceDocument>>(`${this.base}/invoices/${path}`)
+      const data = await firstValueFrom(this.http.get<ApiResponse<InvoiceDocument>>(`${this.base}/invoices/${path}`, {
+        context: new HttpContext().set(SKIP_HTTP_CACHE, true),
+      })
         .pipe(map(unwrapApiResponse)));
       return await this.renderer.downloadHtmlDocument(
         `facture-${data.reference}.pdf`, 'Facture ' + data.template.brandName, buildInvoiceDocument(data),

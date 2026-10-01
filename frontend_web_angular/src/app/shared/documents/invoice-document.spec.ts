@@ -21,6 +21,17 @@ describe('Shared invoice document', () => {
     expect(html).not.toContain('mission-invoice');
   });
 
+  it('shows service price, included fees, total and payment in the requested order', () => {
+    const html = buildInvoiceDocument(data);
+    const summary = html.slice(html.indexOf('<section class="invoice-summary">'));
+    expect(summary.indexOf('Prix de la prestation')).toBeLessThan(summary.indexOf('Frais inclus'));
+    expect(summary.indexOf('Frais inclus')).toBeLessThan(summary.indexOf('<div class="invoice-total">'));
+    expect(summary.indexOf('<div class="invoice-total">')).toBeLessThan(summary.indexOf('Mode de paiement'));
+    expect(html).toContain('9 500 FCFA');
+    expect(summary).toContain('10 000 FCFA');
+    expect(html).not.toContain('10 500 FCFA');
+  });
+
   it('escapes names and template text and drops unsafe images', () => {
     const html = buildInvoiceDocument({ ...data, client: { ...data.client, name: '<script>alert(1)</script>' },
       template: { ...data.template, footerText: '<img src=x onerror=alert(1)>', logoUrl: 'javascript:alert(1)' } });
@@ -46,6 +57,25 @@ describe('Shared invoice document', () => {
   it('does not turn failed or refunded payments into paid invoices', () => {
     expect(buildInvoiceDocument({ ...data, paymentStatus: 'ECHEC' })).toContain('Paiement échoué');
     expect(buildInvoiceDocument({ ...data, paymentStatus: 'REMBOURSE' })).toContain('Remboursée');
+  });
+
+  it('centers the paid badge and the travel badge in dedicated slots', () => {
+    const html = buildInvoiceDocument({ ...data, travelMode: 'CLIENT_SE_DEPLACE' });
+    expect(html).toContain('<div class="invoice-status-slot"><span class="invoice-status is-paid"><span class="invoice-badge-text">Payée</span></span>');
+    expect(html).toContain('<div class="invoice-mode-slot"><span class="invoice-mode is-client">');
+    expect(html).toContain('Client se déplace');
+    expect(html).toContain('invoice-mode__icon');
+    expect(html).toContain('.invoice-sheet .invoice-badge-text{top:-7px}');
+    expect(html).not.toContain('height:28px;line-height:28px');
+  });
+
+  it('keeps visible spacing between words throughout the invoice', () => {
+    const html = buildInvoiceDocument(data);
+    expect(html).toContain('word-spacing:.16em');
+    expect(html).toContain('word-spacing:.26em');
+    expect(html).toContain('Type de prestation');
+    expect(html).toContain('Prestataire se déplace');
+    expect(html).toContain('Mode de paiement');
   });
 
   it('uses the same customized logo, signature, stamp and footer', () => {

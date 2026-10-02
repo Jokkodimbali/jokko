@@ -1,12 +1,41 @@
-<main class="doctor-space" [class.doctor-space--patients]="activeSection() === 'patient-appointments'" [class.doctor-space--management]="activeSection() === 'consultation'">
+<main class="doctor-space" [class.doctor-space--patients]="activeSection() === 'patient-appointments'" [class.doctor-space--management]="activeSection() === 'consultation'" [class.doctor-space--agenda-visible]="activeSection() === 'agenda' || ((activeSection() === 'patient-appointments' || activeSection() === 'negotiations') && requestsTab() === 'agenda')">
   <section class="doctor-space__content">
     <header
+      *ngIf="activeSection() !== 'agenda'"
       class="doctor-space__header"
       [class.doctor-space__header--agenda]="activeSection() === 'agenda'"
       [class.doctor-space__header--negotiations]="activeSection() === 'negotiations'"
+      [class.doctor-space__header--requests]="activeSection() === 'negotiations' || activeSection() === 'patient-appointments'"
     >
-      <h1><ng-container *ngIf="activeSection() === 'consultation'; else otherPageTitle">Disponibilité et <span>services</span></ng-container><ng-template #otherPageTitle>{{ pageTitle() }}</ng-template></h1>
-      <p *ngIf="pageSubtitle()">{{ pageSubtitle() }}</p>
+      <div class="doctor-space__header-copy">
+        <h1><ng-container *ngIf="activeSection() === 'consultation'; else otherPageTitle">Disponibilité et <span>services</span></ng-container><ng-template #otherPageTitle>{{ pageTitle() }}</ng-template></h1>
+        <p *ngIf="pageSubtitle()">{{ pageSubtitle() }}</p>
+      </div>
+      <nav
+        *ngIf="!isLoading() && !errorMessage() && (activeSection() === 'negotiations' || activeSection() === 'patient-appointments')"
+        class="doctor-space__management-tabs doctor-space__requests-tabs"
+        role="tablist"
+        [attr.aria-label]="activeSection() === 'patient-appointments' ? 'Patients et agenda' : 'Demandes et agenda'"
+      >
+        <button
+          type="button"
+          role="tab"
+          id="doctor-space-requests-tab"
+          aria-controls="doctor-space-requests-panel"
+          [attr.aria-selected]="requestsTab() === 'requests'"
+          [class.doctor-space__management-tab--active]="requestsTab() === 'requests'"
+          (click)="selectRequestsTab('requests')"
+        >{{ activeSection() === 'patient-appointments' ? 'Rendez-vous patients' : 'Demandes' }}</button>
+        <button
+          type="button"
+          role="tab"
+          id="doctor-space-agenda-tab"
+          aria-controls="doctor-space-agenda-panel"
+          [attr.aria-selected]="requestsTab() === 'agenda'"
+          [class.doctor-space__management-tab--active]="requestsTab() === 'agenda'"
+          (click)="selectRequestsTab('agenda')"
+        >Agenda interactif</button>
+      </nav>
     </header>
 
     <section *ngIf="isLoading()" class="doctor-space__loading" role="status" aria-live="polite">
@@ -958,32 +987,6 @@
       ></app-prescription-template-editor>
     </section>
 
-    <nav
-      *ngIf="!isLoading() && !errorMessage() && (activeSection() === 'negotiations' || activeSection() === 'patient-appointments')"
-      class="doctor-space__management-tabs doctor-space__requests-tabs"
-      role="tablist"
-      [attr.aria-label]="activeSection() === 'patient-appointments' ? 'Patients et agenda' : 'Demandes et agenda'"
-    >
-      <button
-        type="button"
-        role="tab"
-        id="doctor-space-requests-tab"
-        aria-controls="doctor-space-requests-panel"
-        [attr.aria-selected]="requestsTab() === 'requests'"
-        [class.doctor-space__management-tab--active]="requestsTab() === 'requests'"
-        (click)="selectRequestsTab('requests')"
-      >{{ activeSection() === 'patient-appointments' ? 'Rendez-vous patients' : 'Demandes' }}</button>
-      <button
-        type="button"
-        role="tab"
-        id="doctor-space-agenda-tab"
-        aria-controls="doctor-space-agenda-panel"
-        [attr.aria-selected]="requestsTab() === 'agenda'"
-        [class.doctor-space__management-tab--active]="requestsTab() === 'agenda'"
-        (click)="selectRequestsTab('agenda')"
-      >Agenda interactif</button>
-    </nav>
-
     <section
       *ngIf="
         !isLoading() &&
@@ -998,37 +1001,19 @@
       [attr.aria-labelledby]="activeSection() !== 'agenda' ? 'doctor-space-agenda-tab' : null"
     >
 
-      <header class="doctor-space__agenda-section-heading">
-        <h2>Agenda interactif</h2>
-        <p>{{ agendaWeekLabel() }}</p>
-      </header>
-
       <section class="doctor-space__agenda-board">
-        <div class="doctor-space__agenda-toolbar">
-          <div class="doctor-space__agenda-date-controls">
-            <button
-              type="button"
-              class="doctor-space__agenda-arrow"
-              (click)="previousAgendaWeek()"
-              aria-label="Semaine precedente"
-            >
-              <lucide-icon name="arrow-left" size="16" [strokeWidth]="2.5"></lucide-icon>
-            </button>
-            <button type="button" class="doctor-space__agenda-today" (click)="goToTodayAgenda()">
-              Aujourd'hui
-            </button>
-            <button
-              type="button"
-              class="doctor-space__agenda-arrow"
-              (click)="nextAgendaWeek()"
-              aria-label="Semaine suivante"
-            >
-              <lucide-icon name="arrow-right" size="16" [strokeWidth]="2.5"></lucide-icon>
-            </button>
-            <strong>{{ agendaDateLabel() }}</strong>
-          </div>
+        <div *ngIf="agendaNotice() as notice" class="doctor-space__agenda-notice" [class.doctor-space__agenda-notice--error]="notice.tone === 'error'" [class.doctor-space__agenda-notice--success]="notice.tone === 'success'" role="status" aria-live="polite">
+          <span>{{ notice.message }}</span>
+          <button type="button" aria-label="Masquer le message" (click)="dismissAgendaNotice()">×</button>
+        </div>
 
-          <div class="doctor-space__agenda-view-controls">
+        <div class="doctor-space__agenda-filters">
+          <span class="doctor-space__agenda-filter-label">Mode</span>
+          <button type="button" [class.doctor-space__agenda-chip--active]="agendaTravelFilter() === 'ALL'" (click)="selectAgendaTravelFilter('ALL')">Tout</button>
+          <button type="button" class="doctor-space__agenda-travel--client" [class.doctor-space__agenda-chip--active]="agendaTravelFilter() === 'CLIENT_SE_DEPLACE'" (click)="selectAgendaTravelFilter('CLIENT_SE_DEPLACE')"><lucide-icon [name]="agendaTravelModeIcon('CLIENT_SE_DEPLACE')" size="16"></lucide-icon>Client se déplace</button>
+          <button type="button" class="doctor-space__agenda-travel--parcel" [class.doctor-space__agenda-chip--active]="agendaTravelFilter() === 'TRANSPORT_COLIS'" (click)="selectAgendaTravelFilter('TRANSPORT_COLIS')"><lucide-icon [name]="agendaTravelModeIcon('TRANSPORT_COLIS')" size="16"></lucide-icon>Transport de colis</button>
+          <button type="button" class="doctor-space__agenda-travel--provider" [class.doctor-space__agenda-chip--active]="agendaTravelFilter() === 'PRESTATAIRE_SE_DEPLACE'" (click)="selectAgendaTravelFilter('PRESTATAIRE_SE_DEPLACE')"><lucide-icon [name]="agendaTravelModeIcon('PRESTATAIRE_SE_DEPLACE')" size="16"></lucide-icon>Prestataire se déplace</button>
+          <div class="doctor-space__agenda-view-controls" aria-label="Vue du calendrier">
             <button
               type="button"
               [class.doctor-space__agenda-view--active]="agendaViewMode() === 'day'"
@@ -1053,23 +1038,24 @@
               <lucide-icon name="calendar-days" size="15" [strokeWidth]="2.1"></lucide-icon>
               Mois
             </button>
+            <button type="button" [class.doctor-space__agenda-view--active]="agendaViewMode() === 'year'" (click)="selectAgendaViewMode('year')">Année</button>
             <div
               class="doctor-space__agenda-zoom"
-              aria-label="Regle de decoupage de la grille horaire"
-              [title]="'Affichage par tranche de ' + appointmentStepMinutes() + ' minutes'"
+              aria-label="Zoom de la grille horaire"
+              [title]="'Zoom de l’agenda : ' + agendaZoomPercent() + ' %'"
             >
               <button
                 type="button"
                 (click)="zoomAgendaOut()"
-                aria-label="Reduire la duree des rendez-vous"
+                aria-label="Réduire le zoom de l’agenda"
               >
                 -
               </button>
-              <span>{{ agendaZoomPercent() }} min</span>
+              <span>{{ agendaZoomPercent() }} %</span>
               <button
                 type="button"
                 (click)="zoomAgendaIn()"
-                aria-label="Augmenter la duree des rendez-vous"
+                aria-label="Augmenter le zoom de l’agenda"
               >
                 +
               </button>
@@ -1077,7 +1063,7 @@
           </div>
         </div>
 
-        <div class="doctor-space__agenda-filters">
+        <div class="doctor-space__agenda-filters doctor-space__agenda-filters--status">
           <lucide-icon name="sliders-horizontal" size="24" [strokeWidth]="2"></lucide-icon>
           <button
             type="button"
@@ -1136,28 +1122,33 @@
           </div>
         </div>
 
+        <div class="doctor-space__agenda-layout">
+
         <div
+          *ngIf="agendaViewMode() === 'day' || agendaViewMode() === 'week'"
           class="doctor-space__agenda-grid"
-          aria-label="Planning hebdomadaire"
+          [attr.aria-label]="agendaViewMode() === 'day' ? 'Planning du jour' : 'Planning hebdomadaire'"
           [style.--agenda-row-height.px]="agendaRowHeight()"
+          [style.--agenda-day-count]="agendaVisibleDays().length"
+          (dragover)="allowAgendaDrop($event)"
+          (drop)="dropAgendaReservation($event)"
         >
           <div class="doctor-space__agenda-corner">Heure</div>
           <div
-            *ngFor="let day of agendaWeekDays(); trackBy: trackAgendaDay"
+            *ngFor="let day of agendaVisibleDays(); trackBy: trackAgendaDay"
             class="doctor-space__agenda-day-head"
             [class.doctor-space__agenda-day-head--active]="isAgendaDayActive(day.date)"
             [class.doctor-space__agenda-day-head--today]="isSameAgendaDay(day.date, todayDate())"
           >
-            <span>{{ day.dayLabel }}</span>
-            <strong>{{ day.dayNumber }}</strong>
+            <span class="doctor-space__agenda-day-date"><span>{{ day.dayLabel }}</span><strong>{{ day.dayNumber }}</strong></span>
           </div>
 
           <ng-container
             *ngFor="let row of agendaRows(); let rowIndex = index; trackBy: trackAgendaRow"
           >
-            <div class="doctor-space__agenda-hour">{{ row }}</div>
+            <div class="doctor-space__agenda-hour">{{ row.endsWith(':00') ? row : '' }}</div>
             <div
-              *ngFor="let day of agendaWeekDays(); trackBy: trackAgendaDay"
+              *ngFor="let day of agendaVisibleDays(); trackBy: trackAgendaDay"
               class="doctor-space__agenda-cell"
             ></div>
           </ng-container>
@@ -1166,6 +1157,7 @@
             *ngFor="let event of agendaEvents(); trackBy: trackAgendaEvent"
             type="button"
             class="doctor-space__agenda-event"
+            [class.doctor-space__agenda-event--compact]="event.rowSpan === 1"
             [class.doctor-space__agenda-event--pending]="event.variant === 'pending'"
             [class.doctor-space__agenda-event--paid]="event.variant === 'paid'"
             [class.doctor-space__agenda-event--active]="event.variant === 'active'"
@@ -1173,34 +1165,77 @@
             [class.doctor-space__agenda-event--cancelled]="event.variant === 'cancelled'"
             [class.doctor-space__agenda-event--absent]="event.variant === 'absent'"
             [class.doctor-space__agenda-event--dispute]="event.variant === 'dispute'"
+            [class.doctor-space__agenda-event--travel-client]="event.travelMode === 'CLIENT_SE_DEPLACE'"
+            [class.doctor-space__agenda-event--travel-parcel]="event.travelMode === 'TRANSPORT_COLIS'"
+            [class.doctor-space__agenda-event--travel-provider]="event.travelMode === 'PRESTATAIRE_SE_DEPLACE'"
+            [class.doctor-space__agenda-event--selected]="selectedAgendaReservation()?.id === event.id"
             [style.gridColumn]="event.dayIndex + 2"
             [style.gridRow]="event.rowStart + ' / span ' + event.rowSpan"
+            [style.--agenda-offset.px]="event.offsetTop"
+            [draggable]="true"
+            [attr.title]="agendaEventTooltip(event)"
+            (dragstart)="startAgendaDrag($event, event.id)"
+            (dragend)="endAgendaDrag()"
             (click)="openAgendaReservation(event)"
             [attr.aria-label]="
               'Ouvrir la reservation ' + event.title + ' avec ' + event.clientLabel
             "
           >
             <span class="doctor-space__agenda-event-status">{{ event.statusLabel }}</span>
-            <strong><span></span>{{ event.title }}</strong>
-            <small>
-              <lucide-icon name="clock-3" size="10" [strokeWidth]="2"></lucide-icon>
-              {{ event.timeLabel }}
-            </small>
-            <small>
-              <lucide-icon name="users" size="10" [strokeWidth]="2"></lucide-icon>
-              {{ event.clientLabel }}
-            </small>
+            <small class="doctor-space__agenda-event-start">{{ event.startLabel }}</small>
+            <strong><lucide-icon [name]="agendaTravelModeIcon(event.travelMode)" size="12"></lucide-icon>{{ event.title }}</strong>
+            <small>{{ event.clientLabel }}</small>
             <em>{{ event.price | number: '1.0-0' }} FCFA</em>
           </button>
         </div>
+
+        <div *ngIf="agendaViewMode() === 'month'" class="doctor-space__agenda-month" aria-label="Agenda mensuel">
+          <div *ngFor="let label of ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']" class="doctor-space__agenda-month-head">{{ label }}</div>
+          <div *ngFor="let day of agendaMonthDays()" class="doctor-space__agenda-month-day" [class.doctor-space__agenda-month-day--outside]="!day.inMonth" [class.doctor-space__agenda-month-day--today]="isSameAgendaDay(day.date, todayDate())" (dragover)="allowAgendaMonthDrop($event)" (drop)="dropAgendaReservationOnMonth($event, day.date)">
+            <button type="button" class="doctor-space__agenda-month-date" (click)="showAgendaDay(day.date)" [attr.aria-label]="'Afficher le ' + (day.date | date: 'fullDate' : undefined : 'fr')">{{ day.date | date: 'd' }}</button>
+            <button *ngFor="let reservation of day.reservations | slice: 0 : 3" type="button" class="doctor-space__agenda-month-event" [class.doctor-space__agenda-month-event--client]="reservation.service?.modeDeplacement === 'CLIENT_SE_DEPLACE'" [class.doctor-space__agenda-month-event--provider]="reservation.service?.modeDeplacement === 'PRESTATAIRE_SE_DEPLACE'" [draggable]="true" (dragstart)="startAgendaDrag($event, reservation.id)" (dragend)="endAgendaDrag()" (click)="openAgendaReservationById(reservation.id)" [attr.title]="agendaReservationServiceName(reservation) + ' · ' + agendaReservationStatusLabel(reservation.statut)">{{ reservation.dateHeure | date: 'HH:mm' : undefined : 'fr' }} {{ agendaReservationServiceName(reservation) }}</button>
+            <small *ngIf="day.reservations.length > 3">+{{ day.reservations.length - 3 }} RDV</small>
+          </div>
+        </div>
+
+        <div *ngIf="agendaViewMode() === 'year'" class="doctor-space__agenda-year" aria-label="Agenda annuel">
+          <button *ngFor="let month of agendaYearMonths()" type="button" (click)="showAgendaMonth(month.month)"><strong>{{ month.label }}</strong><span>{{ month.count }} RDV</span></button>
+        </div>
+
+        <aside *ngIf="!selectedAgendaReservation() && !isAgendaReservationLoading() && !agendaReservationError()" class="doctor-space__agenda-upcoming">
+          <h3>Prochains RDV</h3>
+          <p *ngIf="agendaUpcoming().length === 0">Aucun rendez-vous à venir.</p>
+          <div *ngFor="let reservation of agendaUpcoming()" class="doctor-space__agenda-upcoming-item">
+            <button type="button" class="doctor-space__agenda-upcoming-open" (click)="openAgendaReservationById(reservation.id)">
+              <time>{{ reservation.dateHeure | date: 'EEE d MMM, HH:mm' : undefined : 'fr' }}</time>
+              <span><strong>{{ agendaReservationServiceName(reservation) }}</strong><small>{{ clientLabel(reservation) }}</small></span>
+            </button>
+            <button type="button" class="doctor-space__agenda-upcoming-cancel" (click)="openAgendaCancel(reservation)" [disabled]="!canCancelAgendaReservation(reservation)" [attr.title]="agendaCancelUnavailableReason(reservation) || 'Annuler ce RDV'" [attr.aria-label]="'Annuler le rendez-vous de ' + clientLabel(reservation)">Annuler</button>
+          </div>
+        </aside>
+
+        <section *ngIf="agendaPendingMove() as move" class="doctor-space__agenda-move" role="dialog" aria-modal="true" aria-labelledby="agenda-move-title">
+          <div class="doctor-space__agenda-move-backdrop" (click)="cancelAgendaMove()"></div>
+          <div class="doctor-space__agenda-move-card">
+            <h3 id="agenda-move-title">Reprogrammer le rendez-vous</h3>
+            <p>Vérifiez le nouveau créneau. Le client ou patient sera notifié après confirmation.</p>
+            <label for="agenda-new-date">Nouvelle date et heure</label>
+            <input id="agenda-new-date" type="datetime-local" [ngModel]="move.newDateTime" (ngModelChange)="updateAgendaMoveDateTime($event)" [disabled]="isAgendaRescheduling()" />
+            <p *ngIf="agendaMoveConflict()" class="doctor-space__agenda-move-conflict">Un autre rendez-vous occupe déjà cette date et cette heure.</p>
+            <p *ngIf="agendaMoveOutsideAvailability()" class="doctor-space__agenda-move-conflict">Ce jour ou cet horaire ne fait pas partie des disponibilités du professionnel. Choisissez un autre créneau.</p>
+            <div class="doctor-space__agenda-move-actions">
+              <button type="button" (click)="cancelAgendaMove()" [disabled]="isAgendaRescheduling()">Annuler</button>
+              <button type="button" (click)="confirmAgendaMove()" [disabled]="isAgendaRescheduling() || agendaMoveConflict() || agendaMoveOutsideAvailability()">{{ isAgendaRescheduling() ? 'Enregistrement…' : 'Confirmer et notifier' }}</button>
+            </div>
+          </div>
+        </section>
 
         <section
           *ngIf="
             selectedAgendaReservation() || isAgendaReservationLoading() || agendaReservationError()
           "
           class="doctor-space__agenda-detail"
-          role="dialog"
-          aria-modal="true"
+          role="region"
           aria-labelledby="agenda-reservation-title"
         >
           <div
@@ -1217,7 +1252,7 @@
               <lucide-icon name="x" size="22" [strokeWidth]="2.3"></lucide-icon>
             </button>
 
-            <p *ngIf="isAgendaReservationLoading()" class="doctor-space__agenda-detail-state">
+            <p *ngIf="isAgendaReservationLoading() && !selectedAgendaReservation()" class="doctor-space__agenda-detail-state">
               Chargement du detail de la reservation...
             </p>
 
@@ -1229,104 +1264,82 @@
             </p>
 
             <ng-container *ngIf="selectedAgendaReservation() as reservation">
-              <header>
-                <span
-                  class="doctor-space__agenda-detail-status"
-                  [class.doctor-space__agenda-detail-status--cancelled]="
-                    isCancelledStatus(reservation.statut)
-                  "
-                >
-                  {{ agendaReservationStatusLabel(reservation.statut) }}
+              <header class="doctor-space__agenda-detail-summary">
+                <span class="doctor-space__agenda-mode" [class.doctor-space__agenda-mode--client]="reservation.service?.modeDeplacement === 'CLIENT_SE_DEPLACE'" [class.doctor-space__agenda-mode--provider]="reservation.service?.modeDeplacement === 'PRESTATAIRE_SE_DEPLACE'">
+                  <lucide-icon [name]="agendaTravelModeIcon(reservation.service?.modeDeplacement)" size="15" [strokeWidth]="2.2"></lucide-icon>
+                  {{ agendaTravelModeLabel(reservation) }}
                 </span>
-                <h2 id="agenda-reservation-title">
-                  {{ agendaReservationServiceName(reservation) }}
-                </h2>
-                <p>{{ agendaReservationDateLabel(reservation) }}</p>
+                <span class="doctor-space__agenda-detail-caption">Motif de la prestation</span>
+                <h2 id="agenda-reservation-title">{{ agendaReservationServiceName(reservation) }}</h2>
+                <div class="doctor-space__agenda-detail-date-price">
+                  <div><strong>{{ reservation.dateHeure | date: 'EEEE d MMMM y' }}</strong><span>{{ formatAgendaTime(reservation.dateHeure) }} – {{ agendaReservationEndTimeLabel(reservation) }}</span></div>
+                  <strong>{{ agendaReservationPrice(reservation) | number: '1.0-0' }} FCFA</strong>
+                </div>
+                <span class="doctor-space__agenda-detail-status" [class.doctor-space__agenda-detail-status--cancelled]="isCancelledStatus(reservation.statut)">{{ agendaReservationStatusLabel(reservation.statut) }}</span>
               </header>
 
-              <dl class="doctor-space__agenda-detail-grid">
-                <div>
-                  <dt>Patient</dt>
-                  <dd>{{ clientLabel(reservation) }}</dd>
-                </div>
-                <div>
-                  <dt>Telephone</dt>
-                  <dd>{{ reservation.client?.numeroTelephone || 'Non renseigne' }}</dd>
-                </div>
-                <div>
-                  <dt>Categorie</dt>
-                  <dd>{{ agendaReservationCategoryName(reservation) }}</dd>
-                </div>
-                <div>
-                  <dt>Horaire</dt>
-                  <dd>
-                    {{ formatAgendaTime(reservation.dateHeure) }} -
-                    {{ agendaReservationEndTimeLabel(reservation) }}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Duree</dt>
-                  <dd>{{ reservation.dureeMinutes }} min</dd>
-                </div>
-                <div>
-                  <dt>Montant</dt>
-                  <dd>{{ agendaReservationPrice(reservation) | number: '1.0-0' }} FCFA</dd>
-                </div>
-                <div class="doctor-space__agenda-detail-grid-full">
-                  <dt>{{ isTeleconsultationReservation(reservation) ? 'Mode' : 'Adresse' }}</dt>
-                  <dd>{{ reservationLocationLabel(reservation) }}</dd>
-                </div>
-                <div class="doctor-space__agenda-detail-grid-full" *ngIf="reservation.notes">
-                  <dt>Notes</dt>
-                  <dd>{{ reservation.notes }}</dd>
-                </div>
-                <div
-                  class="doctor-space__agenda-detail-grid-full"
-                  *ngIf="reservation.raisonAnnulation"
-                >
-                  <dt>Raison d'annulation</dt>
-                  <dd>{{ reservation.raisonAnnulation }}</dd>
-                </div>
-              </dl>
+              <div class="doctor-space__agenda-client-card">
+                <span aria-hidden="true">{{ agendaClientInitials(reservation) }}</span>
+                <div><strong>{{ clientLabel(reservation) }}</strong><small>{{ reservation.client?.numeroTelephone || 'Téléphone non renseigné' }}</small></div>
+              </div>
 
-              <form
-                class="doctor-space__agenda-cancel"
-                (ngSubmit)="cancelAgendaReservation(reservation)"
+              <div *ngIf="reservation.service?.modeDeplacement === 'TRANSPORT_COLIS'; else agendaRegularLocation" class="doctor-space__agenda-parcel-route">
+                <div><span class="doctor-space__agenda-route-point">A</span><div><small>Retrait</small><strong>{{ agendaParcelNoteValue(reservation, 'Depart colis') || 'Adresse de retrait à consulter sur le RDV' }}</strong><span *ngIf="agendaParcelNoteValue(reservation, 'Expediteur')">Expéditeur : {{ agendaParcelNoteValue(reservation, 'Expediteur') }}</span></div></div>
+                <div><span class="doctor-space__agenda-route-point doctor-space__agenda-route-point--end">B</span><div><small>Dépôt</small><strong>{{ agendaParcelNoteValue(reservation, 'Arrivee destinataire') || reservationLocationLabel(reservation) }}</strong><span *ngIf="agendaParcelNoteValue(reservation, 'Destinataire')">Destinataire : {{ agendaParcelNoteValue(reservation, 'Destinataire') }}</span></div></div>
+                <p *ngIf="agendaParcelSummary(reservation)">Colis : {{ agendaParcelSummary(reservation) }}</p>
+              </div>
+              <ng-template #agendaRegularLocation>
+                <div class="doctor-space__agenda-location"><lucide-icon name="map-pin" size="17" [strokeWidth]="2"></lucide-icon><div><small>{{ isTeleconsultationReservation(reservation) ? 'Mode de consultation' : 'Lieu du rendez-vous' }}</small><strong>{{ reservationLocationLabel(reservation) }}</strong></div></div>
+              </ng-template>
+
+              <div *ngIf="reservation.raisonAnnulation" class="doctor-space__agenda-cancel-note">Raison d'annulation : {{ reservation.raisonAnnulation }}</div>
+
+              <details class="doctor-space__agenda-extra">
+                <summary>Informations complémentaires</summary>
+                <p>Catégorie : {{ agendaReservationCategoryName(reservation) }}</p>
+                <p>Durée : {{ reservation.dureeMinutes }} min</p>
+                <p *ngIf="reservation.notes">Notes : {{ reservation.notes }}</p>
+              </details>
+
+              <button
+                *ngIf="canRescheduleAgendaReservation(reservation)"
+                type="button"
+                class="doctor-space__agenda-reschedule"
+                (click)="openAgendaReschedule(reservation)"
               >
-                <label>
-                  <span>Raison de l'annulation</span>
-                  <textarea
-                    name="agendaCancelReason"
-                    rows="3"
-                    maxlength="1000"
-                    placeholder="Expliquez clairement la raison transmise au client..."
-                    [(ngModel)]="agendaCancelForm.reason"
-                    [disabled]="
-                      !canCancelAgendaReservation(reservation) || isAgendaReservationCancelling()
-                    "
-                  ></textarea>
-                </label>
+                <lucide-icon name="calendar-days" size="16" [strokeWidth]="2"></lucide-icon>
+                Déplacer le rendez-vous
+              </button>
 
-                <p
-                  *ngIf="!canCancelAgendaReservation(reservation)"
-                  class="doctor-space__agenda-cancel-note"
-                >
-                  Cette reservation ne peut plus etre annulee depuis l'agenda: elle est terminee,
-                  deja annulee, en litige, ou a moins de 24 h.
-                </p>
-
-                <button
-                  type="submit"
-                  [disabled]="
-                    !canCancelAgendaReservation(reservation) || isAgendaReservationCancelling()
-                  "
-                >
-                  <lucide-icon name="circle-x" size="16" [strokeWidth]="2.3"></lucide-icon>
-                  {{ isAgendaReservationCancelling() ? 'Annulation...' : 'Annuler la reservation' }}
-                </button>
-              </form>
+              <button type="button" class="doctor-space__agenda-open-page" (click)="openReservationDetail(reservation.id)">Voir la page du RDV</button>
+              <button type="button" class="doctor-space__agenda-cancel-trigger" (click)="openAgendaCancel(reservation)" [disabled]="!canCancelAgendaReservation(reservation)">Annuler le RDV</button>
+              <p *ngIf="agendaCancelUnavailableReason(reservation) as reason" class="doctor-space__agenda-cancel-unavailable">{{ reason }}</p>
             </ng-container>
           </article>
+        </section>
+        </div>
+
+        <section *ngIf="isAgendaCancelExpanded() && selectedAgendaReservation() as reservation" class="doctor-space__agenda-cancel-modal" role="dialog" aria-modal="true" aria-labelledby="agenda-cancel-title">
+          <div class="doctor-space__agenda-cancel-backdrop" (click)="isAgendaCancelExpanded.set(false)"></div>
+          <form class="doctor-space__agenda-cancel-card" (ngSubmit)="cancelAgendaReservation(reservation)">
+            <h3 id="agenda-cancel-title">Annuler le RDV</h3>
+            <p>{{ agendaReservationServiceName(reservation) }} · {{ clientLabel(reservation) }}</p>
+            <label for="agenda-cancel-reason">Motif d'annulation</label>
+            <select id="agenda-cancel-reason" name="agendaCancelReason" [(ngModel)]="agendaCancelForm.reason" [disabled]="isAgendaReservationCancelling()">
+              <option value="Indisponibilité du prestataire">Indisponibilité du prestataire</option>
+              <option value="Demande du client">Demande du client</option>
+              <option value="Conditions météo">Conditions météo</option>
+              <option value="Autre">Autre</option>
+            </select>
+            <label for="agenda-cancel-details">Précisions facultatives</label>
+            <textarea id="agenda-cancel-details" name="agendaCancelDetails" rows="3" maxlength="800" placeholder="Ajoutez des précisions pour le client..." [(ngModel)]="agendaCancelForm.details" [disabled]="isAgendaReservationCancelling()"></textarea>
+            <p class="doctor-space__agenda-cancel-notice">Le client ou patient sera notifié. Si le RDV est payé, le remboursement sera demandé automatiquement sur son moyen de paiement initial avant l'annulation.</p>
+            <p *ngIf="agendaReservationError()" class="doctor-space__agenda-move-conflict">{{ agendaReservationError() }}</p>
+            <div class="doctor-space__agenda-cancel-actions">
+              <button type="button" (click)="isAgendaCancelExpanded.set(false)" [disabled]="isAgendaReservationCancelling()">Garder le RDV</button>
+              <button type="submit" [disabled]="!canCancelAgendaReservation(reservation) || isAgendaReservationCancelling()">{{ isAgendaReservationCancelling() ? 'Annulation…' : 'Confirmer l’annulation' }}</button>
+            </div>
+          </form>
         </section>
       </section>
     </section>

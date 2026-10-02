@@ -124,6 +124,7 @@ describe('ReservationCommandService', () => {
       notifyReservationCreated: jest.fn(),
       notifyReservationStarted: jest.fn().mockResolvedValue(undefined),
       notifyReservationConfirmed: jest.fn(),
+      notifyReservationRescheduled: jest.fn(),
       notifyReservationCreatedForProfessional: jest.fn(),
       notifyReservationCompleted: jest.fn(),
       notifyTripStatus: jest.fn(),
@@ -139,8 +140,14 @@ describe('ReservationCommandService', () => {
         .mockResolvedValue({ trackingStatus: 'TERMINEE' }),
     };
     const prisma = {
+      negotiation: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValue({ clientId: 'client-id', reservationId: null }),
+      },
       devisMaterielNegotiation: {
         findFirst: jest.fn().mockResolvedValue(null),
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
       paiement: {
         updateMany: jest.fn(),
@@ -148,6 +155,16 @@ describe('ReservationCommandService', () => {
       appel: {
         findFirst: jest.fn().mockResolvedValue(null),
       },
+    };
+    const realtimeEvents = {
+      emitAsync: jest.fn().mockResolvedValue([undefined]),
+    };
+    const reservationQueryService = {
+      checkAvailability: jest.fn().mockResolvedValue({
+        available: true,
+        withinAvailability: true,
+        hasConflict: false,
+      }),
     };
 
     return {
@@ -160,16 +177,140 @@ describe('ReservationCommandService', () => {
         disputesFacade as never,
         liveTrackingFacade as never,
         prisma as never,
+        {
+          deleteAllForReservation: jest.fn().mockResolvedValue(undefined),
+        } as never,
+        realtimeEvents as never,
+        reservationQueryService as never,
       ),
       reservationsRepository,
       professionalsRepository,
       negotiationsFacade,
       eventBus,
       prisma,
+      realtimeEvents,
+      reservationQueryService,
       liveTrackingFacade,
       reservationClientNotificationService,
     };
   };
+
+  it('notifies the client and publishes the update after a professional reschedules', async () => {
+    const { service, reservationClientNotificationService, eventBus } =
+      buildService({
+        reservation: buildReservation({
+          dateHeure: new Date('2030-06-20T10:00:00.000Z'),
+        }),
+      });
+
+    const result = await service.rescheduleReservation(
+      professionalUser,
+      'reservation-id',
+      {
+        newDateTime: '2030-06-22T14:00:00.000Z',
+      },
+    );
+
+    expect(result.dateHeure).toEqual(new Date('2030-06-22T14:00:00.000Z'));
+    expect(
+      reservationClientNotificationService.notifyReservationRescheduled,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reservationId: 'reservation-id',
+        clientId: 'client-id',
+        dateHeure: new Date('2030-06-22T14:00:00.000Z'),
+      }),
+    );
+    expect(eventBus.publier).toHaveBeenCalledWith(
+      expect.objectContaining({ nom: 'reservations.updated' }),
+    );
+  });
+
+  it('lets the assigned professional reschedule within 24 hours and still notifies the client', async () => {
+    const {
+      service,
+      reservationClientNotificationService,
+      reservationQueryService,
+    } = buildService({
+      reservation: buildReservation({
+        dateHeure: new Date(Date.now() + 2 * 60 * 60 * 1000),
+      }),
+    });
+    const target = new Date(Date.now() + 4 * 60 * 60 * 1000);
+
+    const result = await service.rescheduleReservation(
+      professionalUser,
+      'reservation-id',
+      {
+        newDateTime: target.toISOString(),
+      },
+    );
+
+    expect(result.dateHeure).toEqual(target);
+    expect(reservationQueryService.checkAvailability).toHaveBeenCalledWith({
+      professionalId: 'professional-id',
+      dateHeure: target.toISOString(),
+      dureeMinutes: 60,
+      excludeReservationId: 'reservation-id',
+    });
+    expect(
+      reservationClientNotificationService.notifyReservationRescheduled,
+    ).toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      { available: false, withinAvailability: false },
+      'RESERVATIONS_OUTSIDE_AVAILABILITY',
+    ],
+    [
+      { available: false, withinAvailability: true },
+      'RESERVATIONS_TIME_SLOT_UNAVAILABLE',
+    ],
+  ])(
+    'refuses rescheduling outside a free professional slot',
+    async (availability, errorCode) => {
+      const {
+        service,
+        reservationQueryService,
+        reservationsRepository,
+        reservationClientNotificationService,
+      } = buildService({
+        reservation: buildReservation({
+          dateHeure: new Date('2030-06-20T10:00:00.000Z'),
+        }),
+      });
+      reservationQueryService.checkAvailability.mockResolvedValueOnce(
+        availability,
+      );
+
+      await expect(
+        service.rescheduleReservation(professionalUser, 'reservation-id', {
+          newDateTime: '2030-06-22T14:00:00.000Z',
+        }),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({ errorCode }),
+      });
+      expect(reservationsRepository.update).not.toHaveBeenCalled();
+      expect(
+        reservationClientNotificationService.notifyReservationRescheduled,
+      ).not.toHaveBeenCalled();
+    },
+  );
+
+  it('keeps the short-notice restriction for a client', async () => {
+    const { service } = buildService({
+      reservation: buildReservation({
+        dateHeure: new Date(Date.now() + 2 * 60 * 60 * 1000),
+      }),
+    });
+
+    await expect(
+      service.rescheduleReservation(clientUser, 'reservation-id', {
+        newDateTime: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
+      }),
+    ).rejects.toThrow();
+  });
 
   it('starts a teleconsultation without requiring GPS tracking or arrival', async () => {
     const {
@@ -520,7 +661,7 @@ describe('ReservationCommandService', () => {
   });
 
   it('lets the client cancel an unpaid confirmed reservation from the payment page', async () => {
-    const { service, reservationsRepository } = buildService({
+    const { service, reservationsRepository, realtimeEvents } = buildService({
       reservation: buildReservation({
         statut: 'CONFIRMEE',
         dateHeure: new Date(Date.now() + 2 * 60 * 60 * 1000),
@@ -542,6 +683,63 @@ describe('ReservationCommandService', () => {
     expect(reservationsRepository.update).toHaveBeenCalledWith(
       expect.objectContaining({ statut: 'ANNULEE' }),
     );
+    expect(realtimeEvents.emitAsync).toHaveBeenCalledWith(
+      'reservations.cancellation.refund.requested',
+      expect.objectContaining({ reservationId: 'reservation-id' }),
+    );
+  });
+
+  it.each([clientUser, professionalUser, doctorUser])(
+    'allows %s to cancel a paid reservation within 24 hours after the refund succeeds',
+    async (user) => {
+      const {
+        service,
+        reservationsRepository,
+        realtimeEvents,
+        reservationClientNotificationService,
+      } = buildService({
+        reservation: buildReservation({
+          statut: 'PAYEE_SEQUESTRE',
+          dateHeure: new Date(Date.now() + 2 * 60 * 60 * 1000),
+        }),
+      });
+
+      const result = await service.cancelReservation(user, 'reservation-id', {
+        reason: 'Annulation avec remboursement',
+      });
+
+      expect(result.statut).toBe('ANNULEE');
+      expect(realtimeEvents.emitAsync).toHaveBeenCalledWith(
+        'reservations.cancellation.refund.requested',
+        expect.objectContaining({ reservationId: 'reservation-id' }),
+      );
+      expect(reservationsRepository.update).toHaveBeenCalledTimes(1);
+      expect(
+        reservationClientNotificationService.notifyReservationCancelled,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          clientId: 'client-id',
+          cancelledByProfessional:
+            user.role === 'PRESTATAIRE' || user.role === 'MEDECIN',
+        }),
+      );
+    },
+  );
+
+  it('does not cancel when the external refund fails', async () => {
+    const { service, reservationsRepository, realtimeEvents } = buildService({
+      reservation: buildReservation({ statut: 'PAYEE_SEQUESTRE' }),
+    });
+    realtimeEvents.emitAsync.mockRejectedValueOnce(
+      new Error('REFUND_REJECTED'),
+    );
+
+    await expect(
+      service.cancelReservation(clientUser, 'reservation-id', {
+        reason: 'Annulation avec remboursement',
+      }),
+    ).rejects.toThrow('REFUND_REJECTED');
+    expect(reservationsRepository.update).not.toHaveBeenCalled();
   });
 
   it('rejects no-show transition when the professional does not own the reservation', async () => {
@@ -589,7 +787,8 @@ describe('ReservationCommandService', () => {
       expect.objectContaining({ statut: 'TERMINEE' }),
     );
     expect(
-      reservationClientNotificationService.notifyReservationCompleted.mock.invocationCallOrder[0],
+      reservationClientNotificationService.notifyReservationCompleted.mock
+        .invocationCallOrder[0],
     ).toBeLessThan(eventBus.publier.mock.invocationCallOrder[0]);
   });
 });

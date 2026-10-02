@@ -33,9 +33,11 @@ export class PaymentGatewayRouterAdapter implements PaymentGateway {
   }
 
   processRefund(params: RefundPaymentParams): Promise<PaymentGatewayResponse> {
-    return this.getAdapterByReference(params.gatewayReference).processRefund(
-      params,
-    );
+    return (
+      params.method
+        ? this.getAdapter(params.method)
+        : this.getAdapterByReference(params.gatewayReference)
+    ).processRefund(params);
   }
 
   getSupportedMethods(): PaymentMethod[] {

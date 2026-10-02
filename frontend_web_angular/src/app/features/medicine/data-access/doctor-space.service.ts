@@ -248,6 +248,15 @@ export class DoctorSpaceService {
       .pipe(map(unwrapApiResponse));
   }
 
+  rescheduleReservation(reservationId: string, newDateTime: string): Observable<BackendReservation> {
+    return this.http
+      .patch<ApiResponse<BackendReservation>>(
+        `${this.apiUrl}/reservations/${reservationId}/reschedule`,
+        { newDateTime },
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
 
   getWallet(): Observable<DoctorWalletView> {
     return this.http

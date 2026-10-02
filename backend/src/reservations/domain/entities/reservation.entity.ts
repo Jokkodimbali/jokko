@@ -297,10 +297,6 @@ export class ReservationEntity {
       throw ReservationDomainError.cannotCancel();
     }
 
-    if (this.requiresCancellationNotice() && !this.isMoreThanHoursBefore(24)) {
-      throw ReservationDomainError.cancellationTooLate();
-    }
-
     const normalizedReason = ReservationEntity.normalizeText(reason);
     this._statut = 'ANNULEE';
     this._raisonAnnulation = normalizedReason;
@@ -333,9 +329,9 @@ export class ReservationEntity {
     this.touch();
   }
 
-  reschedule(newDateTime: Date): void {
+  reschedule(newDateTime: Date, allowShortNotice = false): void {
     ReservationEntity.assertFutureDate(newDateTime);
-    if (!this.canBeRescheduled()) {
+    if (!this.canBeRescheduled(allowShortNotice)) {
       throw ReservationDomainError.cannotReschedule();
     }
 
@@ -503,16 +499,15 @@ export class ReservationEntity {
     return this._statut === 'EN_COURS';
   }
 
-  private requiresCancellationNotice(): boolean {
-    return this._statut !== 'CONFIRMEE';
-  }
-
   private canBeMarkedNoShow(): boolean {
     return NO_SHOW_RESERVATION_STATUSES.has(this._statut);
   }
 
-  private canBeRescheduled(): boolean {
-    if (!this.isMoreThanHoursBefore(24)) {
+  private canBeRescheduled(allowShortNotice = false): boolean {
+    if (
+      this._dateHeure.getTime() <= Date.now() ||
+      (!allowShortNotice && !this.isMoreThanHoursBefore(24))
+    ) {
       throw ReservationDomainError.rescheduleTooLate();
     }
     return RESCHEDULABLE_RESERVATION_STATUSES.has(this._statut);

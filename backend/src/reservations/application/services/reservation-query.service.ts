@@ -68,6 +68,7 @@ export class ReservationQueryService extends ReservationAppService {
     dateHeure: string;
     dureeMinutes: number;
     pauseMinutes?: number;
+    excludeReservationId?: string;
   }) {
     const professional = await this.getVerifiedProfessionalOrThrow(
       query.professionalId,
@@ -117,6 +118,7 @@ export class ReservationQueryService extends ReservationAppService {
       professionalId: professional.id,
       dateHeure: scheduledAt,
       dureeMinutes: durationMinutes + pauseMinutes,
+      excludeReservationId: query.excludeReservationId,
     });
 
     return {

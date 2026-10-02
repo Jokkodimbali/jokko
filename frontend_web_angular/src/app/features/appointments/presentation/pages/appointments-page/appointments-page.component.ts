@@ -441,10 +441,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   }
 
   protected canCancel(appointment: AppointmentView): boolean {
-    return (
-      this.hasCancellableStatus(appointment.status) &&
-      this.isMoreThanHoursBefore(appointment.scheduledAt, 24)
-    );
+    return this.hasCancellableStatus(appointment.status);
   }
 
   protected primaryActionLabel(appointment: AppointmentView): string {
@@ -476,10 +473,6 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
       return 'Ce rendez-vous est deja cloture ou son statut ne permet plus une annulation.';
     }
 
-    if (!this.isMoreThanHoursBefore(appointment.scheduledAt, 24)) {
-      return 'Annulation indisponible : le rendez-vous doit etre annule plus de 24h avant l horaire prevu.';
-    }
-
     return 'Annuler ce rendez-vous.';
   }
 
@@ -503,14 +496,19 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
             appointments.map((item) => (item.id === appointment.id ? updated : item)),
           );
           this.cancellingAppointmentId.set(null);
-          this.showCancellationMessage('Reservation annulee avec succes.', 'success');
+          this.showCancellationMessage(
+            appointment.status === 'PAYEE_SEQUESTRE' || appointment.status === 'EN_COURS'
+              ? 'Rendez-vous annulé. Le remboursement a été accepté sur votre moyen de paiement initial. Le crédit peut prendre du temps.'
+              : 'Rendez-vous annulé avec succès.',
+            'success',
+          );
         },
         error: (error) => {
           this.cancellingAppointmentId.set(null);
           this.showCancellationMessage(
             getHttpErrorMessage(
               error,
-              "Impossible d'annuler cette reservation. Verifiez le statut et le delai de 24h.",
+              "Impossible d'annuler cette réservation. Vérifiez son statut ou réessayez plus tard.",
             ),
             'error',
           );
@@ -998,14 +996,6 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   private canProviderCloseAppointment(appointment: AppointmentView): boolean {
     void appointment;
     return false;
-  }
-
-  private isMoreThanHoursBefore(value: string, hours: number): boolean {
-    const date = this.safeDate(value);
-    if (Number.isNaN(date.getTime())) return false;
-
-    const threshold = date.getTime() - hours * 60 * 60 * 1000;
-    return Date.now() < threshold;
   }
 
   private showCancellationMessage(message: string, tone: 'success' | 'error'): void {

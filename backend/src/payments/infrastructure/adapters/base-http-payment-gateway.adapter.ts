@@ -76,8 +76,13 @@ export abstract class BaseHttpPaymentGatewayAdapter implements PaymentGatewayAda
     );
 
     return {
-      success: Boolean(response.refunded ?? true),
+      success: response.refunded === true,
       gatewayReference: response.reference ?? params.gatewayReference,
+      error:
+        response.refunded === true
+          ? undefined
+          : (response.error ??
+            `${this.providerName} n'a pas confirmé le remboursement.`),
       data: response,
     };
   }

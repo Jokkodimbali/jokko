@@ -29,6 +29,22 @@
   margin: 0 0 21px 0;
 }
 
+.doctor-space__header--requests {
+  align-items: center;
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+}
+
+.doctor-space__header-copy {
+  min-width: 0;
+}
+
+.doctor-space__header--requests .doctor-space__requests-tabs {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
 .doctor-space__header h1 {
   color: #915a22;
   font-size: 42px;
@@ -49,6 +65,16 @@
 }
 
 @media (max-width: 760px) {
+  .doctor-space__header--requests {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .doctor-space__header--requests .doctor-space__requests-tabs {
+    max-width: 100%;
+  }
+
   .doctor-space__header {
     min-width: 0;
   }

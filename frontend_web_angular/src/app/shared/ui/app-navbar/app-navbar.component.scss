@@ -1872,7 +1872,8 @@
 
 /* ─── Small Desktop (1024px–1199px) ───────────────────────────────── */
 @media (min-width: 1024px) and (max-width: 1199px) {
-  :host {
+  :host,
+  :host:has(.app-navbar--professional) {
     --app-navbar-height: clamp(96px, 8vw, 104px);
   }
 
@@ -3103,5 +3104,127 @@
 @media (min-width: 768px) and (max-width: 1023px) {
   .app-navbar--notification-featured .app-navbar__notification--mobile.app-navbar__notification--featured {
     translate: 0 -1px;
+  }
+}
+
+/* Keep desktop links on one line and give them the space previously reserved beside the logo. */
+@media (min-width: 1024px) {
+  .app-navbar,
+  .app-navbar--professional,
+  .app-navbar--notification-featured,
+  .app-navbar--professional.app-navbar--notification-featured {
+    grid-template-columns: 112px minmax(0, 1fr) max-content;
+    column-gap: 12px;
+    padding-inline: 12px;
+  }
+
+  .app-navbar .app-navbar__nav-tabs,
+  .app-navbar--professional .app-navbar__nav-tabs {
+    flex: 0 0 auto;
+    gap: 6px;
+    max-width: none;
+  }
+
+  .app-navbar .app-navbar__nav-tabs > a,
+  .app-navbar--professional .app-navbar__nav-tabs > a {
+    flex: 0 0 auto;
+    min-width: max-content;
+  }
+
+  .app-navbar .app-navbar__nav-item > span {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: nowrap;
+  }
+}
+
+/* On narrower screens the full labels remain in the drawer, without a second navbar row. */
+@media (min-width: 1024px) and (max-width: 1199px) {
+  :host,
+  :host:has(.app-navbar--professional) {
+    --app-navbar-height: 80px;
+  }
+
+  .app-navbar {
+    grid-template-columns: 112px minmax(0, 1fr) auto auto;
+    height: var(--app-navbar-height);
+  }
+
+  .app-navbar__nav,
+  .app-navbar__actions {
+    display: none;
+  }
+
+  .app-navbar .app-navbar__notification--mobile {
+    display: inline-flex;
+    grid-column: 3;
+    justify-self: end;
+  }
+
+  .app-navbar__hamburger {
+    display: flex;
+    grid-column: 4;
+  }
+
+  .app-navbar__notifications--mobile {
+    display: grid;
+  }
+}
+
+@media (min-width: 1200px) and (max-width: 1599px) {
+  .app-navbar--professional,
+  .app-navbar--professional.app-navbar--notification-featured {
+    grid-template-columns: 84px minmax(0, 1fr) max-content;
+    column-gap: 7px;
+    padding-inline: 8px;
+  }
+
+  .app-navbar--professional .app-navbar__brand {
+    width: 76px;
+  }
+
+  .app-navbar--professional .app-navbar__brand img {
+    width: 68px;
+  }
+
+  .app-navbar--professional .app-navbar__nav,
+  .app-navbar--professional .app-navbar__nav-tabs {
+    gap: 2px;
+  }
+
+  .app-navbar--professional .app-navbar__nav-tabs > a.app-navbar__nav-item--clients,
+  .app-navbar--professional .app-navbar__nav-tabs > a.app-navbar__nav-item--services {
+    flex: 0 0 auto;
+  }
+
+  .app-navbar--professional .app-navbar__nav-item {
+    font-size: 11px;
+    gap: 3px;
+    padding-inline: 3px;
+  }
+
+  .app-navbar--professional .app-navbar__nav-item lucide-icon {
+    height: 18px;
+    width: 18px;
+  }
+}
+
+@media (max-width: 767px) {
+  .app-navbar--professional .app-navbar__bottom-nav {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    min-height: 86px;
+  }
+
+  .app-navbar--professional .app-navbar__bottom-nav > :is(a, button) {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .app-navbar--professional .app-navbar__bottom-nav > :is(a, button) span {
+    overflow: visible;
+    overflow-wrap: anywhere;
+    text-overflow: clip;
+    white-space: normal;
   }
 }

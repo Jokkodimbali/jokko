@@ -42,7 +42,12 @@ export const RESERVATION_NOTIFICATION_MESSAGES = {
     'clientName' | 'address'
   >) =>
     `Jokko : votre réservation « ${serviceName} » avec ${professionalName} est enregistrée pour le ${formattedDate}.`,
-  genericEventTitle: (eventType: string) => `Réservation ${eventType}`,
+  genericEventTitle: (eventType: string) =>
+    eventType === 'reprogrammée'
+      ? 'Date ou heure de votre rendez-vous modifiée'
+      : eventType === 'annulée par le professionnel'
+        ? 'Votre rendez-vous a été annulé par le professionnel'
+        : `Réservation ${eventType}`,
   genericEventEmailSubject: (eventType: string) =>
     `Mise à jour de votre réservation Jokko : ${eventType}`,
   genericEventBody: ({
@@ -51,14 +56,22 @@ export const RESERVATION_NOTIFICATION_MESSAGES = {
     formattedDate,
     eventType,
   }: ReservationGenericNotificationTemplateInput) =>
-    `Votre réservation pour ${serviceName} avec ${professionalName}, prévue le ${formattedDate}, a été ${eventType}.`,
+    eventType === 'reprogrammée'
+      ? `La date ou l'heure de votre rendez-vous « ${serviceName} » avec ${professionalName} a été modifiée. Nouveau créneau : ${formattedDate}.`
+      : eventType === 'annulée par le professionnel'
+        ? `${professionalName} a annulé votre rendez-vous « ${serviceName} » prévu le ${formattedDate}.`
+        : `Votre réservation pour ${serviceName} avec ${professionalName}, prévue le ${formattedDate}, a été ${eventType}.`,
   genericEventSmsBody: ({
     serviceName,
     professionalName,
     formattedDate,
     eventType,
   }: ReservationGenericNotificationTemplateInput) =>
-    `Jokko : votre réservation ${serviceName} avec ${professionalName}, prévue le ${formattedDate}, a été ${eventType}.`,
+    eventType === 'reprogrammée'
+      ? `Jokko : la date ou l'heure de votre RDV ${serviceName} a changé. Nouveau créneau : ${formattedDate}.`
+      : eventType === 'annulée par le professionnel'
+        ? `Jokko : ${professionalName} a annulé votre RDV ${serviceName} du ${formattedDate}.`
+        : `Jokko : votre réservation ${serviceName} avec ${professionalName}, prévue le ${formattedDate}, a été ${eventType}.`,
   onTheWayTitle: 'Votre prestataire est en route vers votre rendez-vous',
   onTheWayEmailSubject: 'Votre prestataire est en route',
   onTheWayBody: ({

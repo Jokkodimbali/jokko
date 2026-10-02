@@ -78,8 +78,6 @@ export const DOMAIN_MESSAGE_CATALOG = {
     "Impossible d'ajuster le prix apres le demarrage du paiement de cette reservation.",
   RESERVATION_CANNOT_OPEN_DISPUTE:
     "Impossible d'ouvrir un litige pour cette reservation.",
-  RESERVATION_CANCELLATION_TOO_LATE:
-    'Annulation impossible moins de 24h avant la reservation.',
   RESERVATION_RESCHEDULE_TOO_LATE:
     'Reprogrammation impossible moins de 24h avant la reservation.',
   RESERVATION_REVIEW_REQUIRES_COMPLETED:

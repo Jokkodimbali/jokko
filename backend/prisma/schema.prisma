@@ -911,7 +911,8 @@ model Paiement {
 model RemboursementPaiement {
   id                 String                      @id @default(uuid()) @db.Uuid
   paiementId         String                      @map("payment_id") @db.Uuid
-  litigeId           String                      @unique @map("dispute_id") @db.Uuid
+  litigeId           String?                     @unique @map("dispute_id") @db.Uuid
+  reservationId      String?                     @unique @map("cancellation_reservation_id") @db.Uuid
   montant            Decimal                     @map("amount") @db.Decimal(12, 2)
   motif              String                      @map("reason") @db.Text
   cleIdempotence     String                      @unique @map("idempotency_key") @db.VarChar(200)

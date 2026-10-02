@@ -61,6 +61,20 @@ describe('ReservationQueryService', () => {
     };
   };
 
+  it('excludes the moved reservation when checking its new availability', async () => {
+    const { service, reservationsRepository } = buildService();
+    await service.checkAvailability({
+      professionalId: 'professional-id',
+      dateHeure: '2030-01-01T09:30:00.000Z',
+      dureeMinutes: 30,
+      excludeReservationId: 'reservation-id',
+    });
+
+    expect(reservationsRepository.hasTimeSlotConflict).toHaveBeenCalledWith(
+      expect.objectContaining({ excludeReservationId: 'reservation-id' }),
+    );
+  });
+
   it('synchronizes overdue reservations before listing user reservations', async () => {
     const { service, reservationsRepository } = buildService();
 

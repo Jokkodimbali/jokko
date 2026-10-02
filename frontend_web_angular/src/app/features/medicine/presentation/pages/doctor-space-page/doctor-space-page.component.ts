@@ -38,6 +38,7 @@ import {
 } from '../../../../services/presentation/components/service-proposal-interactive-map/service-proposal-interactive-map.component';
 import {
   AppointmentStatus,
+  AppointmentTravelMode,
   BackendReservation,
 } from '../../../../appointments/domain/appointments.models';
 import { ReservationsRealtimeService } from '../../../../appointments/data-access/reservations-realtime.service';
@@ -53,6 +54,7 @@ import {
   DoctorSpaceSectionData,
   DoctorSpaceSectionLoaderService,
 } from '../../../data-access/doctor-space-section-loader.service';
+import { resolveAgendaDropSlot } from './doctor-space-agenda-drop';
 
 type ManagementTab = 'availability' | 'travel' | 'services' | 'invoices' | 'prescription';
 type RequestsTab = 'requests' | 'agenda';
@@ -142,7 +144,8 @@ type VehicleOption = {
 };
 
 type AgendaFilter = 'ALL' | 'ACTIVE' | 'DONE' | 'CANCELLED' | 'DISPUTE';
-type AgendaViewMode = 'day' | 'week' | 'month';
+type AgendaTravelFilter = 'ALL' | ServiceTravelMode;
+type AgendaViewMode = 'day' | 'week' | 'month' | 'year';
 type ProviderNegotiationFilter = 'ALL' | 'PENDING' | 'WAITING_CLIENT' | 'CONFIRMED' | 'CLOSED';
 
 type ProviderNegotiationGroup = {
@@ -187,13 +190,17 @@ type AgendaEvent = {
   id: string;
   title: string;
   timeLabel: string;
+  startLabel: string;
+  travelMode: AppointmentTravelMode | null;
   clientLabel: string;
   price: number;
   status: AppointmentStatus;
   statusLabel: string;
+  canMove: boolean;
   dayIndex: number;
   rowStart: number;
   rowSpan: number;
+  offsetTop: number;
   variant:
     | 'pending'
     | 'confirmed'
@@ -275,6 +282,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   private negotiationsRealtimeSubscription?: Subscription;
   private reservationsRealtimeSubscription?: Subscription;
   private professionalRealtimeFallbackSubscription?: Subscription;
+  private agendaClockSubscription?: Subscription;
   private routeSectionSubscription?: Subscription;
   private isReservationsRefreshInProgress = false;
   private readonly loadedSections = new Set<DoctorSpaceSection>();
@@ -317,7 +325,8 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   protected readonly isInterventionMapExpanded = signal(false);
   protected readonly agendaCursor = signal(this.startOfDay(new Date()));
   protected readonly agendaFilter = signal<AgendaFilter>('ALL');
-  protected readonly agendaViewMode = signal<AgendaViewMode>('day');
+  protected readonly agendaTravelFilter = signal<AgendaTravelFilter>('ALL');
+  protected readonly agendaViewMode = signal<AgendaViewMode>('week');
   protected readonly negotiationMonth = signal(this.monthInputValue(new Date()));
   protected readonly negotiationFilter = signal<ProviderNegotiationFilter>('ALL');
   protected readonly selectedNegotiationDate = signal<string | null>(null);
@@ -326,7 +335,43 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   protected readonly selectedAvailabilityPreviewDayKey = signal<string | null>(null);
   protected readonly isAgendaReservationLoading = signal(false);
   protected readonly isAgendaReservationCancelling = signal(false);
+  protected readonly isAgendaCancelExpanded = signal(false);
   protected readonly agendaReservationError = signal<string | null>(null);
+  protected readonly agendaPendingMove = signal<{ id: string; newDateTime: string } | null>(null);
+  protected readonly agendaNotice = signal<{ tone: 'info' | 'success' | 'error'; message: string } | null>(null);
+  private agendaNoticeTimeout: ReturnType<typeof setTimeout> | null = null;
+  protected readonly agendaMoveConflict = computed(() => {
+    const move = this.agendaPendingMove();
+    if (!move) return false;
+    const moving = this.reservations().find((item) => item.id === move.id);
+    const start = new Date(move.newDateTime).getTime();
+    if (!moving || Number.isNaN(start)) return false;
+    const end = start + moving.dureeMinutes * 60_000;
+    return this.reservations().some((item) => {
+      if (item.id === move.id || this.isCancelledStatus(item.statut) || item.statut === 'TERMINEE') {
+        return false;
+      }
+      const otherStart = new Date(item.dateHeure).getTime();
+      const otherEnd = otherStart + item.dureeMinutes * 60_000;
+      return otherStart < end && otherEnd > start;
+    });
+  });
+  protected readonly agendaMoveOutsideAvailability = computed(() => {
+    const move = this.agendaPendingMove();
+    if (!move) return false;
+    const reservation = this.reservations().find((item) => item.id === move.id);
+    const target = new Date(move.newDateTime);
+    if (!reservation || Number.isNaN(target.getTime())) return false;
+    const day = this.days().find((item) => item.dayOfWeek === target.getDay());
+    if (!day?.enabled) return true;
+    const start = target.getHours() * 60 + target.getMinutes();
+    const end = start + reservation.dureeMinutes;
+    return !day.slots.some((slot) =>
+      start >= this.timeToMinutes(slot.startTime) && end <= this.timeToMinutes(slot.endTime));
+  });
+  protected readonly isAgendaRescheduling = signal(false);
+  private draggedAgendaReservationId: string | null = null;
+  private highlightedAgendaDropCell: HTMLElement | null = null;
   protected readonly isWithdrawalModalOpen = signal(false);
   protected readonly agendaPeriodStart = signal('');
   protected readonly agendaPeriodEnd = signal('');
@@ -411,6 +456,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   };
   protected readonly agendaCancelForm = {
     reason: '',
+    details: '',
   };
   protected readonly profileForm: ProfessionalProfileForm = {
     companyName: '',
@@ -635,44 +681,62 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     );
   });
   protected readonly agendaWeekDays = computed(() => this.buildAgendaWeekDays(this.agendaCursor()));
-  protected readonly agendaDateLabel = computed(() =>
-    new Intl.DateTimeFormat('fr-FR', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })
-      .format(this.agendaCursor())
-      .replace(/^\p{L}/u, (letter) => letter.toUpperCase()),
+  protected readonly agendaVisibleDays = computed(() =>
+    this.agendaViewMode() === 'day'
+      ? this.agendaWeekDays().filter((day) => this.isSameDay(day.date, this.agendaCursor()))
+      : this.agendaWeekDays(),
   );
-  protected readonly agendaWeekLabel = computed(() => {
-    const start = this.startOfWeek(this.agendaCursor());
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
-    const startLabel = new Intl.DateTimeFormat('fr-FR', {
-      day: 'numeric',
-      month: 'long',
-    }).format(start);
-    const endLabel = new Intl.DateTimeFormat('fr-FR', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    }).format(end);
-    return `Semaine du ${startLabel} au ${endLabel}`;
-  });
   protected readonly agendaRows = computed(() => this.buildAgendaRows());
   protected readonly agendaEvents = computed(() => this.buildAgendaEvents());
-  protected readonly agendaZoomPercent = computed(() => {
-    return this.appointmentStepMinutes();
+  protected readonly agendaFilteredReservations = computed(() => {
+    const startBoundary = this.parsePeriodBoundary(this.agendaPeriodStart(), false);
+    const endBoundary = this.parsePeriodBoundary(this.agendaPeriodEnd(), true);
+    return this.reservations().filter((reservation) => {
+      const at = new Date(reservation.dateHeure);
+      return !Number.isNaN(at.getTime()) &&
+        (!startBoundary || at >= startBoundary) &&
+        (!endBoundary || at <= endBoundary) &&
+        this.matchesAgendaFilter(reservation.statut) &&
+        (this.agendaTravelFilter() === 'ALL' ||
+          reservation.service?.modeDeplacement === this.agendaTravelFilter());
+    });
   });
-  protected readonly agendaRowHeight = computed(() => {
-    const minutes = this.appointmentStepMinutes();
-    if (minutes >= 75) return 48;
-    if (minutes >= 60) return 42;
-    if (minutes >= 45) return 36;
-    if (minutes >= 30) return 31;
-    return 34;
+  protected readonly agendaMonthDays = computed(() => {
+    const cursor = this.agendaCursor();
+    const first = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+    const start = this.startOfWeek(first);
+    const reservations = this.agendaFilteredReservations();
+    return Array.from({ length: 42 }, (_, index) => {
+      const date = new Date(start);
+      date.setDate(start.getDate() + index);
+      return {
+        date,
+        inMonth: date.getMonth() === cursor.getMonth(),
+        reservations: reservations.filter((item) => this.isSameDay(new Date(item.dateHeure), date)),
+      };
+    });
   });
+  protected readonly agendaYearMonths = computed(() => {
+    const cursor = this.agendaCursor();
+    const reservations = this.agendaFilteredReservations();
+    return Array.from({ length: 12 }, (_, month) => ({
+      month,
+      label: new Intl.DateTimeFormat('fr-FR', { month: 'long' }).format(new Date(cursor.getFullYear(), month, 1)),
+      count: reservations.filter((item) => {
+        const date = new Date(item.dateHeure);
+        return date.getFullYear() === cursor.getFullYear() && date.getMonth() === month;
+      }).length,
+    }));
+  });
+  protected readonly agendaUpcoming = computed(() => this.reservations()
+    .filter((reservation) => new Date(reservation.dateHeure).getTime() >= Date.now() &&
+      !this.isCancelledStatus(reservation.statut))
+    .sort((left, right) => new Date(left.dateHeure).getTime() - new Date(right.dateHeure).getTime())
+    .slice(0, 7));
+  protected readonly agendaRowHeight = signal(48);
+  protected readonly agendaZoomPercent = computed(() =>
+    Math.round((this.agendaRowHeight() / 48) * 100),
+  );
   protected readonly negotiationMonthOptions = computed(() => {
     const months = new Map<string, Date>();
     for (const negotiation of this.negotiations()) {
@@ -999,6 +1063,10 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
+    this.agendaClockSubscription = timer(0, 30_000).subscribe(() => {
+      const now = new Date();
+      this.todayDate.set(this.startOfDay(now));
+    });
     this.requestsTab.set(this.resolveRequestsTabFromRoute());
     this.activeSection.set(this.resolveSectionFromRoute());
     this.managementTab.set(this.resolveManagementTabFromRoute());
@@ -1017,6 +1085,8 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.agendaNoticeTimeout) clearTimeout(this.agendaNoticeTimeout);
+    this.agendaClockSubscription?.unsubscribe();
     this.routeSectionSubscription?.unsubscribe();
     this.negotiationsRealtimeSubscription?.unsubscribe();
     this.reservationsRealtimeSubscription?.unsubscribe();
@@ -1130,6 +1200,16 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
 
   protected selectAgendaViewMode(mode: AgendaViewMode): void {
     this.agendaViewMode.set(mode);
+  }
+
+  protected showAgendaDay(date: Date): void {
+    this.agendaCursor.set(this.startOfDay(date));
+    this.agendaViewMode.set('day');
+  }
+
+  protected showAgendaMonth(month: number): void {
+    this.agendaCursor.set(new Date(this.agendaCursor().getFullYear(), month, 1));
+    this.agendaViewMode.set('month');
   }
 
 
@@ -1668,38 +1748,292 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   }
 
   protected zoomAgendaIn(): void {
-    this.updateAppointmentDuration(Math.min(90, this.appointmentDuration() + 5));
-    this.persistAppointmentSettings();
+    this.agendaRowHeight.update((height) => Math.min(66, height + 3));
   }
 
   protected zoomAgendaOut(): void {
-    this.updateAppointmentDuration(Math.max(0, this.appointmentDuration() - 5));
-    this.persistAppointmentSettings();
+    this.agendaRowHeight.update((height) => Math.max(36, height - 3));
   }
 
   protected openAgendaReservation(event: AgendaEvent): void {
     this.openAgendaReservationById(event.id);
   }
 
+  protected selectAgendaTravelFilter(value: AgendaTravelFilter): void {
+    this.agendaTravelFilter.set(value);
+  }
 
-  private openReservationDetail(reservationId: string): void {
+  protected canRescheduleAgendaReservation(reservation: BackendReservation): boolean {
+    return this.agendaMoveUnavailableReason(reservation) === null;
+  }
+
+  private agendaMoveUnavailableReason(reservation: BackendReservation | undefined): string | null {
+    if (!reservation) return 'Ce rendez-vous est introuvable. Actualisez l’agenda et réessayez.';
+    const scheduledAt = new Date(reservation.dateHeure).getTime();
+    if (Number.isNaN(scheduledAt)) return 'La date de ce rendez-vous est invalide. Actualisez l’agenda et réessayez.';
+    switch (reservation.statut) {
+      case 'CONFIRMEE':
+      case 'PAYEE_SEQUESTRE':
+        return scheduledAt > Date.now() ? null : 'La date de ce rendez-vous est passée : il ne peut plus être déplacé.';
+      case 'EN_COURS':
+        return 'Ce rendez-vous a déjà commencé : il ne peut plus être déplacé.';
+      case 'TERMINEE':
+        return 'Ce rendez-vous est terminé : il ne peut plus être déplacé.';
+      case 'ANNULEE':
+        return 'Ce rendez-vous a été annulé : il ne peut plus être déplacé.';
+      case 'NO_SHOW':
+        return 'Ce rendez-vous est marqué absent : il ne peut plus être déplacé.';
+      case 'LITIGE':
+        return 'Ce rendez-vous est en litige : il ne peut plus être déplacé.';
+      default:
+        return 'Ce rendez-vous ne peut pas être déplacé dans son état actuel.';
+    }
+  }
+
+  private showAgendaNotice(tone: 'info' | 'success' | 'error', message: string): void {
+    this.dismissAgendaNotice();
+    const notice = { tone, message };
+    this.agendaNotice.set(notice);
+    this.agendaNoticeTimeout = setTimeout(() => {
+      if (this.agendaNotice() === notice) this.agendaNotice.set(null);
+      this.agendaNoticeTimeout = null;
+    }, 30_000);
+  }
+
+  protected dismissAgendaNotice(): void {
+    if (this.agendaNoticeTimeout) clearTimeout(this.agendaNoticeTimeout);
+    this.agendaNoticeTimeout = null;
+    this.agendaNotice.set(null);
+  }
+
+  protected agendaMoveHint(event: AgendaEvent): string {
+    return event.canMove
+      ? 'Glissez vers un autre créneau pour reprogrammer'
+      : this.agendaMoveUnavailableReason(this.reservations().find((item) => item.id === event.id)) ?? '';
+  }
+
+  protected agendaEventTooltip(event: AgendaEvent): string {
+    return [
+      `${event.timeLabel} · ${event.statusLabel}`,
+      event.title,
+      event.clientLabel,
+      `${event.price.toLocaleString('fr-FR')} FCFA`,
+      this.agendaMoveHint(event),
+    ].join('\n');
+  }
+
+  protected startAgendaDrag(event: DragEvent, reservationId: string): void {
+    const reservation = this.reservations().find((item) => item.id === reservationId);
+    if (!reservation || !this.canRescheduleAgendaReservation(reservation)) {
+      event.preventDefault();
+      this.showAgendaNotice('error', this.agendaMoveUnavailableReason(reservation) ?? 'Ce rendez-vous ne peut pas être déplacé.');
+      return;
+    }
+    this.draggedAgendaReservationId = reservationId;
+    event.dataTransfer?.setData('text/plain', reservationId);
+    if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+    this.showAgendaNotice('info', 'RDV saisi : déposez-le sur un nouveau jour et horaire, puis confirmez le changement.');
+  }
+
+  protected endAgendaDrag(): void {
+    this.draggedAgendaReservationId = null;
+    this.clearAgendaDropHighlight();
+  }
+
+  protected allowAgendaDrop(event: DragEvent): void {
+    if (!this.draggedAgendaReservationId) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+    const cell = (event.target as HTMLElement).closest('.doctor-space__agenda-cell') as HTMLElement | null;
+    if (!cell) {
+      this.clearAgendaDropHighlight();
+      return;
+    }
+    if (cell !== this.highlightedAgendaDropCell) {
+      this.clearAgendaDropHighlight();
+      cell.classList.add('doctor-space__agenda-cell--drop-target');
+      this.highlightedAgendaDropCell = cell;
+    }
+  }
+
+  protected clearAgendaDropHighlight(): void {
+    this.highlightedAgendaDropCell?.classList.remove('doctor-space__agenda-cell--drop-target');
+    this.highlightedAgendaDropCell = null;
+  }
+
+  protected dropAgendaReservation(event: DragEvent): void {
+    event.preventDefault();
+    this.clearAgendaDropHighlight();
+    const id = this.draggedAgendaReservationId || event.dataTransfer?.getData('text/plain');
+    this.draggedAgendaReservationId = null;
+    if (!id) return;
+    const grid = event.currentTarget as HTMLElement;
+    const bounds = grid.getBoundingClientRect();
+    const slot = resolveAgendaDropSlot({
+      clientX: event.clientX,
+      clientY: event.clientY,
+      gridLeft: bounds.left,
+      gridTop: bounds.top,
+      scrollLeft: grid.scrollLeft,
+      scrollWidth: grid.scrollWidth,
+      dayCount: this.agendaVisibleDays().length,
+      rowCount: this.agendaRows().length,
+      rowHeight: this.agendaRowHeight(),
+    });
+    if (!slot) {
+      this.showAgendaNotice('error', 'Déposez le RDV dans une case du calendrier, à droite de la colonne des heures.');
+      return;
+    }
+    const day = this.agendaVisibleDays()[slot.dayIndex];
+    const row = this.agendaRows()[slot.rowIndex];
+    if (!day || !row) return;
+    const [hours, minutes] = row.split(':').map(Number);
+    if (!Number.isInteger(hours) || !Number.isInteger(minutes)) return;
+    const target = new Date(day.date);
+    target.setHours(hours, minutes, 0, 0);
+    this.prepareAgendaMove(id, target);
+  }
+
+  protected allowAgendaMonthDrop(event: DragEvent): void {
+    if (!this.draggedAgendaReservationId) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+    const day = event.currentTarget as HTMLElement;
+    if (day !== this.highlightedAgendaDropCell) {
+      this.clearAgendaDropHighlight();
+      day.classList.add('doctor-space__agenda-cell--drop-target');
+      this.highlightedAgendaDropCell = day;
+    }
+  }
+
+  protected dropAgendaReservationOnMonth(event: DragEvent, date: Date): void {
+    event.preventDefault();
+    this.clearAgendaDropHighlight();
+    const id = this.draggedAgendaReservationId || event.dataTransfer?.getData('text/plain');
+    this.draggedAgendaReservationId = null;
+    const reservation = this.reservations().find((item) => item.id === id);
+    if (!reservation) return;
+    const original = new Date(reservation.dateHeure);
+    const target = new Date(date);
+    target.setHours(original.getHours(), original.getMinutes(), 0, 0);
+    this.prepareAgendaMove(reservation.id, target);
+  }
+
+  protected prepareAgendaMove(id: string, target: Date): void {
+    const reservation = this.reservations().find((item) => item.id === id);
+    if (!reservation || !this.canRescheduleAgendaReservation(reservation)) {
+      this.showAgendaNotice('error', this.agendaMoveUnavailableReason(reservation) ?? 'Ce rendez-vous ne peut plus être déplacé.');
+      return;
+    }
+    if (target.getTime() <= Date.now() || Number.isNaN(target.getTime())) {
+      this.showAgendaNotice('error', 'Choisissez un créneau futur : un RDV ne peut pas être déplacé dans le passé.');
+      return;
+    }
+    if (target.getTime() === new Date(reservation.dateHeure).getTime()) {
+      this.showAgendaNotice('info', 'Le RDV est déjà à cet horaire. Déposez-le sur un autre créneau.');
+      return;
+    }
+    this.agendaPendingMove.set({ id, newDateTime: this.localAgendaDateTime(target) });
+    this.showAgendaNotice('info', 'Nouveau créneau sélectionné. Vérifiez la date et confirmez pour notifier le client.');
+  }
+
+  protected openAgendaReschedule(reservation: BackendReservation): void {
+    const unavailableReason = this.agendaMoveUnavailableReason(reservation);
+    if (unavailableReason) {
+      this.showAgendaNotice('error', unavailableReason);
+      return;
+    }
+    this.agendaPendingMove.set({
+      id: reservation.id,
+      newDateTime: this.localAgendaDateTime(new Date(reservation.dateHeure)),
+    });
+  }
+
+  protected updateAgendaMoveDateTime(value: string): void {
+    this.agendaPendingMove.update((move) => move ? { ...move, newDateTime: value } : null);
+  }
+
+  protected cancelAgendaMove(): void {
+    if (!this.isAgendaRescheduling()) this.agendaPendingMove.set(null);
+  }
+
+  protected confirmAgendaMove(): void {
+    const move = this.agendaPendingMove();
+    if (!move || this.isAgendaRescheduling()) return;
+    const target = new Date(move.newDateTime);
+    if (Number.isNaN(target.getTime()) || target.getTime() <= Date.now()) {
+      this.showAgendaNotice('error', 'La nouvelle date doit être dans le futur.');
+      return;
+    }
+    const current = this.reservations().find((item) => item.id === move.id);
+    if (!current || !this.canRescheduleAgendaReservation(current)) {
+      this.showAgendaNotice('error', this.agendaMoveUnavailableReason(current) ?? 'Ce rendez-vous ne peut plus être déplacé. Actualisez l’agenda et réessayez.');
+      return;
+    }
+    if (target.getTime() === new Date(current.dateHeure).getTime()) {
+      this.showAgendaNotice('error', 'Choisissez un autre créneau : la date et l’heure sont inchangées.');
+      return;
+    }
+    if (this.agendaMoveConflict()) {
+      this.showAgendaNotice('error', 'Ce créneau chevauche un autre RDV. Choisissez un horaire libre.');
+      return;
+    }
+    if (this.agendaMoveOutsideAvailability()) {
+      this.showAgendaNotice('error', 'Ce jour ou cet horaire est hors des disponibilités du professionnel. Choisissez un autre créneau.');
+      return;
+    }
+    this.showAgendaNotice('info', 'Enregistrement du nouveau créneau en cours…');
+    this.isAgendaRescheduling.set(true);
+    this.doctorSpaceService.rescheduleReservation(move.id, target.toISOString())
+      .pipe(finalize(() => this.isAgendaRescheduling.set(false)))
+      .subscribe({
+        next: (updated) => {
+          this.mergeReservation(updated);
+          if (this.selectedAgendaReservation()?.id === updated.id) {
+            this.selectedAgendaReservation.set(updated);
+          }
+          this.agendaCursor.set(this.startOfDay(new Date(updated.dateHeure)));
+          this.agendaPendingMove.set(null);
+          this.feedback.success('Rendez-vous reprogrammé. Le client a été notifié.');
+          this.showAgendaNotice('success', 'RDV déplacé avec succès. Le client ou patient a été notifié.');
+        },
+        error: (error: unknown) => {
+          const message = getHttpErrorMessage(error, 'Ce créneau est indisponible ou ne peut pas être réservé.');
+          this.feedback.error(message);
+          this.showAgendaNotice('error', message);
+        },
+      });
+  }
+
+  private localAgendaDateTime(date: Date): string {
+    const pad = (value: number) => value.toString().padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
+
+  protected openReservationDetail(reservationId: string): void {
     this.router.navigate(['/appointments', reservationId], {
       queryParams: { mode: 'prestataire', returnUrl: this.router.url },
     });
   }
 
-  private openAgendaReservationById(reservationId: string): void {
+  protected openAgendaReservationById(reservationId: string): void {
+    const cachedReservation = this.reservations().find((item) => item.id === reservationId) ?? null;
     this.isAgendaReservationLoading.set(true);
     this.agendaReservationError.set(null);
-    this.selectedAgendaReservation.set(null);
+    this.selectedAgendaReservation.set(cachedReservation);
     this.agendaCancelForm.reason = '';
+    this.agendaCancelForm.details = '';
+    this.isAgendaCancelExpanded.set(false);
 
     this.doctorSpaceService
       .getReservationById(reservationId)
       .pipe(finalize(() => this.isAgendaReservationLoading.set(false)))
       .subscribe({
         next: (reservation) => {
-          this.selectedAgendaReservation.set(reservation);
+          if (this.selectedAgendaReservation()?.id === reservationId || !cachedReservation) {
+            this.selectedAgendaReservation.set(reservation);
+          }
           this.mergeReservation(reservation);
         },
         error: (error: unknown) => {
@@ -1715,26 +2049,50 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     this.selectedAgendaReservation.set(null);
     this.agendaReservationError.set(null);
     this.agendaCancelForm.reason = '';
+    this.agendaCancelForm.details = '';
+    this.isAgendaCancelExpanded.set(false);
   }
 
   protected canCancelAgendaReservation(reservation: BackendReservation): boolean {
-    return (
-      !this.isCancelledStatus(reservation.statut) &&
-      reservation.statut !== 'TERMINEE' &&
-      reservation.statut !== 'LITIGE' &&
-      this.isMoreThanHoursBefore(reservation.dateHeure, 24)
-    );
+    return this.agendaCancelUnavailableReason(reservation) === null;
+  }
+
+  protected agendaCancelUnavailableReason(reservation: BackendReservation): string | null {
+    if (this.isCancelledStatus(reservation.statut)) return 'Ce RDV est déjà annulé ou marqué absent.';
+    if (reservation.statut === 'TERMINEE') return 'Ce RDV est terminé et ne peut plus être annulé.';
+    if (reservation.statut === 'LITIGE') return 'Ce RDV est en litige et ne peut pas être annulé ici.';
+    return null;
+  }
+
+  protected openAgendaCancel(reservation: BackendReservation): void {
+    const unavailableReason = this.agendaCancelUnavailableReason(reservation);
+    if (unavailableReason) {
+      this.showAgendaNotice('error', unavailableReason);
+      return;
+    }
+    this.selectedAgendaReservation.set(reservation);
+    this.agendaCancelForm.reason = 'Indisponibilité du prestataire';
+    this.agendaCancelForm.details = '';
+    this.agendaReservationError.set(null);
+    this.isAgendaCancelExpanded.set(true);
+    this.showAgendaNotice('info', 'Choisissez un motif et confirmez. Si le RDV est payé, son remboursement sera demandé automatiquement.');
   }
 
   protected cancelAgendaReservation(reservation: BackendReservation): void {
     if (!this.canCancelAgendaReservation(reservation) || this.isAgendaReservationCancelling()) {
+      const reason = this.agendaCancelUnavailableReason(reservation);
+      if (reason) this.showAgendaNotice('error', reason);
       return;
     }
 
-    const reason =
-      this.agendaCancelForm.reason.trim() || 'Annulation demandee depuis l agenda professionnel.';
+    const selectedReason = this.agendaCancelForm.reason.trim();
+    const details = this.agendaCancelForm.details.trim();
+    const reason = selectedReason === 'Autre'
+      ? (details || 'Autre motif indiqué par le professionnel')
+      : [selectedReason || 'Indisponibilité du prestataire', details].filter(Boolean).join(' — ');
     this.isAgendaReservationCancelling.set(true);
     this.agendaReservationError.set(null);
+    this.showAgendaNotice('info', 'Annulation en cours… Si le RDV est payé, le remboursement est vérifié avant confirmation.');
 
     this.doctorSpaceService
       .cancelReservation(reservation.id, reason)
@@ -1744,12 +2102,18 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
           this.mergeReservation(updated);
           this.selectedAgendaReservation.set(updated);
           this.agendaCancelForm.reason = '';
-          this.feedback.success('Reservation annulee et client notifie.');
+          this.agendaCancelForm.details = '';
+          this.isAgendaCancelExpanded.set(false);
+          const successMessage = reservation.statut === 'PAYEE_SEQUESTRE' || reservation.statut === 'EN_COURS'
+            ? 'RDV annulé. Le remboursement a été accepté par le fournisseur de paiement et le client ou patient a été notifié. Le crédit sur son compte peut prendre du temps.'
+            : 'RDV annulé. Le client ou patient a été notifié.';
+          this.feedback.success(successMessage);
+          this.showAgendaNotice('success', successMessage);
         },
         error: (error: unknown) => {
-          this.agendaReservationError.set(
-            getHttpErrorMessage(error, 'Annulation impossible pour cette reservation.'),
-          );
+          const message = getHttpErrorMessage(error, 'Annulation impossible pour ce RDV.');
+          this.agendaReservationError.set(message);
+          this.showAgendaNotice('error', message);
         },
       });
   }
@@ -1780,6 +2144,39 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
 
   protected agendaReservationPrice(reservation: BackendReservation): number {
     return Number(reservation.prixConvenu ?? reservation.service?.prix ?? 0);
+  }
+
+  protected agendaTravelModeLabel(reservation: BackendReservation): string {
+    switch (reservation.service?.modeDeplacement) {
+      case 'CLIENT_SE_DEPLACE': return 'Client se déplace';
+      case 'TRANSPORT_COLIS': return 'Transport de colis';
+      default: return 'Prestataire se déplace';
+    }
+  }
+
+  protected agendaTravelModeIcon(mode: ServiceTravelMode | null | undefined): string {
+    return this.travelModeOptions.find((option) => option.value === mode)?.icon ?? 'wrench';
+  }
+
+  protected agendaClientInitials(reservation: BackendReservation): string {
+    return userInitials(this.clientLabel(reservation), 'CL');
+  }
+
+  protected agendaParcelNoteValue(reservation: BackendReservation, key: string): string | null {
+    const notes = reservation.notes;
+    if (!notes) return null;
+    const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(
+      `${escapedKey}\\s*[:=-]\\s*(.*?)(?=\\.\\s+(?:Expediteur|Depart colis|Destinataire|Arrivee destinataire|Colis\\s+\\d+|Note livraison|Distance estimee|Tarif kilometrique|Prix calcule)\\s*[:(]|$)`,
+      'i',
+    );
+    return notes.match(pattern)?.[1]?.trim().replace(/\.$/, '') || null;
+  }
+
+  protected agendaParcelSummary(reservation: BackendReservation): string | null {
+    const parcels = Array.from(reservation.notes?.matchAll(/Colis\s+\d+\s*\(([^)]*)\):\s*([^.]*)/gi) ?? [])
+      .map((match) => `${match[2].trim()} (${match[1].trim()})`);
+    return parcels.length ? parcels.join(' · ') : null;
   }
 
   protected agendaReservationServiceName(reservation: BackendReservation): string {
@@ -1813,20 +2210,6 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     return reservation.service?.categorie?.nom ?? 'Categorie non renseignee';
   }
 
-  protected previousAgendaWeek(): void {
-    this.shiftAgendaPeriod(-1);
-  }
-
-  protected nextAgendaWeek(): void {
-    this.shiftAgendaPeriod(1);
-  }
-
-  protected goToTodayAgenda(): void {
-    const today = this.startOfDay(new Date());
-    this.todayDate.set(today);
-    this.agendaCursor.set(today);
-  }
-
   protected isAgendaDayActive(date: Date): boolean {
     return this.isSameDay(date, this.agendaCursor());
   }
@@ -1837,10 +2220,16 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
 
   protected updateAgendaPeriodStart(value: string): void {
     this.agendaPeriodStart.set(value);
+    const selectedDate = this.parsePeriodBoundary(value, false);
+    if (selectedDate) this.agendaCursor.set(this.startOfDay(selectedDate));
   }
 
   protected updateAgendaPeriodEnd(value: string): void {
     this.agendaPeriodEnd.set(value);
+    if (!this.agendaPeriodStart()) {
+      const selectedDate = this.parsePeriodBoundary(value, false);
+      if (selectedDate) this.agendaCursor.set(this.startOfDay(selectedDate));
+    }
   }
 
   protected toggleDay(day: DaySchedule): void {
@@ -2465,7 +2854,6 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     if (data.categories) this.categories.set(data.categories);
     if (data.reservations) {
       this.reservations.set(data.reservations);
-      this.syncAgendaCursorWithReservations(data.reservations);
     }
     if (data.negotiations) this.negotiations.set(data.negotiations);
     if (data.wallet !== undefined) this.wallet.set(data.wallet);
@@ -2603,7 +2991,6 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (reservations) => {
           this.reservations.set(reservations);
-          this.syncAgendaCursorWithReservations(reservations);
           this.invoicesLoaded.set(true);
           this.invoicesError.set(null);
         },
@@ -2691,7 +3078,6 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       const next = exists
         ? reservations.map((item) => (item.id === reservation.id ? reservation : item))
         : [reservation, ...reservations];
-      this.syncAgendaCursorWithReservations(next);
       return next;
     });
   }
@@ -2744,71 +3130,26 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     });
   }
 
-  private syncAgendaCursorWithReservations(reservations: BackendReservation[]): void {
-    if (reservations.length === 0) return;
-
-    const currentWeekStart = this.startOfWeek(this.agendaCursor());
-    const currentWeekEnd = new Date(currentWeekStart);
-    currentWeekEnd.setDate(currentWeekStart.getDate() + 6);
-    currentWeekEnd.setHours(23, 59, 59, 999);
-
-    const datedReservations = reservations
-      .map((reservation) => ({
-        reservation,
-        scheduledAt: new Date(reservation.dateHeure),
-      }))
-      .filter(({ scheduledAt }) => !Number.isNaN(scheduledAt.getTime()));
-
-    const currentWeekHasReservation = datedReservations.some(
-      ({ scheduledAt, reservation }) =>
-        scheduledAt >= currentWeekStart &&
-        scheduledAt <= currentWeekEnd &&
-        this.matchesAgendaFilter(reservation.statut),
-    );
-    if (currentWeekHasReservation) return;
-
-    const now = new Date();
-    const target =
-      datedReservations
-        .filter(
-          ({ scheduledAt, reservation }) =>
-            scheduledAt >= now && this.matchesAgendaFilter(reservation.statut),
-        )
-        .sort((left, right) => left.scheduledAt.getTime() - right.scheduledAt.getTime())[0] ??
-      datedReservations
-        .filter(({ reservation }) => this.matchesAgendaFilter(reservation.statut))
-        .sort((left, right) => right.scheduledAt.getTime() - left.scheduledAt.getTime())[0];
-
-    if (target) {
-      this.agendaCursor.set(this.startOfDay(target.scheduledAt));
-    }
-  }
-
   private buildAgendaRows(): string[] {
     const rows: string[] = [];
-    const slotMinutes = this.appointmentStepMinutes();
+    const slotMinutes = 30;
     const { minMinutes, maxMinutes } = this.agendaTimeBounds();
 
-    for (let minutes = minMinutes; minutes <= maxMinutes; minutes += slotMinutes) {
+    for (let minutes = minMinutes; minutes < maxMinutes; minutes += slotMinutes) {
       const hour = Math.floor(minutes / 60);
       const minute = minutes % 60;
       rows.push(`${hour}:${minute.toString().padStart(2, '0')}`);
-    }
-
-    const lastLabel = `${Math.floor(maxMinutes / 60)}:${(maxMinutes % 60).toString().padStart(2, '0')}`;
-    if (rows[rows.length - 1] !== lastLabel) {
-      rows.push(lastLabel);
     }
 
     return rows;
   }
 
   private agendaTimeBounds(): { minMinutes: number; maxMinutes: number } {
-    const weekDays = this.agendaWeekDays();
+    const weekDays = this.agendaVisibleDays();
     const startBoundary = this.parsePeriodBoundary(this.agendaPeriodStart(), false);
     const endBoundary = this.parsePeriodBoundary(this.agendaPeriodEnd(), true);
     let minMinutes = 7 * 60;
-    let maxMinutes = 14 * 60;
+    let maxMinutes = 21 * 60;
 
     for (const reservation of this.reservations()) {
       const scheduledAt = new Date(reservation.dateHeure);
@@ -2842,7 +3183,7 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
   }
 
   private buildAgendaEvents(): AgendaEvent[] {
-    const weekDays = this.agendaWeekDays();
+    const weekDays = this.agendaVisibleDays();
     const services = new Map(this.motifs().map((motif) => [motif.id, motif]));
     const startBoundary = this.parsePeriodBoundary(this.agendaPeriodStart(), false);
     const endBoundary = this.parsePeriodBoundary(this.agendaPeriodEnd(), true);
@@ -2855,6 +3196,8 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
         if (startBoundary && scheduledAt < startBoundary) return null;
         if (endBoundary && scheduledAt > endBoundary) return null;
         if (!this.matchesAgendaFilter(reservation.statut)) return null;
+        if (this.agendaTravelFilter() !== 'ALL' &&
+            reservation.service?.modeDeplacement !== this.agendaTravelFilter()) return null;
 
         const dayIndex = weekDays.findIndex((day) => this.isSameDay(day.date, scheduledAt));
         if (dayIndex < 0) return null;
@@ -2870,9 +3213,11 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
             localService?.durationMinutes ||
             30,
         );
-        const slotMinutes = this.appointmentStepMinutes();
+        const slotMinutes = 30;
         const rowStart = 2 + Math.floor((startMinutes - minMinutes) / slotMinutes);
-        const rowSpan = Math.max(1, Math.ceil((duration + this.appointmentPause()) / slotMinutes));
+        const offsetMinutes = (startMinutes - minMinutes) % slotMinutes;
+        const rowSpan = Math.max(1, Math.ceil((duration + offsetMinutes) / slotMinutes));
+        const offsetTop = Math.round((offsetMinutes / slotMinutes) * this.agendaRowHeight());
         const price =
           reservation.prixConvenu ?? reservation.service?.prix ?? localService?.price ?? 0;
 
@@ -2885,13 +3230,17 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
           timeLabel: `${this.formatAgendaTime(scheduledAt)} - ${this.formatAgendaTime(
             new Date(scheduledAt.getTime() + duration * 60 * 1000),
           )}`,
+          startLabel: this.formatAgendaTime(scheduledAt),
+          travelMode: reservation.service?.modeDeplacement ?? null,
           clientLabel: this.clientLabel(reservation),
           price,
           status: reservation.statut,
           statusLabel: this.agendaReservationStatusLabel(reservation.statut),
+          canMove: this.canRescheduleAgendaReservation(reservation),
           dayIndex,
           rowStart,
           rowSpan,
+          offsetTop,
           variant: this.agendaEventVariant(reservation.statut),
         } satisfies AgendaEvent;
       })
@@ -2938,12 +3287,6 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
     return variants[status];
   }
 
-  private isMoreThanHoursBefore(value: string, hours: number): boolean {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return false;
-    return date.getTime() - Date.now() > hours * 60 * 60 * 1000;
-  }
-
   protected clientLabel(reservation: BackendReservation): string {
     return reservation.client?.nom || `Client ${reservation.clientId.slice(0, 6).toUpperCase()}`;
   }
@@ -2978,22 +3321,6 @@ export class DoctorSpacePageComponent implements OnInit, OnDestroy {
       year: 'numeric',
     }).format(date);
     return label.replace(/^\p{L}/u, (letter) => letter.toUpperCase());
-  }
-
-  private shiftAgendaPeriod(direction: -1 | 1): void {
-    const next = new Date(this.agendaCursor());
-    switch (this.agendaViewMode()) {
-      case 'day':
-        next.setDate(next.getDate() + direction);
-        break;
-      case 'week':
-        next.setDate(next.getDate() + direction * 7);
-        break;
-      case 'month':
-        next.setMonth(next.getMonth() + direction);
-        break;
-    }
-    this.agendaCursor.set(this.startOfDay(next));
   }
 
   private startOfWeek(date: Date): Date {

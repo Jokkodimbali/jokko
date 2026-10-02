@@ -117,4 +117,66 @@ describe('ReservationsRepository', () => {
       }),
     );
   });
+
+  it('rejects the exact same start time but allows a slot immediately after the previous one', async () => {
+    const prisma: ReservationPrismaMock = {
+      reservation: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'existing-reservation',
+            dateHeure: new Date('2030-01-01T10:00:00.000Z'),
+            dureeMinutes: 60,
+          },
+        ]),
+        updateMany: jest.fn(),
+      },
+    };
+    const repository = new ReservationsRepository(prisma as never);
+
+    await expect(
+      repository.hasTimeSlotConflict({
+        professionalId: 'professional-id',
+        dateHeure: new Date('2030-01-01T10:00:00.000Z'),
+        dureeMinutes: 30,
+      }),
+    ).resolves.toBe(true);
+    await expect(
+      repository.hasTimeSlotConflict({
+        professionalId: 'professional-id',
+        dateHeure: new Date('2030-01-01T11:00:00.000Z'),
+        dureeMinutes: 30,
+      }),
+    ).resolves.toBe(false);
+  });
+
+  it('refuses a reschedule onto an occupied slot before updating the reservation', async () => {
+    const tx = {
+      $executeRaw: jest.fn().mockResolvedValue(1),
+      reservation: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'other-reservation',
+            dateHeure: new Date('2030-01-01T10:30:00.000Z'),
+            dureeMinutes: 60,
+          },
+        ]),
+        update: jest.fn(),
+      },
+    };
+    const prisma = { $transaction: jest.fn((callback) => callback(tx)) };
+    const repository = new ReservationsRepository(prisma as never);
+
+    await expect(
+      repository.update({
+        id: 'moving-reservation',
+        professionnelId: 'professional-id',
+        dateHeure: new Date('2030-01-01T10:00:00.000Z'),
+        dureeMinutes: 60,
+        statut: 'CONFIRMEE',
+      } as never),
+    ).rejects.toMatchObject({ code: 'RESERVATION_TIME_SLOT_UNAVAILABLE' });
+
+    expect(tx.reservation.update).not.toHaveBeenCalled();
+    expect(tx.$executeRaw).toHaveBeenCalledTimes(1);
+  });
 });

@@ -4,6 +4,12 @@
   padding-inline: clamp(24px, 4vw, 64px);
 }
 
+.doctor-space--patients.doctor-space--agenda-visible .doctor-space__content {
+  margin-inline: 0;
+  max-width: none;
+  padding-inline: clamp(16px, 2vw, 32px);
+}
+
 @media (max-width: 860px) {
   .doctor-space--patients .doctor-space__content {
     padding-inline: 24px;

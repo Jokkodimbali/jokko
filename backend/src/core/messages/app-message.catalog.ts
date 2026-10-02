@@ -851,6 +851,12 @@ export const APP_MESSAGES_BY_MODULE = {
       message:
         'Ce creneau vient detre reserve par un autre client. Choisissez un autre horaire.',
     },
+    RESERVATIONS_OUTSIDE_AVAILABILITY: {
+      code: 'RESERVATIONS_OUTSIDE_AVAILABILITY',
+      httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,
+      message:
+        'Ce jour ou cet horaire ne fait pas partie des disponibilités du professionnel. Choisissez un autre créneau.',
+    },
     RESERVATIONS_STATUS_PENDING_REQUIRED: {
       code: 'RESERVATIONS_STATUS_PENDING_REQUIRED',
       httpStatus: HTTP_STATUS_CODES.CLIENT_ERROR.CONFLICT,

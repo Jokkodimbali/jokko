@@ -19,6 +19,7 @@ export type ExternalPaymentRefundResponse = {
   reference?: string;
   refunded?: boolean;
   status?: string;
+  error?: string;
 };
 
 export const toGatewayResponse = (

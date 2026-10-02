@@ -184,13 +184,6 @@ export class ReservationDomainError extends ValidationError {
     );
   }
 
-  static cancellationTooLate(): ReservationDomainError {
-    return new ReservationDomainError(
-      'RESERVATION_CANCELLATION_TOO_LATE',
-      domainMessage('RESERVATION_CANCELLATION_TOO_LATE'),
-    );
-  }
-
   static rescheduleTooLate(): ReservationDomainError {
     return new ReservationDomainError(
       'RESERVATION_RESCHEDULE_TOO_LATE',

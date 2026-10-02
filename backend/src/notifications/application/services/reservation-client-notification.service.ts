@@ -223,6 +223,16 @@ export class ReservationClientNotificationService {
     await this.notifyGenericEvent(input, 'RESERVATION_CONFIRMEE', 'confirmee');
   }
 
+  async notifyReservationRescheduled(
+    input: ReservationCreatedNotificationInput,
+  ): Promise<void> {
+    await this.notifyGenericEvent(
+      input,
+      'RESERVATION_CONFIRMEE',
+      'reprogrammée',
+    );
+  }
+
   async notifyReservationCreatedForProfessional(
     input: ReservationProfessionalCreatedNotificationInput,
   ): Promise<void> {
@@ -322,9 +332,17 @@ export class ReservationClientNotificationService {
   }
 
   async notifyReservationCancelled(
-    input: ReservationCreatedNotificationInput,
+    input: ReservationCreatedNotificationInput & {
+      cancelledByProfessional?: boolean;
+    },
   ): Promise<void> {
-    await this.notifyGenericEvent(input, 'RESERVATION_ANNULEE', 'annulee');
+    await this.notifyGenericEvent(
+      input,
+      'RESERVATION_ANNULEE',
+      input.cancelledByProfessional
+        ? 'annulée par le professionnel'
+        : 'annulée',
+    );
   }
 
   async notifyReservationCancelledForProfessional(

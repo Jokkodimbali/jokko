@@ -5,6 +5,7 @@ import {
   StatutPaiement,
 } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import {
   DOMAINE_EVENT_BUS,
@@ -46,6 +47,7 @@ import {
 } from '../../domain/events/reservation-mission.events';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { TeleconsultationDocumentService } from '../../../shared/media/teleconsultation-document.service';
+import { ReservationQueryService } from './reservation-query.service';
 
 @Injectable()
 export class ReservationCommandService extends ReservationAppService {
@@ -64,6 +66,8 @@ export class ReservationCommandService extends ReservationAppService {
     private readonly liveTrackingFacade: LiveTrackingFacade,
     private readonly prisma: PrismaService,
     private readonly teleconsultationDocuments: TeleconsultationDocumentService,
+    private readonly realtimeEvents: EventEmitter2,
+    private readonly reservationQueryService: ReservationQueryService,
   ) {
     super(reservationsRepository, professionalsRepository);
   }
@@ -236,12 +240,20 @@ export class ReservationCommandService extends ReservationAppService {
     try {
       const entity = ReservationEntity.reconstitute(reservation);
       entity.cancel(trimString(command.reason) ?? null);
-      const updated = await this.reservationsRepository.update(entity.toView());
-      await this.refundLockedPaymentOnCancellation(
-        updated.id,
-        trimString(command.reason) ??
-          'Reservation annulee par un utilisateur autorise.',
+      const refundResults = await this.realtimeEvents.emitAsync(
+        'reservations.cancellation.refund.requested',
+        {
+          reservationId: reservation.id,
+          reason: trimString(command.reason) ?? 'Annulation de la réservation',
+          paymentRequired:
+            reservation.statut === 'PAYEE_SEQUESTRE' ||
+            reservation.statut === 'EN_COURS',
+        },
       );
+      if (refundResults.length !== 1) {
+        throw new Error('PAYMENTS_CANCELLATION_REFUND_HANDLER_UNAVAILABLE');
+      }
+      const updated = await this.reservationsRepository.update(entity.toView());
       await this.liveTrackingFacade.finalizeReservationTracking({
         reservationId: updated.id,
         professionalId: updated.professionnelId,
@@ -261,6 +273,10 @@ export class ReservationCommandService extends ReservationAppService {
           professionalName: professional.utilisateur.nom,
           dateHeure: updated.dateHeure,
           adresseClient: updated.adresseClient,
+          cancelledByProfessional:
+            (requestUser.role === 'PRESTATAIRE' ||
+              requestUser.role === 'MEDECIN') &&
+            requestUser.sub !== updated.clientId,
         },
       );
       if (requestUser.sub === updated.clientId) {
@@ -294,25 +310,6 @@ export class ReservationCommandService extends ReservationAppService {
     }
   }
 
-  private async refundLockedPaymentOnCancellation(
-    reservationId: string,
-    reason: string,
-  ): Promise<void> {
-    await this.prisma.paiement.updateMany({
-      where: {
-        reservationId,
-        statut: StatutPaiement.SUCCES,
-        escrowStatus: EscrowStatus.LOCKED,
-      },
-      data: {
-        statut: StatutPaiement.REMBOURSE,
-        escrowStatus: EscrowStatus.REFUNDED,
-        raisonRemboursement: reason,
-        misAJourLe: new Date(),
-      },
-    });
-  }
-
   async rescheduleReservation(
     requestUser: AuthUser,
     reservationId: string,
@@ -326,8 +323,44 @@ export class ReservationCommandService extends ReservationAppService {
 
     try {
       const entity = ReservationEntity.reconstitute(reservation);
-      entity.reschedule(newDateTime);
-      return await this.reservationsRepository.update(entity.toView());
+      const isProfessionalOwner =
+        (requestUser.role === 'PRESTATAIRE' ||
+          requestUser.role === 'MEDECIN') &&
+        (await this.getProfessionalProfileOrThrow(requestUser.sub)).id ===
+          reservation.professionnelId;
+      entity.reschedule(newDateTime, isProfessionalOwner);
+      const availability = await this.reservationQueryService.checkAvailability(
+        {
+          professionalId: reservation.professionnelId,
+          dateHeure: newDateTime.toISOString(),
+          dureeMinutes: reservation.dureeMinutes,
+          excludeReservationId: reservation.id,
+        },
+      );
+      if (!availability.available) {
+        throw appHttpException(
+          availability.withinAvailability
+            ? 'RESERVATIONS_TIME_SLOT_UNAVAILABLE'
+            : 'RESERVATIONS_OUTSIDE_AVAILABILITY',
+        );
+      }
+      const updated = await this.reservationsRepository.update(entity.toView());
+      const professional = await this.getVerifiedProfessionalOrThrow(
+        updated.professionnelId,
+      );
+      const service = await this.getServiceOrThrow(updated.serviceId);
+      await this.reservationClientNotificationService.notifyReservationRescheduled(
+        {
+          reservationId: updated.id,
+          clientId: updated.clientId,
+          serviceName: service.nom,
+          professionalName: professional.utilisateur.nom,
+          dateHeure: updated.dateHeure,
+          adresseClient: updated.adresseClient,
+        },
+      );
+      await this.publishReservationChanged(updated, 'reservations.updated');
+      return updated;
     } catch (error) {
       this.handleDomainError(error);
       throw error;

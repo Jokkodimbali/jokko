@@ -58,14 +58,52 @@ describe('ReservationEntity', () => {
     });
   });
 
-  it('rejects cancelling a paid reservation less than 24 hours before', () => {
+  it('allows cancelling a paid reservation less than 24 hours before', () => {
     const reservation = ReservationEntity.reconstitute({
       ...buildEntity().toView(),
       dateHeure: buildFutureDate(2),
       statut: 'PAYEE_SEQUESTRE',
     });
 
-    expect(() => reservation.cancel('Trop tard')).toThrow(/24h/i);
+    reservation.cancel('Annulation tardive');
+
+    expect(reservation.toView()).toMatchObject({
+      statut: 'ANNULEE',
+      raisonAnnulation: 'Annulation tardive',
+    });
+  });
+
+  it('allows the owning professional to reschedule a future reservation within 24 hours', () => {
+    const reservation = ReservationEntity.reconstitute({
+      ...buildEntity().toView(),
+      dateHeure: buildFutureDate(2),
+      statut: 'PAYEE_SEQUESTRE',
+    });
+    const target = buildFutureDate(4);
+
+    reservation.reschedule(target, true);
+
+    expect(reservation.toView().dateHeure).toEqual(target);
+  });
+
+  it('keeps the 24-hour rule for other callers and never moves an elapsed reservation', () => {
+    const nearReservation = ReservationEntity.reconstitute({
+      ...buildEntity().toView(),
+      dateHeure: buildFutureDate(2),
+      statut: 'CONFIRMEE',
+    });
+    expect(() => nearReservation.reschedule(buildFutureDate(4))).toThrow(
+      /24h/i,
+    );
+
+    const pastReservation = ReservationEntity.reconstitute({
+      ...buildEntity().toView(),
+      dateHeure: buildFutureDate(-1),
+      statut: 'CONFIRMEE',
+    });
+    expect(() => pastReservation.reschedule(buildFutureDate(4), true)).toThrow(
+      /24h/i,
+    );
   });
 
   it('requires payment before completing a confirmed reservation', () => {
@@ -147,6 +185,8 @@ describe('ReservationEntity', () => {
         actesPrescriptionMedicale: [],
         vaccinsPrescriptionMedicale: [],
         traitementsPrescriptionMedicale: [],
+        clientLatitude: null,
+        clientLongitude: null
       }),
     ).toThrow(/invalides/i);
   });

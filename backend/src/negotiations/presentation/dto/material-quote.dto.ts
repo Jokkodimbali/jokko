@@ -1,5 +1,11 @@
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  ArrayMinSize,
+  ArrayMaxSize,
+  IsArray,
+  ValidateNested,
+  Matches,
   IsIn,
   IsInt,
   IsNumber,
@@ -16,6 +22,7 @@ export class CreateMaterialQuoteDto implements CreateMaterialQuoteInput {
   @ApiProperty({ example: 'PVC' })
   @IsString({ message: VALIDATION_MESSAGES.NEGOTIATION_MESSAGE_INVALID })
   @MaxLength(180, { message: VALIDATION_MESSAGES.NEGOTIATION_MESSAGE_MAX })
+  @Matches(/\S/, { message: 'La désignation est obligatoire.' })
   designation!: string;
 
   @ApiProperty({ example: 0 })
@@ -43,4 +50,14 @@ export class FinalizeMaterialQuoteDto {
   @ApiProperty({ example: '960e8400-e29b-41d4-a716-446655440031' })
   @IsString()
   reservationId!: string;
+}
+
+export class CreateReservationMaterialListDto {
+  @ApiProperty({ type: [CreateMaterialQuoteDto] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(50)
+  @ValidateNested({ each: true })
+  @Type(() => CreateMaterialQuoteDto)
+  items!: CreateMaterialQuoteDto[];
 }

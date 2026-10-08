@@ -318,6 +318,24 @@ Le coeur metier principal est en place. Les prochaines briques backend naturelle
 - documents / factures
 - parrainage
 
+## Diagnostic des connexions PostgreSQL
+
+Le backend execute `SELECT 1` avant d'accepter les requetes HTTP. Si PostgreSQL
+est inaccessible, le demarrage echoue avec `Connexion PostgreSQL impossible au
+demarrage` et conserve l'erreur d'origine comme cause. Il faut retablir la
+connexion puis redemarrer le backend.
+
+Une erreur `AuditLoggerMiddleware` contenant `Connection terminated due to
+connection timeout` indique un delai de connexion depasse. Verifier la
+disponibilite de la base, le reseau et `DATABASE_URL`. Le message Prisma
+`Invalid ... invocation` ne suffit pas a conclure que la requete est incorrecte.
+Une panne survenant apres le demarrage reste possible : la verification initiale
+ne garantit pas les ecritures d'audit suivantes.
+
+La configuration charge `.env` avant `.env.local` (avec les variantes sous
+`backend/` depuis la racine) ; une variable deja definie dans le processus est
+prioritaire. Verifier le fichier effectivement utilise avant de modifier l'URL.
+
 ## Contribution
 
 Avant toute modification importante :

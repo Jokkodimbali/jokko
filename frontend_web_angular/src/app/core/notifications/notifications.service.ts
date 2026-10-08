@@ -81,7 +81,7 @@ export function formatNotificationTitle(
   // Delivery notifications already contain the exact wording for the current
   // pickup/drop-off phase. Keep it untouched on the first line; the service
   // name remains exclusively on the subtitle line.
-  if (isDeliveryJourney) return title;
+  if (isDeliveryJourney || metadata['materialList'] === true) return title;
   if (type === 'APPEL_MANQUE') return `Appel manqué${from}`;
   if (type === 'APPEL_ENTRANT') return `Appel entrant${from}`;
   if (type.includes('MESSAGE')) return `Nouveau message${from}`;

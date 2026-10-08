@@ -820,7 +820,7 @@ model PropositionNegotiation {
 
 model DevisMaterielNegotiation {
   id                  String              @id @default(uuid()) @db.Uuid
-  negotiationId       String              @map("negotiation_id") @db.Uuid
+  negotiationId       String?             @map("negotiation_id") @db.Uuid
   reservationId       String?             @map("booking_id") @db.Uuid
   creeParId           String              @map("created_by_user_id") @db.Uuid
   creePar             RoleNegociateur     @map("created_by")
@@ -835,7 +835,7 @@ model DevisMaterielNegotiation {
   creeLe              DateTime            @default(now()) @map("created_at")
   misAJourLe          DateTime            @updatedAt @map("updated_at")
 
-  negotiation Negotiation  @relation(fields: [negotiationId], references: [id], onDelete: Cascade)
+  negotiation Negotiation? @relation(fields: [negotiationId], references: [id], onDelete: Cascade)
   reservation Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
   createur    Utilisateur  @relation("MaterialQuoteCreator", fields: [creeParId], references: [id], onDelete: Cascade)
 

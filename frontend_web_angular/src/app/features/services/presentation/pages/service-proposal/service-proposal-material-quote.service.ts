@@ -13,7 +13,7 @@ export interface MaterialQuoteDraft {
 
 export interface MaterialQuoteEntry extends MaterialQuoteDraft {
   id: string;
-  negotiationId: string;
+  negotiationId: string | null;
   reservationId: string | null;
   createdByUserId: string;
   unitPrice: number;

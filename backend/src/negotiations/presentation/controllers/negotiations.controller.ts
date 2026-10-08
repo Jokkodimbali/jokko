@@ -35,6 +35,7 @@ import { CreateNegotiationDto } from '../dto/create-negotiation.dto';
 import { ListNegotiationsQueryDto } from '../dto/list-negotiations-query.dto';
 import {
   CreateMaterialQuoteDto,
+  CreateReservationMaterialListDto,
   FinalizeMaterialQuoteDto,
 } from '../dto/material-quote.dto';
 import {
@@ -160,6 +161,22 @@ export class NegotiationsController {
       reservationId,
     );
     return createApiResponse(result);
+  }
+
+  @Post('reservations/:reservationId/material-quotes')
+  @HttpCode(HttpStatus.CREATED)
+  async createReservationMaterialList(
+    @CurrentUser() user: AuthUser,
+    @Param('reservationId') reservationId: string,
+    @Body() dto: CreateReservationMaterialListDto,
+  ) {
+    return createApiResponse(
+      await this.materialQuoteService.createForReservation(
+        user,
+        reservationId,
+        dto.items,
+      ),
+    );
   }
 
   @Get(':negotiationId/material-quotes')

@@ -1,4 +1,4 @@
-import { DestroyRef, Injectable, computed, effect, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { firstValueFrom } from 'rxjs';
 import {
@@ -41,6 +41,8 @@ export class CallFacade {
   private durationTimer: ReturnType<typeof setInterval> | null = null;
   private readonly observedLocalTracks = new WeakSet<LocalTrack>();
   private clearing = false;
+  private sessionEnded = false;
+  private sessionGeneration = 0;
   readonly call = this.callState.asReadonly();
   readonly remoteTrack = this.remoteTrackState.asReadonly();
   readonly localVideoTrack = this.localVideoTrackState.asReadonly();
@@ -67,10 +69,20 @@ export class CallFacade {
 
   constructor() {
     setLogLevel(LogLevel.error);
+    this.auth.sessionEnding$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.terminateSessionCall();
+    });
     effect(() => {
       this.auth.authVersion();
-      if (this.auth.currentUser()) this.realtime.connect();
-      else this.realtime.disconnect();
+      const user = this.auth.currentUser();
+      untracked(() => {
+        if (user) {
+          this.sessionEnded = false;
+          this.realtime.connect();
+        } else {
+          this.terminateSessionCall();
+        }
+      });
     });
     effect(() => {
       if (this.realtime.connectionVersion() > 0) void this.resynchronizeCall();
@@ -78,6 +90,7 @@ export class CallFacade {
     this.realtime.events$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(({ type, signal }) => {
+        if (this.sessionEnded || !this.auth.currentUser()) return;
         if (type === 'call.incoming' && !this.callState()) {
           this.isEmbeddedVideoSession.set(!!signal.embeddedTeleconsultation);
           this.callState.set({
@@ -113,13 +126,26 @@ export class CallFacade {
       });
   }
 
+  private terminateSessionCall(): void {
+    this.sessionEnded = true;
+    this.sessionGeneration += 1;
+    const call = this.callState();
+    if (call) {
+      // Notify the counterpart while credentials/socket are still available.
+      void this.realtime.emit('call.end', call).catch(() => undefined);
+    }
+    void this.clear();
+    this.realtime.disconnect();
+  }
+
   async start(
     conversationId: string,
     kind: CallKind,
     counterpartName: string,
     counterpartAvatarUrl: string | null,
   ): Promise<void> {
-    if (this.isBusy()) return;
+    if (this.isBusy() || this.sessionEnded || !this.auth.currentUser()) return;
+    const generation = this.sessionGeneration;
     const signal: CallSignal = {
       callId: crypto.randomUUID(),
       conversationId,
@@ -132,6 +158,7 @@ export class CallFacade {
     };
     try {
       const confirmed = await this.realtime.emit('call.initiate', signal);
+      if (generation !== this.sessionGeneration) return;
       this.isEmbeddedVideoSession.set(!!confirmed.embeddedTeleconsultation);
       this.callState.set({
         ...confirmed,
@@ -151,7 +178,9 @@ export class CallFacade {
     const call = this.callState();
     if (!call) return;
     try {
+      const generation = this.sessionGeneration;
       await this.realtime.emit('call.accept', call);
+      if (generation !== this.sessionGeneration) return;
       this.rememberOwnedCall(call.callId);
       this.callAudio.stop();
       await this.joinRoom();
@@ -287,9 +316,15 @@ export class CallFacade {
   }
 
   private async connectToRoom(call: ActiveCall): Promise<void> {
+    const generation = this.sessionGeneration;
+    const isCurrent = () =>
+      !this.sessionEnded &&
+      generation === this.sessionGeneration &&
+      this.callState()?.callId === call.callId;
     const credential = await firstValueFrom(
       this.api.createJoinCredential(call.conversationId, call.callId),
     );
+    if (!isCurrent()) return;
     const room = new Room({
       adaptiveStream: true,
       dynacast: true,
@@ -360,8 +395,17 @@ export class CallFacade {
       if (this.room === room) this.room = null;
       throw error;
     }
+    if (!isCurrent()) {
+      await this.destroyRoom(room);
+      return;
+    }
     await this.enableInitialMedia(room, call.kind);
+    if (!isCurrent()) {
+      await this.destroyRoom(room);
+      return;
+    }
     await this.refreshMediaDevices();
+    if (!isCurrent()) return;
     this.callState.update((value) => (value ? { ...value, phase: 'ACTIVE' } : null));
     this.startDurationTimer();
   }
@@ -425,6 +469,7 @@ export class CallFacade {
       this.feedback.error(this.mediaDeviceErrorMessage(error, 'microphone'));
     }
 
+    if (this.room !== room || this.sessionEnded) return;
     if (kind !== 'VIDEO') return;
     try {
       const publication = await room.localParticipant.setCameraEnabled(true);
@@ -476,7 +521,7 @@ export class CallFacade {
       this.durationTimer = null;
       const room = this.room;
       this.room = null;
-      if (room) await this.destroyRoom(room);
+      const roomCleanup = room ? this.destroyRoom(room) : Promise.resolve();
       this.remoteTrackState.set([]);
       this.localVideoTrackState.set(null);
       this.durationSecondsState.set(0);
@@ -494,6 +539,7 @@ export class CallFacade {
       this.mutedRemoteTrackIds.set(new Set());
       this.forgetOwnedCall();
       if (hadCall) this.historyVersion.update((version) => version + 1);
+      await roomCleanup;
     } finally {
       this.clearing = false;
     }
@@ -505,9 +551,7 @@ export class CallFacade {
       .map((publication) => publication.track)
       .filter((track) => track !== undefined);
     for (const track of localTracks) track.stop();
-    await Promise.allSettled(
-      localTracks.map((track) => room.localParticipant.unpublishTrack(track)),
-    );
+
     for (const participant of room.remoteParticipants.values()) {
       for (const publication of participant.trackPublications.values()) {
         publication.track?.detach().forEach((element) => element.remove());
@@ -534,9 +578,11 @@ export class CallFacade {
   }
 
   private async resynchronizeCall(): Promise<void> {
-    if (!this.auth.currentUser()) return;
+    if (!this.auth.currentUser() || this.sessionEnded) return;
+    const generation = this.sessionGeneration;
     try {
       const active = await firstValueFrom(this.api.getActiveCall());
+      if (generation !== this.sessionGeneration) return;
       if (!active) {
         if (this.callState()) await this.clear();
         return;

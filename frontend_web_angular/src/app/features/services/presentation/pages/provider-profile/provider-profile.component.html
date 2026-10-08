@@ -65,46 +65,52 @@
         <div class="provider-profile__name">
           <h1>{{ displayName() }}</h1>
           <p *ngIf="subCategoryNames().length > 0" class="provider-profile__subcategories">
-            {{ subCategoryNames().join(' · ') }}
+            <span *ngFor="let specialty of subCategoryNames()">{{ specialty }}</span>
           </p>
           <small>{{ formatLocation() }}</small>
         </div>
 
-        <div
-          class="provider-profile__stats"
-          [class.provider-profile__stats--with-vehicle]="!!vehicleBadge()"
-          aria-label="Statistiques du prestataire"
-        >
-          <div class="provider-profile__service-stat">
-            <span><lucide-icon name="users" size="46" [strokeWidth]="2.1"></lucide-icon></span>
+        <div class="provider-profile__summary" aria-label="Statistiques du prestataire">
+          <div class="provider-profile__summary-card">
+            <span class="provider-profile__summary-icon" aria-hidden="true">
+              <lucide-icon name="briefcase-business" size="19" [strokeWidth]="1.8" />
+            </span>
             <p>
-              <strong>{{ servicesCountLabel() }}</strong
-              ><small>Services</small>
+              <strong>{{ servicesCountLabel() }}</strong>
+              <small>{{
+                detail()?.services?.length === 1 ? 'Service proposé' : 'Services proposés'
+              }}</small>
             </p>
           </div>
-          <div class="provider-profile__review-stat">
-            <span class="provider-profile__rating-stars">
-              <app-star-rating
-                [value]="detail()?.profile?.noteGlobale ?? 0"
-                [reviews]="detail()?.profile?.nombreAvis ?? 0"
-                size="xlarge"
+          <div class="provider-profile__summary-card provider-profile__summary-card--rating">
+            <span class="provider-profile__summary-icon" aria-hidden="true">
+              <lucide-icon name="star" size="20" [strokeWidth]="1.8" />
+            </span>
+            <p>
+              <strong
+                >{{ (detail()?.profile?.noteGlobale ?? 0) > 0 ? ratingLabel() : '–' }}/5</strong
+              >
+              <small>{{ reviewTotalLabel() }}</small>
+            </p>
+          </div>
+          <div class="provider-profile__summary-card provider-profile__summary-card--travel">
+            <span class="provider-profile__summary-icon" aria-hidden="true">
+              <lucide-icon
+                [name]="primaryTravelMode() === 'CLIENT_SE_DEPLACE' ? 'map-pin' : 'truck'"
+                size="19"
+                [strokeWidth]="1.8"
               />
             </span>
-            <small class="provider-profile__review-total">{{ reviewTotalLabel() }}</small>
+            <p>
+              <strong>{{ travelModeLabel() }}</strong>
+              <small>{{ travelModeDescription() }}</small>
+            </p>
           </div>
-          <div *ngIf="vehicleBadge() as vehicle" class="provider-profile__vehicle-stat">
+          <div *ngIf="vehicleBadge() as vehicle" class="provider-profile__summary-card">
             <app-provider-travel-badge
               variant="vehicle"
               [label]="vehicle.label"
               [imageUrl]="vehicle.imageUrl"
-            />
-          </div>
-          <div class="provider-profile__movement-stat">
-            <app-provider-travel-badge
-              [label]="travelModeLabel()"
-              [imageUrl]="travelModeImageUrl()"
-              [tone]="primaryTravelMode() || 'DEFAULT'"
-              [compact]="true"
             />
           </div>
         </div>

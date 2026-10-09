@@ -1,0 +1,134 @@
+<section class="panel composer">
+  <div class="job-search">
+    <div class="job-search__row">
+      <div class="job-search__field">
+        <lucide-icon name="search" size="17" />
+        <input
+          type="search"
+          aria-label="Rechercher un métier"
+          aria-autocomplete="list"
+          aria-controls="tender-job-suggestions"
+          [attr.aria-expanded]="searchOpen() && query().trim().length >= 2"
+          placeholder="Rechercher un métier : plombier, électricien…"
+          [value]="query()"
+          (input)="search($any($event.target).value)"
+          (focus)="searchOpen.set(true)"
+          (blur)="closeSearchSoon()"
+          (keydown)="searchKeydown($event)"
+        />
+        <button
+          *ngIf="query()"
+          type="button"
+          class="job-search__clear"
+          aria-label="Effacer la recherche"
+          (mousedown)="$event.preventDefault()"
+          (click)="clearSearch()"
+        >
+          <lucide-icon name="x" size="14" />
+        </button>
+      </div>
+      <button
+        type="button"
+        class="job-search__submit"
+        (mousedown)="$event.preventDefault()"
+        (click)="submitSearch()"
+      >
+        Chercher
+      </button>
+    </div>
+    <div
+      id="tender-job-suggestions"
+      class="job-search__suggestions"
+      *ngIf="searchOpen() && query().trim().length >= 2"
+    >
+      <button
+        *ngFor="let suggestion of suggestions(); let index = index"
+        type="button"
+        class="job-search__suggestion"
+        [class.job-search__suggestion--active]="index === highlightedSuggestion"
+        (mousedown)="$event.preventDefault()"
+        (click)="choose(suggestion.id)"
+      >
+        {{ suggestion.name }}
+      </button>
+      <p *ngIf="!suggestions().length" class="job-search__empty">
+        Aucun métier trouvé dans le catalogue. Essayez un autre terme.
+      </p>
+    </div>
+  </div>
+  <p *ngIf="catalogError()" role="alert" class="error">{{ catalogError() }}</p>
+  <span *ngIf="selected" class="chip">{{ selected.label }}</span>
+  <label class="field"
+    >Prestation souhaitée<textarea
+      [(ngModel)]="description"
+      [disabled]="busy"
+      maxlength="2000"
+      rows="4"
+      placeholder="Décrivez votre besoin, le problème rencontré et les précisions utiles…"
+    ></textarea>
+  </label>
+  <div class="schedule-fields">
+    <label
+      ><span>Date souhaitée</span
+      ><input
+        type="date"
+        [min]="localDate()"
+        [value]="date"
+        (change)="dateChanged($any($event.target).value)"
+        [disabled]="busy"
+    /></label>
+    <label
+      ><span>Heure souhaitée</span
+      ><input
+        type="time"
+        step="900"
+        [value]="time"
+        (change)="timeChanged($any($event.target).value)"
+        [disabled]="busy"
+    /></label>
+  </div>
+  <div class="schedule-status" *ngIf="when === 'PLANNED'">
+    <span>{{ when === 'PLANNED' ? 'Intervention planifiée' : 'Dès que possible' }}</span>
+    <button *ngIf="when === 'PLANNED'" type="button" (click)="clearSchedule()" [disabled]="busy">
+      Revenir à « Dès que possible »
+    </button>
+  </div>
+</section>
+<section class="map-card">
+  <button type="button" class="map-position" (click)="usePosition()" [disabled]="busy || locating">
+    <lucide-icon name="locate-fixed" size="15" />{{ locating ? 'Localisation…' : 'Ma position' }}
+  </button>
+  <app-service-proposal-interactive-map
+    [address]="address"
+    [expanded]="mapExpanded"
+    (expandedChange)="mapExpanded = $event"
+    (addressSelected)="addressEdited($event)"
+    (addressResolved)="locate($event)"
+  />
+  <p class="map-address">
+    <lucide-icon name="map-pin" size="16" />
+    <span
+      ><small>Adresse d’intervention</small
+      ><strong>{{ address || 'Cliquez sur la carte pour choisir l’adresse' }}</strong></span
+    >
+  </p>
+</section>
+<section class="panel price-card">
+  <div class="price-card__heading">
+    <h2>Votre offre de prix</h2>
+    <span class="negotiable">Prix négociable</span>
+  </div>
+  <p>{{ selected ? selected.label : 'Choisissez un métier dans la recherche' }}</p>
+  <app-tender-price-control [(amount)]="price" [disabled]="busy" [showLabel]="false" />
+  <p class="price-card__assurance">Paiement sécurisé · Remboursable</p>
+  <p *ngIf="error" class="error" role="alert">{{ error }}</p>
+  <button
+    type="button"
+    class="primary full"
+    (click)="submit()"
+    [disabled]="busy || !!catalogError()"
+  >
+    <lucide-icon name="circle-check" size="18" /> {{ busy ? 'Publication…' : 'Publier ma demande' }}
+    <lucide-icon name="chevron-right" size="17" />
+  </button>
+</section>

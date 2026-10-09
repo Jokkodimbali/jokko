@@ -109,8 +109,12 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
 
   protected readonly logo = '/logojokko.png';
   protected readonly currentUser = this.authSession.currentUser;
-  protected readonly isProfessional = computed(() => !!professionalHomeRoute(this.currentUser()?.role));
-  protected readonly homeRoute = computed(() => professionalHomeRoute(this.currentUser()?.role) ?? '/services');
+  protected readonly isProfessional = computed(
+    () => !!professionalHomeRoute(this.currentUser()?.role),
+  );
+  protected readonly homeRoute = computed(
+    () => professionalHomeRoute(this.currentUser()?.role) ?? '/services',
+  );
   protected readonly isMenuOpen = signal(false);
   protected readonly isMobileNavOpen = signal(false);
   protected readonly isNotificationsOpen = signal(false);
@@ -127,14 +131,24 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
       this.hasHardwareAccess.set(false);
     });
     if (!providerId) return;
-    this.subscriptions.add(this.pharmacyOrders.getAccess().pipe(catchError(() => of({ isPharmacy: false })))
-      .subscribe((access) => {
-        if (this.professionalAccessUserId === providerId) this.hasPharmacyAccess.set(access.isPharmacy);
-      }));
-    this.subscriptions.add(this.materialOrders.getAccess().pipe(catchError(() => of({ isHardwareStore: false })))
-      .subscribe((access) => {
-        if (this.professionalAccessUserId === providerId) this.hasHardwareAccess.set(access.isHardwareStore);
-      }));
+    this.subscriptions.add(
+      this.pharmacyOrders
+        .getAccess()
+        .pipe(catchError(() => of({ isPharmacy: false })))
+        .subscribe((access) => {
+          if (this.professionalAccessUserId === providerId)
+            this.hasPharmacyAccess.set(access.isPharmacy);
+        }),
+    );
+    this.subscriptions.add(
+      this.materialOrders
+        .getAccess()
+        .pipe(catchError(() => of({ isHardwareStore: false })))
+        .subscribe((access) => {
+          if (this.professionalAccessUserId === providerId)
+            this.hasHardwareAccess.set(access.isHardwareStore);
+        }),
+    );
   });
   protected readonly isInfoMenuOpen = signal(false);
   protected readonly isNotificationsLoading = signal(false);
@@ -205,7 +219,13 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     return count > 99 ? '99+' : String(count);
   });
 
+  private readonly tenderNavItem: AppNavItem = {
+    label: 'Appels d’offres',
+    icon: 'send',
+    route: '/appels-offres',
+  };
   private readonly clientNavItems: AppNavItem[] = [
+    this.tenderNavItem,
     {
       label: 'Services',
       icon: 'users',
@@ -226,11 +246,20 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
     const role = this.currentUser()?.role;
     if (role !== 'PRESTATAIRE' && role !== 'MEDECIN') return [];
     const route = role === 'MEDECIN' ? '/medecine/espace' : '/prestataire/espace';
-    const items: AppNavItem[] = [];
+    const items: AppNavItem[] = role === 'PRESTATAIRE' ? [this.tenderNavItem] : [];
     if (role === 'PRESTATAIRE') {
-      items.push({ label: 'Gestion des clients', icon: 'calendar-check', route, section: 'negotiations' });
+      items.push({
+        label: 'Gestion des clients',
+        icon: 'calendar-check',
+        route,
+        section: 'negotiations',
+      });
     } else {
-      items.push({ label: 'Gestion des patients', icon: 'calendar-check', route: '/medecine/espace/rdv-patients' });
+      items.push({
+        label: 'Gestion des patients',
+        icon: 'calendar-check',
+        route: '/medecine/espace/rdv-patients',
+      });
     }
     items.push({
       label: 'Disponibilités et services',
@@ -240,8 +269,10 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
       view: 'availability',
     });
     if (role === 'PRESTATAIRE') {
-      if (this.hasPharmacyAccess()) items.push({ label: 'Ordonnances', icon: 'pill', route: '/pharmacy-orders' });
-      if (this.hasHardwareAccess()) items.push({ label: 'Matériel', icon: 'package-search', route: '/material-orders' });
+      if (this.hasPharmacyAccess())
+        items.push({ label: 'Ordonnances', icon: 'pill', route: '/pharmacy-orders' });
+      if (this.hasHardwareAccess())
+        items.push({ label: 'Matériel', icon: 'package-search', route: '/material-orders' });
     }
     items.push({ label: 'Wallet', icon: 'wallet-cards', route, section: 'wallet' });
     return items;
@@ -284,16 +315,22 @@ export class AppNavbarComponent implements OnInit, OnDestroy {
 
   protected isNavItemActive(item: AppNavItem): boolean {
     const current = this.router.parseUrl(this.router.url);
-    const path = current.root.children['primary']?.segments.map((segment) => segment.path).join('/') ?? '';
+    const path =
+      current.root.children['primary']?.segments.map((segment) => segment.path).join('/') ?? '';
     const currentPath = `/${path}`;
     if (item.route === '/medecine/espace/rdv-patients') {
-      return currentPath === item.route || (currentPath === '/medecine/espace' && !current.queryParams['section']);
+      return (
+        currentPath === item.route ||
+        (currentPath === '/medecine/espace' && !current.queryParams['section'])
+      );
     }
     if (item.section) {
-      return currentPath === item.route &&
+      return (
+        currentPath === item.route &&
         (current.queryParams['section'] === item.section ||
           (item.section === 'consultation' && current.queryParams['section'] === 'availability') ||
-          (!current.queryParams['section'] && item.section === 'negotiations'));
+          (!current.queryParams['section'] && item.section === 'negotiations'))
+      );
     }
     return this.isActive(item.route);
   }

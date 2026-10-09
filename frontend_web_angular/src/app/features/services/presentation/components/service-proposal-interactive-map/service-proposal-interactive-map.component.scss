@@ -230,6 +230,12 @@
   z-index: 1;
 }
 
+.interactive-map__fallback-map {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
 .interactive-map__expand {
   background: #fff;
   border: 1px solid rgba(229, 229, 229, 0.8);

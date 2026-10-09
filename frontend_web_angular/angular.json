@@ -39,6 +39,7 @@
               }
             ],
             "styles": [
+              "node_modules/leaflet/dist/leaflet.css",
               "src/styles.scss",
               "src/app/features/medicine/presentation/pages/doctor-space-page/styles/_doctor-space-schedule.scss",
               "src/app/features/medicine/presentation/pages/doctor-space-page/styles/_doctor-space-agenda.scss",

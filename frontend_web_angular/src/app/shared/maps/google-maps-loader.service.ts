@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map, shareReplay } from 'rxjs';
+import { Observable, Subject, map, shareReplay } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../../core/http/api-response.models';
 import { unwrapApiResponse } from '../../core/http/api-response.utils';
@@ -180,16 +180,20 @@ export type GoogleMapsAutocompleteSuggestion = {
 declare global {
   interface Window {
     __jokkoGoogleMapsLoaded?: () => void;
+    gm_authFailure?: () => void;
   }
 }
 
 let googleMapsLoadPromise: Promise<GoogleMapsRuntime> | null = null;
 let loadedMapId = '';
+let googleMapsAuthenticationFailed = false;
 
 @Injectable({ providedIn: 'root' })
 export class GoogleMapsLoaderService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.apiUrl;
+  private readonly authenticationFailure = new Subject<void>();
+  readonly authenticationFailed$ = this.authenticationFailure.asObservable();
   private readonly config$ = this.http
     .get<ApiResponse<GoogleMapsConfig>>(`${this.apiUrl}/maps/config`)
     .pipe(map(unwrapApiResponse), shareReplay({ bufferSize: 1, refCount: false }));
@@ -197,6 +201,9 @@ export class GoogleMapsLoaderService {
   load(): Promise<GoogleMapsRuntime> {
     if (typeof window === 'undefined') {
       return Promise.reject(new Error('Google Maps requires a browser runtime.'));
+    }
+    if (googleMapsAuthenticationFailed) {
+      return Promise.reject(new Error('Google Maps authentication failed.'));
     }
     const currentGoogle = this.googleRuntime(loadedMapId);
     if (currentGoogle?.maps) {
@@ -215,6 +222,11 @@ export class GoogleMapsLoaderService {
             return;
           }
           loadedMapId = config.mapId || 'DEMO_MAP_ID';
+          window.gm_authFailure = () => {
+            googleMapsAuthenticationFailed = true;
+            this.authenticationFailure.next();
+            reject(new Error('Google Maps authentication failed.'));
+          };
 
           const existingScript = document.querySelector<HTMLScriptElement>(
             'script[data-jokko-google-maps]',

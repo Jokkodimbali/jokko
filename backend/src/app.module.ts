@@ -1,3 +1,4 @@
+import { TendersModule } from './tenders/tenders.module';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { InvoicesModule } from './invoices/invoices.module';
 import { CoreModule } from './core/core.module';
@@ -26,6 +27,7 @@ import { MaterialOrdersModule } from './material-orders/material-orders.module';
 
 @Module({
   imports: [
+    TendersModule,
     InvoicesModule,
     SharedModule,
     CoreModule,

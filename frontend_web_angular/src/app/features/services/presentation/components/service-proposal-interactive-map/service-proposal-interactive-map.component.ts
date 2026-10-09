@@ -16,7 +16,9 @@ import {
   signal,
 } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import type * as Leaflet from 'leaflet';
 import { FormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { LucideAngularModule } from 'lucide-angular';
 import {
   GoogleMapsAdvancedMarkerInstance,
@@ -58,6 +60,8 @@ export type ServiceProposalMapAddressSelection = {
 })
 export class ServiceProposalInteractiveMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   @ViewChild('mapContainer') private readonly mapContainer?: ElementRef<HTMLDivElement>;
+  @ViewChild('fallbackMapContainer')
+  private readonly fallbackMapContainer?: ElementRef<HTMLDivElement>;
 
   @Input() address = '';
   @Input() expanded = false;
@@ -86,6 +90,10 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
     longitude: -17.4677,
   };
   protected hasGoogleMap = true;
+  protected hasLeafletMap = false;
+  private leafletMap: Leaflet.Map | null = null;
+  private leafletMarker: Leaflet.CircleMarker | null = null;
+  private leafletRuntime: typeof Leaflet | null = null;
   private map: GoogleMapInstance | null = null;
   private marker: GoogleMapsAdvancedMarkerInstance | null = null;
   private autocompleteSessionToken: GoogleMapsAutocompleteSessionToken | null = null;
@@ -97,6 +105,17 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
   private mapLoadStarted = false;
   private resizeObserver: ResizeObserver | null = null;
   private refreshAnimationFrameId: number | null = null;
+
+  constructor() {
+    this.googleMaps.authenticationFailed$.pipe(takeUntilDestroyed()).subscribe(() => {
+      this.zone.run(() => {
+        if (this.marker) this.marker.map = null;
+        this.marker = null;
+        this.map = null;
+        this.showFallbackMap();
+      });
+    });
+  }
 
   ngAfterViewInit(): void {
     this.searchQuery = this.address;
@@ -132,6 +151,10 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
     }
     this.marker = null;
     this.map = null;
+    this.leafletMap?.remove();
+    this.leafletMap = null;
+    this.leafletMarker = null;
+    this.leafletRuntime = null;
     this.autocompleteSessionToken = null;
   }
 
@@ -172,8 +195,10 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
           return;
         }
         this.placeMarker(result.latitude, result.longitude);
+        this.placeFallbackMarker(result.latitude, result.longitude);
         this.map?.setCenter(this.toGooglePoint(result));
         this.map?.setZoom(16);
+        this.leafletMap?.setView([result.latitude, result.longitude], 16);
         this.applyAddress(result.formattedAddress, result);
         this.geocodingStatus = this.statusLabel(result.formattedAddress);
       },
@@ -209,12 +234,64 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
       })
       .catch(() => {
         this.zone.run(() => {
-          this.loading = false;
-          this.hasGoogleMap = false;
-          this.geocodingStatus =
-            'Carte standard disponible, Google Maps attend une cle navigateur valide.';
+          this.showFallbackMap();
         });
       });
+  }
+
+  private showFallbackMap(): void {
+    this.loading = false;
+    this.hasGoogleMap = false;
+    this.geocodingStatus = 'Cliquez sur la carte pour choisir l’adresse.';
+    this.cdr.detectChanges();
+    void this.initializeFallbackMap();
+  }
+
+  private async initializeFallbackMap(): Promise<void> {
+    if (this.leafletMap) return;
+    const container = this.fallbackMapContainer?.nativeElement;
+    if (!container) return;
+    try {
+      const leaflet = await import('leaflet');
+      if (!container.isConnected || this.leafletMap) return;
+      const map = leaflet
+        .map(container, { zoomControl: true })
+        .setView([this.dakarCoords.latitude, this.dakarCoords.longitude], 13);
+      leaflet
+        .tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap contributors',
+        })
+        .addTo(map);
+      map.on('click', (event: Leaflet.LeafletMouseEvent) => {
+        this.zone.run(() => this.selectCoordinates(event.latlng.lat, event.latlng.lng));
+      });
+      this.leafletMap = map;
+      this.leafletRuntime = leaflet;
+      this.hasLeafletMap = true;
+      this.cdr.markForCheck();
+      setTimeout(() => map.invalidateSize(), 0);
+    } catch {
+      // Keep the existing embedded map if Leaflet cannot load.
+      this.hasLeafletMap = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  private placeFallbackMarker(lat: number, lng: number): void {
+    if (!this.leafletMap || !this.leafletRuntime) return;
+    if (this.leafletMarker) this.leafletMarker.setLatLng([lat, lng]);
+    else {
+      this.leafletMarker = this.leafletRuntime
+        .circleMarker([lat, lng], {
+          radius: 9,
+          color: '#ffffff',
+          weight: 3,
+          fillColor: '#8d5527',
+          fillOpacity: 1,
+        })
+        .addTo(this.leafletMap);
+    }
   }
 
   private observeMapContainer(): void {
@@ -309,6 +386,7 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
   }
 
   private forceMapRefresh(): void {
+    this.leafletMap?.invalidateSize();
     if (!this.map) return;
 
     const eventApi = this.google?.maps.event as
@@ -488,6 +566,7 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
     const requestId = ++this.reverseGeocodeRequestId;
 
     this.placeMarker(lat, lng, 'Recherche de l adresse...');
+    this.placeFallbackMarker(lat, lng);
     this.searchQuery = fallbackAddress;
     this.applyAddress(fallbackAddress, coordinate);
     this.geocodingStatus = 'Recherche de l adresse...';

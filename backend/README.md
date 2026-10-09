@@ -1,5 +1,6 @@
 # Jokko Backend
-
+mamadouthiamdia@outlook.fr
+KYpYv4QSY8@Dnkh
 Backend NestJS du projet Jokko, une marketplace de services qui relie clients, prestataires verifies et administration de plateforme autour d'un cycle complet :
 
 - authentification

@@ -268,6 +268,7 @@ enum StatutDevisMateriel {
 }
 
 model Utilisateur {
+  tenders Tender[]
   id               String          @id @default(uuid()) @db.Uuid
   numeroTelephone  String          @unique @map("phone_number") @db.VarChar(20)
   nom              String          @map("name") @db.VarChar(100)
@@ -400,6 +401,7 @@ model VerificationOtp {
 }
 
 model ProfilProfessionnel {
+  tenderResponses TenderResponse[]
   id                    String                                 @id @default(uuid()) @db.Uuid
   utilisateurId         String                                 @unique @map("user_id") @db.Uuid
   biographie            String?                                @map("bio") @db.Text
@@ -497,6 +499,7 @@ model FavoriProfessionnel {
 }
 
 model Categorie {
+  tenders Tender[]
   id             String  @id @default(uuid()) @db.Uuid
   nom            String  @unique @map("name") @db.VarChar(100)
   urlIcone       String? @map("icon_url") @db.VarChar(500)
@@ -513,6 +516,7 @@ model Categorie {
 }
 
 model SousCategorieService {
+  tenders Tender[]
   id          String   @id @default(uuid()) @db.Uuid
   nom         String   @unique @map("name") @db.VarChar(120)
   description String?  @db.Text
@@ -543,6 +547,7 @@ model CategorieSousCategorie {
 }
 
 model Service {
+  tenderResponses TenderResponse[]
   id                     String                 @id @default(uuid()) @db.Uuid
   profilProfessionnelId  String                 @map("professional_id") @db.Uuid
   categorieId            String                 @map("category_id") @db.Uuid
@@ -773,6 +778,7 @@ model PaiementCommandeMateriel {
 }
 
 model Negotiation {
+  tenderResponse TenderResponse?
   id                    String            @id @default(uuid()) @db.Uuid
   clientId              String            @map("client_id") @db.Uuid
   professionnelId       String            @map("professional_id") @db.Uuid
@@ -1301,4 +1307,66 @@ model InvoiceSettings {
   updatedAt DateTime @default(now()) @map("updated_at")
 
   @@map("invoice_settings")
+}
+
+
+enum TenderStatus {
+  OPEN
+  SELECTED
+  CANCELLED
+}
+
+enum TenderResponseStatus {
+  INVITED
+  IGNORED
+  OFFERED
+  REJECTED
+  SELECTED
+  NOT_SELECTED
+}
+
+model Tender {
+  id String @id @default(uuid()) @db.Uuid
+  clientId String @db.Uuid
+  categoryId String @db.Uuid
+  subCategoryId String? @db.Uuid
+  description String @db.VarChar(2000)
+  address String @db.VarChar(180)
+  latitude Float
+  longitude Float
+  radiusKm Int @default(25)
+  proposedPrice Decimal @db.Decimal(10, 2)
+  scheduledAt DateTime?
+  status TenderStatus @default(OPEN)
+  revision Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  client Utilisateur @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  category Categorie @relation(fields: [categoryId], references: [id])
+  subCategory SousCategorieService? @relation(fields: [subCategoryId], references: [id])
+  responses TenderResponse[]
+  @@index([clientId, createdAt])
+  @@map("tenders")
+}
+
+model TenderResponse {
+  id String @id @default(uuid()) @db.Uuid
+  tenderId String @db.Uuid
+  professionalId String @db.Uuid
+  serviceId String? @db.Uuid
+  negotiationId String? @unique @db.Uuid
+  eligibleServiceIds String[] @db.Uuid
+  distanceKm Float?
+  amount Decimal? @db.Decimal(10, 2)
+  message String? @db.VarChar(1000)
+  status TenderResponseStatus @default(INVITED)
+  offeredAt DateTime?
+  updatedAt DateTime @updatedAt
+  tender Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  professional ProfilProfessionnel @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  service Service? @relation(fields: [serviceId], references: [id])
+  negotiation Negotiation? @relation(fields: [negotiationId], references: [id])
+  @@unique([tenderId, professionalId])
+  @@index([professionalId, status, updatedAt])
+  @@map("tender_responses")
 }

@@ -79,6 +79,7 @@ export class App {
     const path = this.normalizedPath(this.currentUrl());
     if (path === '/appointments') return 'Rendez-vous';
     if (path === '/messages') return 'Messages';
+    if (path.startsWith('/appels-offres')) return 'Appels d’offres';
     if (path.startsWith('/prestataire/espace')) return 'Espace prestataire';
     if (path.startsWith('/medecine/espace')) return 'Espace médecin';
     if (this.authSession.currentUser()?.role === 'PRESTATAIRE') {
@@ -121,6 +122,7 @@ export class App {
     const path = this.normalizedPath(url);
     if (
       path === '/services' ||
+      path === '/appels-offres' || path.startsWith('/appels-offres/') ||
       path === '/favorites' ||
       path === '/notifications' ||
       path === '/appointments' ||

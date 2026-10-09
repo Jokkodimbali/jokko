@@ -47,7 +47,7 @@
       <footer>Suggestions fournies par Google</footer>
     </div>
 
-    <div class="interactive-map__styles" aria-label="Style de carte">
+    <div class="interactive-map__styles" aria-label="Style de carte" *ngIf="hasGoogleMap">
       <button
         type="button"
         [class.active]="mapStyle === 'roadmap'"
@@ -84,13 +84,20 @@
     </div>
 
     <iframe
-      *ngIf="!loading && !hasGoogleMap"
+      *ngIf="!loading && !hasGoogleMap && !hasLeafletMap"
       class="interactive-map__fallback"
       title="Carte de Dakar"
       [src]="fallbackMapUrl"
       loading="lazy"
       referrerpolicy="no-referrer-when-downgrade"
     ></iframe>
+
+    <div
+      #fallbackMapContainer
+      *ngIf="!loading && !hasGoogleMap"
+      class="interactive-map__fallback-map"
+      aria-label="Carte interactive : cliquez pour choisir l'adresse"
+    ></div>
 
     <div
       #mapContainer

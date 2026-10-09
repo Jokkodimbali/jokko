@@ -3,6 +3,24 @@ import { authGuard, clientCatalogGuard, roleGuard } from './core/auth/auth.guard
 
 export const routes: Routes = [
   {
+    path: 'appels-offres',
+    canActivate: [roleGuard],
+    data: { roles: ['CLIENT', 'PRESTATAIRE'] },
+    loadComponent: () =>
+      import('./features/tenders/presentation/tenders-page.component').then(
+        (m) => m.TendersPageComponent,
+      ),
+  },
+  {
+    path: 'appels-offres/:id',
+    canActivate: [roleGuard],
+    data: { roles: ['CLIENT', 'PRESTATAIRE'] },
+    loadComponent: () =>
+      import('./features/tenders/presentation/tenders-page.component').then(
+        (m) => m.TendersPageComponent,
+      ),
+  },
+  {
     path: 'services',
     canActivate: [clientCatalogGuard],
     loadComponent: () =>

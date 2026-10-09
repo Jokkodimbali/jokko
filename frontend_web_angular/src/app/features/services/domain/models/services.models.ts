@@ -14,6 +14,7 @@ export interface ServiceSubCategory {
 }
 
 export interface CategoryStructure extends Category {
+  typeEspace: 'PRESTATAIRE' | 'MEDECIN' | 'QUINCAILLERIE' | 'PHARMACIE';
   subCategories: ServiceSubCategory[];
 }
 

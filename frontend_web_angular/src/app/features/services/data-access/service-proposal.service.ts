@@ -65,7 +65,7 @@ export type MaterialQuoteStatus = 'EN_ATTENTE' | 'VALIDE' | 'REFUSE';
 
 export interface MaterialQuoteView {
   id: string;
-  negotiationId: string;
+  negotiationId: string | null;
   reservationId: string | null;
   createdByUserId: string;
   createdBy: 'CLIENT' | 'PRESTATAIRE';
@@ -302,6 +302,17 @@ export class ServiceProposalService {
         ApiResponse<MaterialQuoteView[]>
       >(`${this.apiUrl}/negotiations/${negotiationId}/material-quotes`)
       .pipe(map((response) => unwrapApiResponse(response)));
+  }
+
+  createReservationMaterialList(
+    reservationId: string,
+    items: CreateMaterialQuotePayload[],
+  ): Observable<MaterialQuoteView[]> {
+    return this.http
+      .post<
+        ApiResponse<MaterialQuoteView[]>
+      >(`${this.apiUrl}/negotiations/reservations/${reservationId}/material-quotes`, { items })
+      .pipe(map(unwrapApiResponse));
   }
 
   listReservationMaterialQuotes(reservationId: string): Observable<MaterialQuoteView[]> {

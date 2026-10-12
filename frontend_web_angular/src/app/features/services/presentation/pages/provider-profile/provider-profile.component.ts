@@ -298,11 +298,23 @@ export class ProviderProfileComponent implements OnInit {
         .filter(Boolean),
     );
     if (modes.has('PRESTATAIRE_SE_DEPLACE') && modes.has('CLIENT_SE_DEPLACE')) {
-      return 'Deplacement flexible';
+      return 'Déplacement flexible';
     }
-    if (modes.has('CLIENT_SE_DEPLACE')) return 'Le client se deplace';
+    if (modes.has('CLIENT_SE_DEPLACE')) return 'Le client se déplace';
     if (modes.has('TRANSPORT_COLIS')) return 'Transport de colis';
-    return 'Le prestataire se deplace';
+    return 'Le prestataire se déplace';
+  });
+  protected readonly travelModeDescription = computed(() => {
+    switch (this.primaryTravelMode()) {
+      case 'CLIENT_SE_DEPLACE':
+        return 'Sur place chez le prestataire';
+      case 'TRANSPORT_COLIS':
+        return 'Collecte et livraison de colis';
+      case 'PRESTATAIRE_SE_DEPLACE':
+        return 'Intervention à domicile';
+      default:
+        return 'Selon le service choisi';
+    }
   });
   protected readonly travelModeImageUrl = computed(() => {
     const mode = this.primaryTravelMode();

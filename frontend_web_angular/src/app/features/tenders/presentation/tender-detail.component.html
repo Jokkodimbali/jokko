@@ -1,0 +1,237 @@
+<div class="two-columns tender-detail tender-detail--client" [class.tender-detail--accepted]="!!selected" *ngIf="isClient">
+  <div class="tender-detail__left">
+    <section class="panel tender-summary">
+      <div class="tender-summary__icon"><lucide-icon name="briefcase-business" size="22" /></div>
+      <div class="tender-summary__info">
+        <strong>{{ tender.job }}</strong>
+        <p class="description">{{ tender.description || 'Aucune description' }}</p>
+        <span><lucide-icon name="map-pin" size="13" /> {{ tender.address }}</span>
+        <span
+          ><lucide-icon name="calendar-days" size="13" />
+          {{
+            tender.scheduledAt
+              ? (tender.scheduledAt | date: 'dd/MM/yyyy à HH:mm')
+              : 'Dès que possible'
+          }}</span
+        >
+      </div>
+      <button
+        *ngIf="tender.status === 'OPEN'"
+        class="tender-summary__cancel"
+        type="button"
+        (click)="confirmCancel = true"
+        [disabled]="busy"
+      >
+        <lucide-icon name="x" size="17" /> Annuler la demande
+      </button>
+    </section>
+    <div *ngIf="confirmCancel" class="notice" role="alert">
+      <p>Annuler cette demande et prévenir les prestataires ?</p>
+      <div class="actions">
+        <button class="secondary" type="button" (click)="confirmCancel = false" [disabled]="busy">
+          Conserver
+        </button>
+        <button
+          class="primary"
+          type="button"
+          (click)="action.emit({ kind: 'cancel' })"
+          [disabled]="busy"
+        >
+          Confirmer l’annulation
+        </button>
+      </div>
+    </div>
+    <ng-container *ngIf="tender.status === 'OPEN' || selected">
+      <section class="panel tender-price-card">
+        <div class="tender-price-card__heading">
+          <h2>Votre offre de prix</h2>
+          <span class="negotiable">Prix négociable</span>
+        </div>
+        <p>{{ tender.job }}</p>
+        <app-tender-price-control [(amount)]="price" [disabled]="busy" [showLabel]="false" />
+        <p class="tender-price-card__assurance">Paiement sécurisé · Remboursable</p>
+      </section>
+      <button
+        *ngIf="tender.status === 'OPEN'"
+        class="tender-republish"
+        type="button"
+        [disabled]="busy || price === tender.proposedPrice"
+        (click)="action.emit({ kind: 'republish', amount: price })"
+      >
+        {{
+          price === tender.proposedPrice
+            ? 'Modifiez le prix pour relancer'
+            : 'Relancer à ' + (price | number: '1.0-0') + ' FCFA'
+        }}
+      </button>
+      <p *ngIf="tender.status === 'OPEN'" class="muted small tender-republish__note">
+        Relancer remplace les réponses précédentes et prévient à nouveau les prestataires proches.
+      </p>
+    </ng-container>
+    <a *ngIf="tender.status === 'CANCELLED'" class="secondary full" routerLink="/appels-offres"
+      >Nouvelle demande</a
+    >
+  </div>
+
+  <section class="offers tender-offers">
+    <ng-container *ngIf="tender.status === 'OPEN'">
+      <div class="tender-audience">
+        <div class="tender-audience__avatars" aria-hidden="true">
+          <ng-container *ngFor="let person of activeInvitations | slice: 0 : 4">
+            <img
+              *ngIf="asset(person.avatarUrl) as avatar; else audienceInitials"
+              [src]="avatar"
+              alt=""
+            />
+            <ng-template #audienceInitials
+              ><span>{{ initials(person.name) }}</span></ng-template
+            >
+          </ng-container>
+          <lucide-icon *ngIf="!activeInvitations.length" name="users-round" size="26" />
+        </div>
+        <div>
+          <strong
+            >{{ tender.invitedCount ?? activeInvitations.length }}
+            {{
+              (tender.invitedCount ?? activeInvitations.length) === 1
+                ? 'prestataire sollicité'
+                : 'prestataires sollicités'
+            }}</strong
+          ><small>Ils peuvent accepter votre prix ou proposer le leur.</small>
+        </div>
+        <span class="tender-audience__live"><i></i> En direct</span>
+      </div>
+      <div class="tender-offers__heading">
+        <h2>
+          Offres reçues <span>{{ offers.length }}</span>
+        </h2>
+        <p>Demande publiée à {{ tender.proposedPrice | number: '1.0-0' }} FCFA</p>
+      </div>
+      <div class="panel empty tender-offers__empty" *ngIf="!offers.length">
+        <lucide-icon name="users-round" size="32" />
+        <h3>Les offres apparaîtront ici</h3>
+        <p>
+          {{
+            tender.invitedCount
+              ? 'Les prestataires contactés peuvent répondre à votre demande.'
+              : 'Aucun prestataire correspondant à moins de 25 km pour le moment.'
+          }}
+        </p>
+      </div>
+      <article
+        class="tender-offer"
+        *ngFor="let offer of offers"
+        [class.tender-offer--base]="offer.amount === tender.proposedPrice"
+      >
+        <div class="tender-offer__status">
+          <span
+            ><lucide-icon
+              [name]="offer.amount === tender.proposedPrice ? 'check' : 'refresh-cw'"
+              size="15"
+            />{{
+              offer.amount === tender.proposedPrice ? 'Accepte votre prix' : 'Contre-offre'
+            }}</span
+          >
+          <strong>{{
+              offer.amount === tender.proposedPrice
+              ? 'sans négociation'
+              : (offer.amount ?? 0) >= tender.proposedPrice
+                ? '+' + ((offer.amount ?? 0) - tender.proposedPrice | number: '1.0-0') + ' FCFA'
+                : '−' + (tender.proposedPrice - (offer.amount ?? 0) | number: '1.0-0') + ' FCFA'
+          }}</strong>
+        </div>
+        <div class="tender-offer__content">
+          <div class="tender-offer__person">
+            <img
+              *ngIf="asset(offer.avatarUrl) as avatar; else offerInitials"
+              [src]="avatar"
+              [alt]="offer.name"
+            />
+            <ng-template #offerInitials
+              ><span class="avatar">{{ initials(offer.name) }}</span></ng-template
+            >
+            <div>
+              <a [routerLink]="['/services', offer.professionalId]">{{ offer.name }}</a
+              ><span class="tender-offer__job">{{ offer.serviceName || tender.job }}</span>
+              <p *ngIf="offer.reviewCount > 0">★ {{ offer.rating | number: '1.1-1' }}/5 ({{ offer.reviewCount }} avis)</p>
+              <small *ngIf="offer.distanceKm !== null"
+                >{{ offer.distanceKm | number: '1.1-1' }} km de l’intervention</small
+              >
+            </div>
+          </div>
+          <div class="tender-offer__price">
+            <strong>{{ offer.amount | number: '1.0-0' }}<small> FCFA</small></strong
+            ><span *ngIf="offer.amount !== tender.proposedPrice"
+              >Votre prix : {{ tender.proposedPrice | number: '1.0-0' }} FCFA</span
+            >
+          </div>
+          <p *ngIf="offer.message" class="tender-offer__message">{{ offer.message }}</p>
+          <div class="tender-offer__actions">
+            <button
+              type="button"
+              class="secondary"
+              [disabled]="busy"
+              (click)="action.emit({ kind: 'reject', responseId: offer.id })"
+            >
+              Refuser
+            </button>
+            <button
+              type="button"
+              class="primary"
+              [disabled]="busy"
+              (click)="action.emit({ kind: 'select', responseId: offer.id, amount: offer.amount! })"
+            >
+              Accepter {{ offer.amount | number: '1.0-0' }} FCFA
+            </button>
+          </div>
+        </div>
+      </article>
+    </ng-container>
+    <div *ngIf="selected as offer" class="panel accepted tender-accepted" role="status">
+      <span class="success-icon"><lucide-icon name="check" size="32" /></span>
+      <h2>{{ offer.reservationId ? 'Réservation créée' : 'Offre acceptée' }}</h2>
+      <p>
+        {{
+          offer.reservationId
+            ? 'Finalisez le paiement pour confirmer votre réservation.'
+            : 'Confirmez pour fixer le rendez-vous.'
+        }}
+      </p>
+      <div class="person tender-accepted__person">
+        <img
+          *ngIf="asset(offer.avatarUrl) as avatar; else selectedInitials"
+          [src]="avatar"
+          [alt]="offer.name"
+        />
+        <ng-template #selectedInitials
+          ><span class="avatar">{{ initials(offer.name) }}</span></ng-template
+        >
+        <div>
+          <strong>{{ offer.name }}</strong>
+          <p>{{ offer.serviceName || tender.job }}<ng-container *ngIf="offer.reviewCount > 0"> · ★ {{ offer.rating | number: '1.1-1' }}</ng-container></p>
+        </div>
+        <div class="tender-accepted__price"><small>Prix convenu</small><strong>{{ offer.amount | number: '1.0-0' }}<span> FCFA</span></strong></div>
+      </div>
+      <ng-container *ngIf="!offer.reservationId">
+        <p *ngIf="addressError" class="field-error tender-accepted__field-error" role="alert">Adresse d’intervention : {{ addressError }}</p>
+        <p *ngIf="serviceError" class="field-error tender-accepted__field-error" role="alert">Service : {{ serviceError }}</p>
+        <label *ngIf="needsAppointmentDate && showAcceptedDate" class="field tender-completion__date">Date et heure de l’intervention
+          <input type="datetime-local" required [(ngModel)]="appointmentDate" (ngModelChange)="dateError = ''" [attr.aria-invalid]="!!dateError" [disabled]="busy" />
+          <small *ngIf="dateError" class="field-error" role="alert">{{ dateError }}</small>
+        </label>
+        <p *ngIf="completionError || reservationError" class="error" role="alert">{{ completionError || reservationError }}</p>
+        <div class="tender-accepted__actions"><a class="secondary" routerLink="/appels-offres">Refaire un appel d’offre</a><button type="button" class="primary" [disabled]="busy" (click)="completeSelectedOffer(offer)">Finaliser la réservation</button></div>
+      </ng-container>
+      <a
+        *ngIf="offer.reservationId"
+        class="primary full"
+        [routerLink]="['/appointments', offer.reservationId, 'payment']"
+        >Finaliser le paiement</a
+      >
+    </div>
+    <div *ngIf="tender.status === 'CANCELLED'" class="panel empty">
+      <h2>Demande annulée</h2>
+      <p>Les prestataires ne peuvent plus répondre à cette demande.</p>
+    </div>
+  </section>
+</div>

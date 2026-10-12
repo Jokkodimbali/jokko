@@ -56,7 +56,7 @@ export class SearchRepository implements SearchRepositoryPort {
 
     const geoDistanceFragment = hasGeo
       ? Prisma.sql`
-          (
+          CASE WHEN pp.localisation IS NULL THEN NULL ELSE (
             6371.0 * acos(
               least(
                 1.0,
@@ -70,7 +70,7 @@ export class SearchRepository implements SearchRepositoryPort {
                 )
               )
             )
-          )
+          ) END
         `
       : Prisma.sql`NULL`;
 

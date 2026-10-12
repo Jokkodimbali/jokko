@@ -1,3 +1,4 @@
+import { normalizeSearchText } from '../../utils/normalize-search-text';
 import { CommonModule } from '@angular/common';
 import {
   Component,
@@ -59,6 +60,8 @@ export interface AppSearchModeOption {
 export class AppSearchBarComponent {
   private readonly hostElement = inject(ElementRef<HTMLElement>);
 
+  @Input() showLocation = true;
+  @Input() showCategoryCounts = true;
   @Input() ariaLabel = 'Recherche';
   @Input() locationTitle = 'Localisation';
   @Input() locationValue = 'Toute zone';
@@ -162,10 +165,7 @@ export class AppSearchBarComponent {
   }
 
   private normalizeSearchText(value: string): string {
-    return value
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLocaleLowerCase('fr');
+    return normalizeSearchText(value);
   }
 
   onFilterClick(): void {

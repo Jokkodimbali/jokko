@@ -9,6 +9,7 @@
   <div class="app-search-bar__main">
     <button
       type="button"
+      *ngIf="showLocation"
       class="app-search-bar__location"
       [class.app-search-bar__location--default]="isServiceVariant && locationValue === 'Filtre'"
       [attr.aria-expanded]="isServiceVariant ? showLocationMenu : null"
@@ -38,6 +39,7 @@
     ></lucide-icon>
     <input
       type="search"
+      [attr.aria-label]="ariaLabel"
       [value]="value"
       [placeholder]="placeholder"
       (input)="onInputEvent($event)"
@@ -63,7 +65,7 @@
     *ngIf="isServiceVariant"
     type="button"
     class="app-search-bar__submit"
-    aria-label="Filtrer par ville ou position"
+    aria-label="Lancer la recherche"
     (click)="onServiceSubmitClick()"
   >
     <lucide-icon name="search" size="20" [strokeWidth]="2.5"></lucide-icon>
@@ -229,7 +231,7 @@
             [strokeWidth]="2.1"
           ></lucide-icon>
           {{ category.name }}
-          <small>{{ category.count }}</small>
+          <small *ngIf="showCategoryCounts">{{ category.count }}</small>
         </button>
       </div>
     </section>

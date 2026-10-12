@@ -18,6 +18,7 @@ import {
 export class MaterialOrderEntryComponent implements OnChanges {
   @Input({ required: true }) reservationId = '';
   @Input() returnUrl = '';
+  @Input() refreshVersion = 0;
 
   private readonly orders = inject(MaterialOrdersService);
   protected readonly eligibility = signal<MaterialOrderEligibility | null>(null);

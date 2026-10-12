@@ -1,3 +1,4 @@
+import { AuthSessionService } from '../../../core/auth/auth-session.service';
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { map, Observable, switchMap } from 'rxjs';
@@ -113,6 +114,7 @@ export interface MedicalProfileView {
   providedIn: 'root',
 })
 export class AuthService {
+  private readonly authSession = inject(AuthSessionService);
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiUrl}/auth`;
   private readonly usersApiUrl = `${environment.apiUrl}/users`;
@@ -442,6 +444,7 @@ export class AuthService {
   }
 
   logout(data: RefreshTokenRequestDto = {}): Observable<void> {
+    this.authSession.notifySessionEnding();
     return this.http
       .post<ApiResponse<null>>(`${this.apiUrl}/logout`, data, {
         withCredentials: true,

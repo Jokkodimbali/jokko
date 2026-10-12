@@ -1,7 +1,7 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
-import { Pool, type PoolConfig } from 'pg';
+import { type PoolConfig } from 'pg';
 import { appMessage } from '../core/http/app-http.exception';
 
 function normalizeDatabaseUrl(connectionString: string): string {
@@ -22,7 +22,10 @@ function normalizeDatabaseUrl(connectionString: string): string {
 }
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleDestroy {
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
   // Les modeles sont herites de PrismaClient.
 
   constructor() {
@@ -39,16 +42,27 @@ export class PrismaService extends PrismaClient implements OnModuleDestroy {
       allowExitOnIdle: true,
     };
 
-    const adapter = new PrismaPg(new Pool(poolConfig));
+    // Let the adapter own the pool so $disconnect also closes its connections.
+    const adapter = new PrismaPg(poolConfig);
 
-    super({ adapter });
+    super({ adapter, errorFormat: 'minimal' });
+  }
+
+  async onModuleInit(): Promise<void> {
+    try {
+      // With the pg adapter, $connect alone does not execute a database query.
+      // Verify connectivity before Nest starts accepting requests.
+      await this.$queryRaw`SELECT 1`;
+    } catch (cause) {
+      await this.$disconnect();
+      throw new Error(
+        'Connexion PostgreSQL impossible au demarrage. Verifiez DATABASE_URL, la disponibilite de la base et votre connexion reseau.',
+        { cause },
+      );
+    }
   }
 
   onModuleDestroy(): Promise<void> {
-    return this.disconnectClient();
-  }
-
-  private async disconnectClient(): Promise<void> {
-    await super.$disconnect();
+    return this.$disconnect();
   }
 }

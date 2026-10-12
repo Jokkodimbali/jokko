@@ -1,0 +1,140 @@
+:host {
+  display: block;
+  width: 100%;
+}
+.materials {
+  margin: 20px auto;
+  padding: 24px;
+  max-width: 1200px;
+  border: 1px solid #e6ded4;
+  border-radius: 18px;
+  background: #fff;
+  color: #26362e;
+}
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+h2 {
+  margin: 0;
+  font-size: 20px;
+}
+p {
+  color: #627069;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.notice {
+  padding: 12px;
+  background: #f5f8f3;
+  border-radius: 10px;
+}
+button {
+  border: 0;
+  border-radius: 10px;
+  background: #356644;
+  color: white;
+  padding: 11px 16px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid #356644;
+  outline-offset: 3px;
+}
+.secondary {
+  background: #f0f3ef;
+  color: #356644;
+}
+ul {
+  padding: 0;
+  list-style: none;
+}
+li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid #edf0eb;
+}
+li span {
+  overflow-wrap: anywhere;
+}
+li strong {
+  white-space: nowrap;
+}
+fieldset {
+  padding: 0;
+  margin-top: 20px;
+  border: 0;
+  min-width: 0;
+}
+legend {
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 100px 44px;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 14px;
+}
+label {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+}
+input {
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  border: 1px solid #cbd6ce;
+  border-radius: 9px;
+  padding: 11px;
+  font: inherit;
+}
+.remove {
+  background: #fff0ed;
+  color: #a63e30;
+  font-size: 18px;
+}
+footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+.success {
+  color: #356644;
+}
+.error {
+  color: #a63e30;
+}
+@media (max-width: 520px) {
+  .materials {
+    padding: 16px;
+    margin: 12px 0;
+  }
+  .article {
+    grid-template-columns: minmax(0, 1fr) 72px 36px;
+    gap: 7px;
+  }
+  .remove {
+    padding-inline: 8px;
+  }
+  footer button {
+    width: 100%;
+  }
+}

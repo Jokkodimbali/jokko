@@ -1,4 +1,5 @@
 import { Injectable, PLATFORM_ID, inject, signal } from '@angular/core';
+import { Subject } from 'rxjs';
 import { isPlatformBrowser } from '@angular/common';
 import {
   AuthResponseDto,
@@ -23,6 +24,13 @@ export class AuthSessionService {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly currentUserSignal = signal<UserDto | null>(this.readStoredUser());
   private readonly authVersionSignal = signal(0);
+
+  private readonly sessionEnding = new Subject<void>();
+  readonly sessionEnding$ = this.sessionEnding.asObservable();
+
+  notifySessionEnding(): void {
+    this.sessionEnding.next();
+  }
 
   readonly currentUser = this.currentUserSignal.asReadonly();
   readonly authVersion = this.authVersionSignal.asReadonly();
@@ -129,6 +137,7 @@ export class AuthSessionService {
   }
 
   clear(): void {
+    this.notifySessionEnding();
     if (!this.canUseStorage()) {
       return;
     }

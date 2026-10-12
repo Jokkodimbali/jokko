@@ -7,6 +7,12 @@
   </section>
 
   <ng-container *ngIf="!isLoading() && !errorMessage() && appointment() as appointment">
+    <app-reservation-material-list
+      *ngIf="isProviderViewer() || isClientViewer()"
+      [reservationId]="appointment.id"
+      [status]="appointment.status"
+      [isProvider]="isProviderViewer()"
+    />
     <ng-template
       #appointmentDetailPanel
       let-appointment
@@ -1655,11 +1661,7 @@
           [returnUrl]="'/appointments/' + appointment.id"
         ></app-pharmacy-order-entry>
 
-        <app-material-order-entry
-          *ngIf="isClientViewer()"
-          [reservationId]="appointment.id"
-          [returnUrl]="'/appointments/' + appointment.id"
-        ></app-material-order-entry>
+
 
         <div
           *ngIf="isClientViewer() && isParcelDeliveryFlow() && isParcelPickupValidated() && !isParcelDropoffValidated()"

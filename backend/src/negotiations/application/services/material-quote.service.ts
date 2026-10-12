@@ -79,6 +79,58 @@ export class MaterialQuoteService {
     return quotes.map((quote) => this.toView(quote));
   }
 
+  async createForReservation(
+    requestUser: AuthUser,
+    reservationId: string,
+    items: CreateMaterialQuoteInput[],
+  ) {
+    const reservation = await this.prisma.reservation.findUnique({
+      where: { id: reservationId },
+      select: {
+        clientId: true,
+        statut: true,
+        professionnel: { select: { utilisateurId: true } },
+      },
+    });
+    if (!reservation) throw appHttpException('RESERVATIONS_NOT_FOUND');
+    if (reservation.professionnel.utilisateurId !== requestUser.sub) {
+      throw appHttpException('NEGOTIATIONS_UNAUTHORIZED');
+    }
+    if (
+      reservation.statut !== 'CONFIRMEE' &&
+      reservation.statut !== 'PAYEE_SEQUESTRE'
+    ) {
+      throw new BadRequestException(
+        'Le matériel peut être ajouté à une réservation confirmée ou payée, avant le début de la prestation.',
+      );
+    }
+    const quotes = await this.prisma.$transaction(
+      items.map((item) =>
+        this.prisma.devisMaterielNegotiation.create({
+          data: {
+            reservationId,
+            creeParId: requestUser.sub,
+            creePar: RoleNegociateur.PRESTATAIRE,
+            designation: item.designation.trim(),
+            prixUnitaire: Math.trunc(item.unitPrice),
+            quantite: item.quantity,
+            statut: StatutDevisMateriel.VALIDE,
+            validePrestataireLe: new Date(),
+          },
+          select: MATERIAL_QUOTE_SELECT,
+        }),
+      ),
+    );
+    await this.notificationsService.createInAppNotification({
+      userId: reservation.clientId,
+      type: TypeNotification.AJUSTEMENT_PRIX_PROPOSE,
+      title: 'Matériel à acheter pour votre réservation',
+      body: `Votre prestataire a ajouté ${quotes.length} article(s). Consultez la liste du matériel à acheter dans votre réservation.`,
+      data: { reservationId, materialList: true },
+    });
+    return quotes.map((quote) => this.toView(quote));
+  }
+
   async createForNegotiation(
     requestUser: AuthUser,
     negotiationId: string,

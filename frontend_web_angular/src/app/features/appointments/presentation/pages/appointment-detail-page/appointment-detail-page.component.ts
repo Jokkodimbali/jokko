@@ -1,3 +1,4 @@
+import { ReservationMaterialListComponent } from '../../../../material-orders/presentation/components/reservation-material-list/reservation-material-list.component';
 import { InvoiceDocumentService } from '../../../../../shared/documents/invoice-document.service';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -47,7 +48,6 @@ import { MessagesService } from '../../../../messages/data-access/messages.servi
 import { MessagesRealtimeService } from '../../../../messages/data-access/messages-realtime.service';
 import { ConversationMessage } from '../../../../messages/domain/models/messages.models';
 import { MaterialOrdersService } from '../../../../material-orders/data-access/material-orders.service';
-import { MaterialOrderEntryComponent } from '../../../../material-orders/presentation/components/material-order-entry/material-order-entry.component';
 import { PharmacyOrderEntryComponent } from '../../../../pharmacy-orders/presentation/components/pharmacy-order-entry/pharmacy-order-entry.component';
 import { PharmacyOrdersService } from '../../../../pharmacy-orders/data-access/pharmacy-orders.service';
 import { OrderCompletionDocumentService } from '../../../../../shared/documents/order-completion-document.service';
@@ -181,7 +181,7 @@ const LIVE_TRACKING_STATUSES: ReadonlySet<AppointmentStatus> = new Set([
     AppPresenceDotComponent,
     AppointmentTrackingStepperComponent,
     CallMediaTrackDirective,
-    MaterialOrderEntryComponent,
+    ReservationMaterialListComponent,
     PharmacyOrderEntryComponent,
   ],
   templateUrl: './appointment-detail-page.component.html',

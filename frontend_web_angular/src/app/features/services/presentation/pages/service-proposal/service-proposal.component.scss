@@ -1691,114 +1691,6 @@
   gap: 10px;
   padding: 10px 0 2px;
 }
-.service-proposal__materials-form {
-  background: #fff;
-  border: 1px solid #e3e7ed;
-  border-radius: 16px;
-  display: grid;
-  gap: 16px;
-  padding: 20px;
-}
-.service-proposal__materials-form header {
-  align-items: center;
-  border-bottom: 1px solid #edf0f4;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, 1fr) auto;
-  padding-bottom: 12px;
-}
-.service-proposal__materials-form h3 {
-  color: #07111f;
-  font-size: 13px;
-  font-weight: 950;
-  margin: 0;
-}
-.service-proposal__materials-form label {
-  display: grid;
-  gap: 7px;
-}
-.service-proposal__materials-form label > span {
-  color: #98a2b3;
-  font-size: 11px;
-  font-weight: 950;
-  text-transform: uppercase;
-}
-.service-proposal__materials-form input {
-  background: #fff;
-  border: 1px solid #dfe3ea;
-  border-radius: 10px;
-  color: #07111f;
-  font: inherit;
-  font-size: 14px;
-  min-height: 44px;
-  padding: 0 14px;
-  width: 100%;
-}
-.service-proposal__materials-form input:focus {
-  border-color: #9bbd8d;
-  box-shadow: 0 0 0 3px rgb(79 136 58 / 12%);
-  outline: none;
-}
-.service-proposal__materials-form-grid {
-  align-items: end;
-  display: grid;
-  gap: 10px;
-  grid-template-columns: minmax(0, 1fr) 112px;
-}
-.service-proposal__materials-quantity-field {
-  min-width: 0;
-}
-.service-proposal__materials-quantity {
-  background: #fff;
-  border: 1px solid #dfe3ea;
-  border-radius: 10px;
-  display: grid;
-  grid-template-columns: 32px 40px 32px;
-  min-height: 36px;
-  overflow: hidden;
-  width: 104px;
-}
-.service-proposal__materials-quantity button {
-  background: #fff;
-  border: 0;
-  color: #050505;
-  cursor: pointer;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 950;
-  padding: 0;
-}
-.service-proposal__materials-quantity strong {
-  align-items: center;
-  background: #fbfbfa;
-  border-inline: 1px solid #eef1f5;
-  display: flex;
-  font-size: 12px;
-  justify-content: center;
-}
-.service-proposal__materials-form footer {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-}
-.service-proposal__materials-form footer button {
-  border: 0;
-  border-radius: 9px;
-  cursor: pointer;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 950;
-  min-height: 36px;
-  padding: 0 18px;
-}
-.service-proposal__materials-cancel {
-  background: #fff1f3;
-  color: #ef233c;
-}
-.service-proposal__materials-validate {
-  background: #050505;
-  color: #fff;
-}
 .service-proposal__materials-entry {
   align-items: center;
   background: #fff;
@@ -1985,15 +1877,6 @@
 
   .service-proposal__materials-body {
     padding: 10px 0 2px;
-  }
-  .service-proposal__materials-form {
-    padding: 14px;
-  }
-  .service-proposal__materials-form header {
-    grid-template-columns: 1fr;
-  }
-  .service-proposal__materials-form footer button {
-    flex: 1;
   }
   .service-proposal__materials-entry {
     grid-template-columns: 32px minmax(0, 1fr) 28px;

@@ -7,12 +7,6 @@
   </section>
 
   <ng-container *ngIf="!isLoading() && !errorMessage() && appointment() as appointment">
-    <app-reservation-material-list
-      *ngIf="isProviderViewer() || isClientViewer()"
-      [reservationId]="appointment.id"
-      [status]="appointment.status"
-      [isProvider]="isProviderViewer()"
-    />
     <ng-template
       #appointmentDetailPanel
       let-appointment
@@ -1629,6 +1623,12 @@
           </button>
         </div>
 
+        <app-reservation-material-list
+          [reservationId]="appointment.id"
+          [status]="appointment.status"
+          [isProvider]="false"
+        />
+
         <button
           *ngIf="canReviewAppointment(appointment)"
           type="button"
@@ -1731,6 +1731,14 @@
               SMS
             </button>
           </div>
+
+          <app-reservation-material-list
+            class="appointment-detail__summary-materials"
+            [reservationId]="appointment.id"
+            [status]="appointment.status"
+            [isProvider]="true"
+            [compact]="true"
+          />
 
           <button
             *ngIf="isProviderOnTheWay() || isAppointmentCompleted()"

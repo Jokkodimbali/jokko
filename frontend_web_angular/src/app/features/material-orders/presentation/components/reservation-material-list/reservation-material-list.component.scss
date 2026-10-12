@@ -11,6 +11,22 @@
   background: #fff;
   color: #26362e;
 }
+:host(.appointment-detail__summary-materials) .materials {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+}
+:host(.appointment-detail__summary-materials) header button {
+  width: 100%;
+}
+:host(.appointment-detail__summary-materials) header {
+  display: grid;
+}
+:host(.appointment-detail__summary-materials) app-material-quote-form {
+  margin-top: 16px;
+}
 header {
   display: flex;
   align-items: center;

@@ -1,0 +1,24 @@
+<form class="material-quote-form" (ngSubmit)="submitted.emit()">
+  <header>
+    <h3>DEVIS MATÉRIEL</h3>
+    <span *ngIf="roleLabel">{{ roleLabel }}</span>
+  </header>
+  <div class="material-quote-form__fields">
+    <label>
+      <span>NOM DU MATÉRIEL</span>
+      <input type="text" name="materialDesignation" [ngModel]="designation" (ngModelChange)="designationChange.emit($event)" maxlength="180" placeholder="Ex. : Inox flexible" [disabled]="busy" />
+    </label>
+    <label>
+      <span>QUANTITÉ</span>
+      <span class="material-quote-form__quantity">
+        <button type="button" (click)="changeQuantity(-1)" [disabled]="busy || quantity <= 1" aria-label="Diminuer la quantité">−</button>
+        <strong>{{ quantity }}</strong>
+        <button type="button" (click)="changeQuantity(1)" [disabled]="busy || quantity >= 1000" aria-label="Augmenter la quantité">+</button>
+      </span>
+    </label>
+  </div>
+  <footer>
+    <button type="button" class="material-quote-form__cancel" (click)="cancelled.emit()" [disabled]="busy">Annuler</button>
+    <button type="submit" class="material-quote-form__submit" [disabled]="busy">{{ submitLabel }}</button>
+  </footer>
+</form>

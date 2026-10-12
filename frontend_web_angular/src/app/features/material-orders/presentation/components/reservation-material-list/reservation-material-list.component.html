@@ -4,7 +4,7 @@
   aria-label="Matériel à acheter"
 >
   <header>
-    <div>
+    <div *ngIf="!compact || editing || items().length">
       <h2>Matériel à acheter</h2>
       <p>
         {{
@@ -18,11 +18,11 @@
       Ajouter du matériel
     </button>
   </header>
-  <p class="notice">
+  <p class="notice" *ngIf="!compact || editing">
     Le matériel est acheté séparément. Le montant de la réservation reste inchangé.
   </p>
   <p *ngIf="loading()" role="status">Chargement du matériel…</p>
-  <p *ngIf="!loading() && !items().length && !editing && !error()">
+  <p *ngIf="!compact && !loading() && !items().length && !editing && !error()">
     Aucun matériel ajouté pour le moment.
   </p>
   <ul *ngIf="items().length">
@@ -31,47 +31,16 @@
       ><strong>× {{ item.quantity }}</strong>
     </li>
   </ul>
-  <form *ngIf="editing && canAdd" (ngSubmit)="save()">
-    <fieldset [disabled]="saving()">
-      <legend>Articles à envoyer au client</legend>
-      <div class="article" *ngFor="let row of rows; let i = index">
-        <label
-          >Article<input
-            [(ngModel)]="row.designation"
-            [name]="'designation-' + i"
-            maxlength="180"
-            required
-            placeholder="Ex. : tuyau PVC de 32 mm"
-        /></label>
-        <label
-          >Quantité<input
-            type="number"
-            [(ngModel)]="row.quantity"
-            [name]="'quantity-' + i"
-            min="1"
-            max="1000"
-            step="1"
-            required
-        /></label>
-        <button
-          class="remove"
-          type="button"
-          (click)="removeRow(i)"
-          [disabled]="rows.length === 1"
-          [attr.aria-label]="'Supprimer l’article ' + (i + 1)"
-        >
-          ×
-        </button>
-      </div>
-      <button class="secondary" type="button" (click)="addRow()" [disabled]="rows.length >= 50">
-        + Ajouter un article
-      </button>
-      <footer>
-        <button class="secondary" type="button" (click)="editing = false">Annuler</button
-        ><button type="submit">{{ saving() ? 'Envoi…' : 'Envoyer et notifier le client' }}</button>
-      </footer>
-    </fieldset>
-  </form>
+  <app-material-quote-form
+    *ngIf="editing && canAdd"
+    [(designation)]="rows[0].designation"
+    [(quantity)]="rows[0].quantity"
+    roleLabel="PRESTATAIRE"
+    [busy]="saving()"
+    submitLabel="Envoyer et notifier le client"
+    (submitted)="save()"
+    (cancelled)="editing = false"
+  />
   <p *ngIf="success()" role="status" class="success">{{ success() }}</p>
   <div *ngIf="error()" role="alert" class="error">
     {{ error() }} <button type="button" class="secondary" (click)="load()">Actualiser</button>

@@ -42,6 +42,7 @@ import { FormsModule } from '@angular/forms';
         max="2000"
         step="100"
         [(ngModel)]="step"
+        [style.--progress]="((step - 100) / 1900 * 100) + '%'"
         [disabled]="disabled"
       /><span>{{ step | number: '1.0-0' }} FCFA</span></label
     >
@@ -126,11 +127,37 @@ import { FormsModule } from '@angular/forms';
         letter-spacing: 0;
       }
       .compact .price-input { margin: 3px 0 13px; }
-      .compact .price-input input { max-width: 166px; font-size: 43px; line-height: 1.1; }
+      .compact .price-input input { width: auto; min-width: 4ch; max-width: min(11ch, 100%); field-sizing: content; font-size: 43px; line-height: 1.1; }
       .compact .adjust { gap: 10px; }
       .compact .adjust button { padding: 13px 8px; border-radius: 14px; }
       .compact .step { display: flex; gap: 10px; margin-top: 13px; }
-      .compact .step input { flex: 1; min-width: 30px; width: auto; }
+      .compact .step input {
+        flex: 1;
+        min-width: 30px;
+        width: auto;
+        height: 4px;
+        appearance: none;
+        border-radius: 999px;
+        background: linear-gradient(to right, #18191f var(--progress), #e2e2e2 var(--progress));
+        cursor: pointer;
+      }
+      .compact .step input::-webkit-slider-thumb {
+        width: 29px;
+        height: 19px;
+        appearance: none;
+        border: 3px solid white;
+        border-radius: 999px;
+        background: #18191f;
+        box-shadow: 0 1px 5px #0004;
+      }
+      .compact .step input::-moz-range-thumb {
+        width: 23px;
+        height: 13px;
+        border: 3px solid white;
+        border-radius: 999px;
+        background: #18191f;
+        box-shadow: 0 1px 5px #0004;
+      }
       .compact .step span { padding: 6px 12px; }
       button:disabled {
         opacity: 0.5;

@@ -12,6 +12,7 @@ export interface TenderResponse {
   offeredAt: string | null;
   serviceId: string | null;
   serviceName: string | null;
+  serviceDurationMinutes?: number | null;
   negotiationId: string | null;
   reservationId: string | null;
   services: { id: string; name: string }[];
@@ -39,13 +40,13 @@ export interface Tender {
 export interface CreateTender {
   categoryId: string;
   subCategoryId?: string;
-  description: string;
+  description?: string;
   address: string;
   latitude: number;
   longitude: number;
   radiusKm: number;
   proposedPrice: number;
-  scheduledAt?: string;
+  scheduledAt: string;
 }
 export interface TenderList {
   items: Tender[];

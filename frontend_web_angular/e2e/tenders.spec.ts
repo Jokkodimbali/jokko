@@ -35,6 +35,7 @@ function fixture(): Tender {
         offeredAt: '2026-10-08T10:01:00Z',
         serviceId: 'service',
         serviceName: 'Réparation plomberie',
+        serviceDurationMinutes: 60,
         negotiationId: null,
         reservationId: null,
         services: [{ id: 'service', name: 'Réparation plomberie' }],
@@ -193,9 +194,36 @@ test('client searches the catalogue and publishes', async ({ page }) => {
     fullPage: true,
   });
   await page.getByRole('button', { name: 'Publier ma demande', exact: true }).click();
+  await expect(page.getByText('Choisissez une date.', { exact: true })).toBeVisible();
+  await expect(page.getByText('Choisissez une heure.', { exact: true })).toBeVisible();
+  const publishDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  await page.getByLabel('Date souhaitée').fill(publishDate.toISOString().slice(0, 10));
+  await page.getByLabel('Heure souhaitée').fill('10:00');
+  await page.getByRole('button', { name: 'Publier ma demande', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Offres reçues' })).toBeVisible();
   expect(state.tender?.description).toBe('Réparer une fuite sous le lavabo.');
   expect(errors).toEqual([]);
+});
+test('client sees errors by each required field and may omit the description', async ({ page }) => {
+  const state: { tender: Tender | null } = { tender: null };
+  await setup(page, 'CLIENT', state);
+  await page.goto('/appels-offres');
+  await page.getByRole('button', { name: 'Publier ma demande', exact: true }).click();
+  await expect(page.getByText('Sélectionnez un métier dans les résultats de recherche.')).toBeVisible();
+  await expect(page.getByText('Choisissez une adresse sur la carte (180 caractères maximum).')).toBeVisible();
+  await expect(page.getByText('Choisissez une date.')).toBeVisible();
+  await expect(page.getByText('Choisissez une heure.')).toBeVisible();
+  expect(state.tender).toBeNull();
+  await page.getByRole('searchbox', { name: 'Rechercher un métier' }).fill('plomb');
+  await page.getByRole('button', { name: 'Plomberie', exact: true }).click();
+  await page.getByRole('searchbox', { name: 'Rechercher une adresse' }).fill('Mermoz');
+  await page.getByRole('button', { name: "Rechercher l'adresse", exact: true }).click();
+  const publishDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  await page.getByLabel('Date souhaitée').fill(publishDate.toISOString().slice(0, 10));
+  await page.getByLabel('Heure souhaitée').fill('10:00');
+  await page.getByRole('button', { name: 'Publier ma demande', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Offres reçues' })).toBeVisible();
+  expect(state.tender?.description).toBe('');
 });
 test('medical jobs are excluded from the tender catalogue', async ({ page }) => {
   await setup(page, 'CLIENT', { tender: null });
@@ -230,6 +258,9 @@ test('doctor accounts cannot open tender pages', async ({ page }) => {
 test('client accepts a counter-offer and continues to reservation', async ({ page }) => {
   const state = { tender: fixture() };
   const errors = await setup(page, 'CLIENT', state);
+  await page.route('**/api/v1/reservations/from-negotiation', (route) =>
+    route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data: { id: 'reservation' } }) }),
+  );
   await page.goto(`/appels-offres/${state.tender.id}`);
   await expect(page.locator('app-navbar')).toBeVisible();
   await expect(page.getByText('Awa Ndiaye', { exact: true })).toBeVisible();
@@ -239,12 +270,85 @@ test('client accepts a counter-offer and continues to reservation', async ({ pag
     fullPage: true,
   });
   await page.getByRole('button', { name: /Accepter 12/ }).click();
-  await expect(page.getByRole('link', { name: 'Finaliser la réservation' })).toHaveAttribute(
-    'href',
-    /\/services\/professional\/proposition\?negotiationId=negotiation/,
-  );
-  await expect(page.getByRole('heading', { name: 'Offre acceptée', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Offre acceptée' })).toBeVisible();
+  expect(state.tender.status).toBe('SELECTED');
+  await page.getByRole('button', { name: 'Finaliser la réservation' }).click();
+  await expect(page.getByText('Choisissez une date et une heure futures.', { exact: true })).toBeVisible();
+  const date = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16);
+  await page.getByLabel('Date et heure de l’intervention').first().fill(date);
+  await page.getByRole('button', { name: 'Finaliser la réservation' }).click();
+  await expect(page).toHaveURL(/\/appointments\/reservation\/payment/);
   expect(errors).toEqual([]);
+});
+test('a dated accepted offer opens the existing payment page', async ({ page }) => {
+  const state = { tender: fixture() };
+  const scheduledAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  state.tender.scheduledAt = scheduledAt;
+  await setup(page, 'CLIENT', state);
+  let reservationPayload: Record<string, unknown> | null = null;
+  await page.route('**/api/v1/reservations/from-negotiation', async (route) => {
+    reservationPayload = route.request().postDataJSON();
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data: { id: 'reservation' } }) });
+  });
+  await page.goto(`/appels-offres/${state.tender.id}`);
+  await page.getByRole('button', { name: /Accepter 12/ }).click();
+  await expect(page.getByRole('heading', { name: 'Offre acceptée' })).toBeVisible();
+  await page.getByRole('button', { name: 'Finaliser la réservation' }).click();
+  await expect(page).toHaveURL(/\/appointments\/reservation\/payment/);
+  expect(reservationPayload).toMatchObject({ negotiationId: 'negotiation', dateHeure: scheduledAt, dureeMinutes: 60, adresseClient: state.tender.address });
+});
+test('a chosen date is retained and a missing service duration uses the standard duration', async ({ page }) => {
+  const state = { tender: fixture() };
+  const scheduledAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  state.tender.scheduledAt = scheduledAt;
+  state.tender.responses[0].serviceDurationMinutes = null;
+  await setup(page, 'CLIENT', state);
+  let reservationPayload: Record<string, unknown> | null = null;
+  await page.route('**/api/v1/reservations/from-negotiation', async (route) => {
+    reservationPayload = route.request().postDataJSON();
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data: { id: 'reservation' } }) });
+  });
+  await page.goto(`/appels-offres/${state.tender.id}`);
+  await page.getByRole('button', { name: /Accepter 12/ }).click();
+  await expect(page.getByLabel('Durée estimée de l’intervention (minutes)')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Finaliser la réservation' }).click();
+  await expect(page).toHaveURL(/\/appointments\/reservation\/payment/);
+  expect(reservationPayload).toMatchObject({ dateHeure: scheduledAt, dureeMinutes: 60 });
+});
+test('client can finish booking after a temporary reservation error', async ({ page }) => {
+  const state = { tender: fixture() };
+  state.tender.scheduledAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  await setup(page, 'CLIENT', state);
+  let attempts = 0;
+  await page.route('**/api/v1/reservations/from-negotiation', async (route) => {
+    attempts++;
+    await route.fulfill({
+      status: attempts === 1 ? 503 : 200,
+      contentType: 'application/json',
+      body: JSON.stringify(attempts === 1
+        ? { success: false, message: 'Service indisponible' }
+        : { success: true, data: { id: 'reservation' } }),
+    });
+  });
+  await page.goto(`/appels-offres/${state.tender.id}`);
+  await page.getByRole('button', { name: /Accepter 12/ }).click();
+  await expect(page.getByRole('heading', { name: 'Offre acceptée' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Finaliser la réservation' })).toBeVisible();
+  await page.getByRole('button', { name: 'Finaliser la réservation' }).click();
+  await expect(page.getByRole('alert')).toContainText('Service indisponible');
+  await page.getByRole('button', { name: 'Finaliser la réservation' }).click();
+  await expect(page).toHaveURL(/\/appointments\/reservation\/payment/);
+  expect(attempts).toBe(2);
+});
+test('a refused client offer disappears while the request stays open', async ({ page }) => {
+  const state = { tender: fixture() };
+  await setup(page, 'CLIENT', state);
+  await page.goto(`/appels-offres/${state.tender.id}`);
+  await expect(page.locator('.tender-offer')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Refuser' }).click();
+  await expect(page.locator('.tender-offer')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Les offres apparaîtront ici' })).toBeVisible();
+  expect(state.tender.status).toBe('OPEN');
 });
 test('client sees accepted price and counter-offers from the returned responses', async ({
   page,
@@ -323,7 +427,9 @@ test('provider sends a counter-offer', async ({ page }) => {
   const errors = await setup(page, 'PRESTATAIRE', state);
   await page.goto('/appels-offres');
   await expect(page.getByRole('heading', { name: 'Demandes à proximité' })).toBeVisible();
-  await page.getByRole('link', { name: /Mamadou Dia/ }).click();
+  await expect(page.locator('.provider-request')).toHaveCount(1);
+  await expect(page.locator('.provider-request a[href*="/appels-offres/"]')).toHaveCount(0);
+  await expect(page.getByText('Service proposé')).toHaveCount(0);
   await page.getByRole('button', { name: 'Contre-offre', exact: true }).click();
   await page.getByLabel('Montant en FCFA', { exact: true }).fill('12500');
   await noOverflow(page);
@@ -333,6 +439,8 @@ test('provider sends a counter-offer', async ({ page }) => {
   });
   await page.getByRole('button', { name: /Envoyer 12/ }).click();
   await expect(page.getByText('En attente du client', { exact: true })).toBeVisible();
+  await expect(page.locator('.provider-request')).toContainText('12 500 FCFA');
+  await expect(page.getByRole('link', { name: 'Consulter le suivi' })).toHaveCount(0);
   expect(state.tender.responses[0].amount).toBe(12500);
   expect(errors).toEqual([]);
 });
@@ -367,14 +475,33 @@ test('provider counter-offer opens inside the request card with a live price dif
   tender.proposedPrice = 8000;
   tender.responses[0].status = 'INVITED';
   tender.responses[0].amount = null;
+  tender.responses[0].services = [
+    { id: 'unrelated-service', name: 'Débouchage' },
+    { id: 'service', name: 'Plomberie' },
+  ];
   await setup(page, 'PRESTATAIRE', { tender });
   await page.goto('/appels-offres');
   await page.getByRole('button', { name: 'Contre-offre', exact: true }).click();
   const card = page.locator('.provider-request');
   await expect(card.getByText('Votre contre-offre', { exact: true })).toBeVisible();
   await expect(card.getByText('+1 000 FCFA vs client')).toBeVisible();
-  await expect(card.getByRole('textbox', { name: 'Montant en FCFA' })).toHaveValue('9 000');
+  await expect(card.getByRole('textbox', { name: 'Montant en FCFA' })).toHaveValue(/9\s000/);
+  await expect(card.getByRole('button', { name: 'Contre-offre', exact: true })).toHaveCount(0);
   await expect(card.getByRole('button', { name: 'Envoyer 9 000 FCFA' })).toBeVisible();
+  await expect(card.getByText('Service proposé')).toHaveCount(0);
   await noOverflow(page);
   await page.screenshot({ path: `/tmp/jokko-provider-counter-${test.info().project.name}.png`, fullPage: true });
+  const request = page.waitForRequest((sent) => sent.url().endsWith('/respond') && sent.method() === 'POST');
+  await card.getByRole('button', { name: 'Envoyer 9 000 FCFA' }).click();
+  expect((await request).postDataJSON()).toMatchObject({ serviceId: 'service', amount: 9000 });
+});
+test('provider deep links return to the cards instead of a tender detail page', async ({ page }) => {
+  const tender = fixture();
+  tender.responses[0].status = 'INVITED';
+  tender.responses[0].amount = null;
+  await setup(page, 'PRESTATAIRE', { tender });
+  await page.goto(`/appels-offres/${tender.id}`);
+  await expect(page).toHaveURL(/\/appels-offres$/);
+  await expect(page.locator('.provider-request')).toHaveCount(1);
+  await expect(page.getByText('Service proposé')).toHaveCount(0);
 });

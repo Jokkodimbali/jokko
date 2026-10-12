@@ -34,7 +34,7 @@ const include = {
           utilisateur: { select: { nom: true, urlAvatar: true } },
           services: {
             where: { estDisponible: true },
-            select: { id: true, nom: true },
+            select: { id: true, nom: true, dureeMinutes: true },
           },
         },
       },
@@ -57,7 +57,7 @@ export class TendersService {
     const recipients = await this.matching.findRecipients(user.sub, {
       ...input,
       radiusKm: 25,
-    } as CreateTenderDto);
+    });
     return {
       count: recipients.length,
       avatars: recipients.slice(0, 4).map((person) => ({
@@ -108,6 +108,7 @@ export class TendersService {
     const tender = await this.prisma.tender.create({
       data: {
         ...input,
+        description: input.description ?? '',
         scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : null,
         clientId: user.sub,
         responses: {
@@ -136,7 +137,11 @@ export class TendersService {
             clientId: user.sub,
             status: { not: 'CANCELLED' },
             ...(answeredOnly
-              ? { responses: { some: { status: { in: ['OFFERED', 'SELECTED'] } } } }
+              ? {
+                  responses: {
+                    some: { status: { in: ['OFFERED', 'SELECTED'] } },
+                  },
+                }
               : {}),
           }
         : {
@@ -266,7 +271,10 @@ export class TendersService {
         invitation.professionalId,
       );
       const result = await tx.tenderResponse.updateMany({
-        where: { id: invitation.id, status: { in: ['INVITED', 'OFFERED', 'REJECTED'] } },
+        where: {
+          id: invitation.id,
+          status: { in: ['INVITED', 'OFFERED', 'REJECTED'] },
+        },
         data: {
           serviceId: input.serviceId,
           amount: input.amount,
@@ -514,6 +522,10 @@ export class TendersService {
           response.professional.services.find(
             (service) => service.id === response.serviceId,
           )?.nom ?? null,
+        serviceDurationMinutes:
+          response.professional.services.find(
+            (service) => service.id === response.serviceId,
+          )?.dureeMinutes ?? null,
         negotiationId: response.negotiationId,
         reservationId: response.negotiation?.reservationId ?? null,
         services: !isClient

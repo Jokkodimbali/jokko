@@ -9,6 +9,7 @@
   gap: 18px;
   min-width: 0;
 }
+.tender-offers { gap: 11px; }
 .tender-summary {
   display: flex;
   align-items: center;
@@ -232,7 +233,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 43px;
+  min-height: 44px;
   padding: 8px 16px;
   background: #f3e6d5;
   color: #83501f;
@@ -369,6 +370,66 @@
 .tender-offer__actions .primary:hover:not(:disabled) {
   background: #70411f;
 }
+.tender-detail--accepted .tender-price-card {
+  filter: blur(4px);
+  opacity: .65;
+  pointer-events: none;
+  user-select: none;
+}
+.tender-accepted {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  min-height: 385px;
+  padding: 32px 28px 28px;
+  border: 0;
+  border-radius: 24px;
+  box-shadow: 0 18px 35px -20px rgba(20, 28, 38, .25);
+  text-align: center;
+}
+.tender-accepted .success-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 0 17px;
+  background: #8d5527;
+  color: #fff;
+}
+.tender-accepted h2 {
+  margin: 0;
+  color: #10243b;
+  font-size: 28px;
+  font-weight: 800;
+}
+.tender-accepted > p {
+  margin: 10px 0 19px;
+  color: #34506e;
+  font-size: 14px;
+}
+.tender-accepted__person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 16px 18px;
+  border-radius: 17px;
+  background: #f1f3f5;
+  text-align: left;
+}
+.tender-accepted__person > img,
+.tender-accepted__person > .avatar { width: 46px; height: 46px; flex: 0 0 46px; }
+.tender-accepted__person > div:nth-child(2) { flex: 1; min-width: 0; }
+.tender-accepted__person p { margin: 2px 0 0; font-size: 12px; }
+.tender-accepted__price { flex: 0 0 auto; text-align: right; }
+.tender-accepted__price small { display: block; color: #8295ae; font-size: 11px; }
+.tender-accepted__price strong { color: #10243b; font-size: 22px; white-space: nowrap; }
+.tender-accepted__price strong span { font-size: 11px; }
+.tender-accepted__actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin-top: 20px; }
+.tender-accepted__actions .secondary,
+.tender-accepted__actions .primary { display: grid; place-items: center; min-height: 55px; padding: 11px 14px; font-size: 14px; font-weight: 800; text-align: center; }
+.tender-accepted__actions .secondary { border-color: #8d5527; color: #8d5527; }
+.tender-accepted__actions .primary { background: #8d5527; border-color: #8d5527; }
+.tender-accepted .tender-completion__date { width: 100%; margin-top: 16px; text-align: left; }
+.tender-accepted .error { width: 100%; text-align: left; }
 @media (max-width: 850px) {
   .tender-detail--client {
     grid-template-columns: minmax(0, 1fr);
@@ -398,4 +459,7 @@
   .tender-offers__heading {
     flex-wrap: wrap;
   }
+  .tender-accepted__person { flex-wrap: wrap; }
+  .tender-accepted__price { margin-left: auto; }
+  .tender-accepted__actions { grid-template-columns: 1fr; }
 }

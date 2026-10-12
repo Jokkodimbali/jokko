@@ -6,30 +6,39 @@ ne participent pas aux appels d’offres.
 
 ## Parcours
 
-Le client choisit un métier du catalogue existant, décrit son besoin, sélectionne
+Le client choisit un métier du catalogue existant, peut décrire son besoin, sélectionne
 une adresse sur le composant de carte existant (recherche ou géolocalisation),
-une date éventuelle et un prix en FCFA. Le rayon de diffusion est de 25 km. Il publie sa demande, consulte
+une date et une heure futures et un prix en FCFA. Le rayon de diffusion est de 25 km. Il publie sa demande, consulte
 les réponses, refuse une offre ou choisit un prestataire. Tant que la demande
 est ouverte, il peut l’annuler ou la relancer avec un nouveau prix ; cette relance
 remplace les réponses précédentes.
 
 La recherche propose directement les catégories et métiers actifs du catalogue
 prestataire dès deux caractères. Les résultats sont navigables au clavier. Les
-champs de date et d’heure sont toujours visibles ; leur saisie planifie
-l’intervention, tandis que des champs vides signifient « Dès que possible ».
+champs de date et d’heure sont obligatoires avant la publication, car ils sont
+nécessaires pour créer la réservation après l’acceptation d’une offre.
 Une fois le métier et l'adresse localisée choisis, le bandeau affiche le nombre
 réel de prestataires éligibles et leurs premiers avatars via `GET /tenders/preview`.
 
 Les professionnels invités voient la demande dans leur espace et reçoivent une
-notification. Ils choisissent un de leurs services éligibles, acceptent le prix
-ou proposent un autre montant. Ils peuvent ignorer une nouvelle invitation.
+notification. Ils acceptent le prix ou proposent un autre montant avec un de
+leurs services éligibles. Ils peuvent ignorer une nouvelle invitation.
+Les actions prestataire se font directement sur les cartes « Nouvelles demandes »
+et « Mes offres envoyées » : il n'y a pas de page détail d'appel d'offres côté
+prestataire. Si plusieurs services éligibles existent, celui correspondant au
+métier demandé est préféré ; sinon le premier service éligible est utilisé.
 Après publication, l'écran client affiche les invitations et les réponses réelles :
 prix accepté, contre-offres, service proposé, note, nombre d'avis et distance.
 Le délai d'arrivée et le nombre de prestataires ayant ouvert la demande ne sont
 pas affichés, car ces mesures ne sont pas disponibles dans l'API.
-Une offre sélectionnée devient une négociation acceptée dans le module existant.
-Le client finalise ensuite la réservation et le paiement depuis le parcours
-habituel ; la sélection seule ne crée ni paiement ni réservation confirmée.
+L'acceptation d'une offre crée une négociation acceptée en interne. Le client confirme
+ensuite la date si elle manque, puis crée une vraie réservation
+à partir de celle-ci et accède à la page de paiement
+existante, sans passer par la page de négociation. Une ancienne demande sans date
+exige la saisie d'un créneau avant de créer la réservation. Si la création échoue après la
+sélection, le client peut reprendre la finalisation depuis sa demande.
+La durée n'est pas saisie par le client : celle du service est utilisée si elle est valide,
+sinon le parcours de réservation applique 60 minutes par défaut.
 
 ## Réutilisation et règles
 

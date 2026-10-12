@@ -66,10 +66,10 @@ export class TenderComposerComponent {
   protected address = '';
   protected coordinate: { lat: number; lng: number } | null = null;
   protected price = 10000;
-  protected when: 'ASAP' | 'PLANNED' = 'ASAP';
   protected date = '';
   protected time = '';
   protected error = '';
+  protected validation = { job: '', address: '', date: '', time: '', price: '' };
   protected readonly suggestions = computed(() => {
     const query = this.normalize(this.query());
     if (query.length < 2) return [];
@@ -112,6 +112,7 @@ export class TenderComposerComponent {
     this.previewRequest++;
     this.query.set(value);
     this.selected = null;
+    this.validation.job = '';
     this.audienceChange.emit(null);
     this.searchOpen.set(true);
     this.highlightedSuggestion = -1;
@@ -154,32 +155,19 @@ export class TenderComposerComponent {
       : category.nom;
     if (!label) return;
     this.selected = { categoryId, subCategoryId, label };
+    this.validation.job = '';
     this.query.set(label);
     this.searchOpen.set(false);
     this.loadAudience();
   }
   protected dateChanged(value: string) {
     this.date = value;
-    if (value) {
-      this.when = 'PLANNED';
-      this.time ||= '09:00';
-    } else if (!this.time) {
-      this.when = 'ASAP';
-    }
+    this.validation.date = '';
+    this.validation.time = '';
   }
   protected timeChanged(value: string) {
     this.time = value;
-    if (value) {
-      this.when = 'PLANNED';
-      this.date ||= this.localDate();
-    } else if (!this.date) {
-      this.when = 'ASAP';
-    }
-  }
-  protected clearSchedule() {
-    this.when = 'ASAP';
-    this.date = '';
-    this.time = '';
+    this.validation.time = '';
   }
   protected localDate() {
     const now = new Date();
@@ -188,6 +176,7 @@ export class TenderComposerComponent {
   protected locate(selection: ServiceProposalMapAddressSelection) {
     this.address = selection.address;
     this.coordinate = { lat: selection.coordinate.latitude, lng: selection.coordinate.longitude };
+    this.validation.address = '';
     this.loadAudience();
   }
   protected addressEdited(address: string) {
@@ -197,6 +186,7 @@ export class TenderComposerComponent {
       this.audienceChange.emit(null);
     }
     this.address = address;
+    this.validation.address = '';
   }
   private loadAudience() {
     const requestId = ++this.previewRequest;
@@ -240,28 +230,22 @@ export class TenderComposerComponent {
   protected submit() {
     this.error = '';
     if (this.busy) return;
-    if (!this.selected) {
-      this.error = 'Sélectionnez un métier dans les résultats de recherche.';
-      return;
-    }
-    if (this.description.trim().length < 10) {
-      this.error = 'Décrivez votre besoin en au moins 10 caractères.';
-      return;
-    }
-    if (!this.coordinate || this.address.trim().length < 3 || this.address.trim().length > 180) {
-      this.error = 'Choisissez une adresse sur la carte (180 caractères maximum).';
-      return;
-    }
+    this.validation = { job: '', address: '', date: '', time: '', price: '' };
+    if (!this.selected) this.validation.job = 'Sélectionnez un métier dans les résultats de recherche.';
+    if (!this.coordinate || this.address.trim().length < 3 || this.address.trim().length > 180)
+      this.validation.address = 'Choisissez une adresse sur la carte (180 caractères maximum).';
+    if (!this.date) this.validation.date = 'Choisissez une date.';
+    if (!this.time) this.validation.time = 'Choisissez une heure.';
+    if (!Number.isInteger(this.price) || this.price < 500 || this.price > 99999999)
+      this.validation.price = 'Indiquez un prix entre 500 et 99 999 999 FCFA.';
     const scheduledAt = this.date && this.time ? new Date(`${this.date}T${this.time}`) : null;
-    if (
-      this.when === 'PLANNED' &&
-      (!scheduledAt ||
-        !Number.isFinite(scheduledAt.getTime()) ||
-        scheduledAt.getTime() <= Date.now())
-    ) {
-      this.error = 'Choisissez une date et une heure futures.';
-      return;
-    }
+    if (this.date && !Number.isFinite(new Date(`${this.date}T00:00`).getTime()))
+      this.validation.date = 'Choisissez une date valide.';
+    if (this.time && (!scheduledAt || !Number.isFinite(scheduledAt.getTime())))
+      this.validation.time = 'Choisissez une heure valide.';
+    if (scheduledAt && Number.isFinite(scheduledAt.getTime()) && scheduledAt.getTime() <= Date.now())
+      this.validation.time = 'Choisissez une date et une heure futures.';
+    if (Object.values(this.validation).some(Boolean) || !this.selected || !this.coordinate || !scheduledAt) return;
     this.publish.emit({
       categoryId: this.selected.categoryId,
       subCategoryId: this.selected.subCategoryId,
@@ -271,7 +255,7 @@ export class TenderComposerComponent {
       longitude: this.coordinate.lng,
       proposedPrice: this.price,
       radiusKm: 25,
-      ...(this.when === 'PLANNED' && scheduledAt ? { scheduledAt: scheduledAt.toISOString() } : {}),
+      scheduledAt: scheduledAt.toISOString(),
     });
   }
 }

@@ -2,7 +2,11 @@ import 'reflect-metadata';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { ValidationPipe } from '@nestjs/common';
-import { CreateTenderDto, RespondTenderDto, TenderListDto } from './tenders.dto';
+import {
+  CreateTenderDto,
+  RespondTenderDto,
+  TenderListDto,
+} from './tenders.dto';
 const valid = {
   categoryId: 'de3b3f2c-a5c3-40ad-9d69-0fca1d1a5156',
   description: 'Réparer une fuite dans la cuisine',
@@ -10,21 +14,26 @@ const valid = {
   latitude: 14.69,
   longitude: -17.46,
   proposedPrice: 10000,
+  scheduledAt: '2030-01-01T10:00:00.000Z',
 };
 it('accepts a complete tender and supplies the search radius', async () => {
   const dto = plainToInstance(CreateTenderDto, valid);
   expect(await validate(dto)).toHaveLength(0);
   expect(dto.radiusKm).toBe(25);
 });
+it('accepts a tender without a description', async () => {
+  expect(await validate(plainToInstance(CreateTenderDto, { ...valid, description: undefined }))).toHaveLength(0);
+});
 it.each([
   { proposedPrice: -1 },
   { proposedPrice: 1.5 },
   { proposedPrice: 100000000 },
   { latitude: 95 },
-  { description: ' ' },
+  { description: 'x'.repeat(2001) },
   { address: ' ' },
   { radiusKm: 101 },
   { scheduledAt: 'yesterday' },
+  { scheduledAt: undefined },
 ])('rejects malformed requests: %j', async (input) => {
   expect(
     await validate(plainToInstance(CreateTenderDto, { ...valid, ...input })),

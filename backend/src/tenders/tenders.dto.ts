@@ -22,15 +22,15 @@ export class CreateTenderDto extends TenderPriceDto {
   @IsUUID() categoryId!: string;
   @IsOptional() @IsUUID() subCategoryId?: string;
   @Transform(trim)
+  @IsOptional()
   @IsString()
-  @MinLength(10)
   @MaxLength(2000)
-  description!: string;
+  description?: string;
   @Transform(trim) @IsString() @MinLength(3) @MaxLength(180) address!: string;
   @IsNumber() @Min(-90) @Max(90) latitude!: number;
   @IsNumber() @Min(-180) @Max(180) longitude!: number;
   @IsOptional() @IsInt() @Min(1) @Max(25) radiusKm: number = 25;
-  @IsOptional() @IsDateString() scheduledAt?: string;
+  @IsDateString() scheduledAt!: string;
 }
 export class TenderRevisionDto {
   @IsInt() @Min(1) revision!: number;

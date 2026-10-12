@@ -11,6 +11,7 @@
           [attr.aria-expanded]="searchOpen() && query().trim().length >= 2"
           placeholder="Rechercher un métier : plombier, électricien…"
           [value]="query()"
+          [attr.aria-invalid]="!!validation.job"
           (input)="search($any($event.target).value)"
           (focus)="searchOpen.set(true)"
           (blur)="closeSearchSoon()"
@@ -56,10 +57,11 @@
       </p>
     </div>
   </div>
+  <p *ngIf="validation.job" class="field-error" role="alert">{{ validation.job }}</p>
   <p *ngIf="catalogError()" role="alert" class="error">{{ catalogError() }}</p>
   <span *ngIf="selected" class="chip">{{ selected.label }}</span>
   <label class="field"
-    >Prestation souhaitée<textarea
+    >Prestation souhaitée <small>(facultatif)</small><textarea
       [(ngModel)]="description"
       [disabled]="busy"
       maxlength="2000"
@@ -72,26 +74,27 @@
       ><span>Date souhaitée</span
       ><input
         type="date"
+        required
         [min]="localDate()"
         [value]="date"
+        [attr.aria-invalid]="!!validation.date"
         (change)="dateChanged($any($event.target).value)"
         [disabled]="busy"
-    /></label>
+    /><small *ngIf="validation.date" class="field-error" role="alert">{{ validation.date }}</small></label>
     <label
       ><span>Heure souhaitée</span
       ><input
         type="time"
+        required
         step="900"
         [value]="time"
+        [attr.aria-invalid]="!!validation.time"
         (change)="timeChanged($any($event.target).value)"
         [disabled]="busy"
-    /></label>
+    /><small *ngIf="validation.time" class="field-error" role="alert">{{ validation.time }}</small></label>
   </div>
-  <div class="schedule-status" *ngIf="when === 'PLANNED'">
-    <span>{{ when === 'PLANNED' ? 'Intervention planifiée' : 'Dès que possible' }}</span>
-    <button *ngIf="when === 'PLANNED'" type="button" (click)="clearSchedule()" [disabled]="busy">
-      Revenir à « Dès que possible »
-    </button>
+  <div class="schedule-status">
+    <span>Date et heure requises pour finaliser la réservation après acceptation d’une offre.</span>
   </div>
 </section>
 <section class="map-card">
@@ -112,6 +115,7 @@
       ><strong>{{ address || 'Cliquez sur la carte pour choisir l’adresse' }}</strong></span
     >
   </p>
+  <p *ngIf="validation.address" class="field-error" role="alert">{{ validation.address }}</p>
 </section>
 <section class="panel price-card">
   <div class="price-card__heading">
@@ -120,6 +124,7 @@
   </div>
   <p>{{ selected ? selected.label : 'Choisissez un métier dans la recherche' }}</p>
   <app-tender-price-control [(amount)]="price" [disabled]="busy" [showLabel]="false" />
+  <p *ngIf="validation.price" class="field-error" role="alert">{{ validation.price }}</p>
   <p class="price-card__assurance">Paiement sécurisé · Remboursable</p>
   <p *ngIf="error" class="error" role="alert">{{ error }}</p>
   <button

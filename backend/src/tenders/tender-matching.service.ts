@@ -6,14 +6,23 @@ import { CreateTenderDto } from './tenders.dto';
 export class TenderMatchingService {
   constructor(private readonly search: SearchQueryService) {}
 
-  async findRecipients(clientId: string, input: CreateTenderDto) {
+  async findRecipients(
+    clientId: string,
+    input: Pick<
+      CreateTenderDto,
+      'categoryId' | 'subCategoryId' | 'latitude' | 'longitude' | 'radiusKm'
+    > &
+      Partial<
+        Pick<CreateTenderDto, 'description' | 'address' | 'proposedPrice'>
+      >,
+  ) {
     // The catalogue includes profiles without coordinates and paginates at 50.
     // Invitations require a measured distance, and must cover every page.
     const recipients = [] as Awaited<
       ReturnType<SearchQueryService['searchProfessionals']>
     >['items'];
     let page = 1;
-    let total = 0;
+    let total: number;
     do {
       const result = await this.search.searchProfessionals({
         role: 'PRESTATAIRE',

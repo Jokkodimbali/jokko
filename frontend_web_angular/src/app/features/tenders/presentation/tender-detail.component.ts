@@ -8,7 +8,6 @@ import {
   Tender,
   TenderAction,
   TenderResponse,
-  TENDER_STATUS_LABELS,
 } from '../data-access/tenders.models';
 import { TenderPriceControlComponent } from './tender-price-control.component';
 @Component({
@@ -28,26 +27,32 @@ export class TenderDetailComponent implements OnChanges {
   @Input({ required: true }) tender!: Tender;
   @Input() isClient = false;
   @Input() busy = false;
+  @Input() reservationError = '';
   @Output() readonly action = new EventEmitter<TenderAction>();
-  protected readonly labels = TENDER_STATUS_LABELS;
+  @Output() readonly finalize = new EventEmitter<{ responseId: string; appointmentDate: string; durationMinutes: number }>();
   protected readonly asset = publicAssetUrl;
   protected price = 10000;
-  protected counterPrice = 10000;
-  protected counterOpen = false;
   protected confirmCancel = false;
-  protected serviceId = '';
-  protected message = '';
+  protected appointmentDate = '';
+  protected completionError = '';
+  protected dateError = '';
+  protected serviceError = '';
+  protected addressError = '';
   private loadedKey = '';
+  private loadedTenderId = '';
   ngOnChanges() {
     const key = `${this.tender.id}:${this.tender.revision}`;
     if (key === this.loadedKey) return;
     this.loadedKey = key;
     this.price = this.tender.proposedPrice;
-    this.counterPrice = this.mine?.amount ?? this.tender.proposedPrice;
-    this.serviceId = this.mine?.serviceId ?? this.mine?.services[0]?.id ?? '';
-    this.counterOpen = false;
     this.confirmCancel = false;
-    this.message = '';
+    if (this.loadedTenderId !== this.tender.id) {
+      this.loadedTenderId = this.tender.id;
+      this.showAcceptedDate = false;
+      this.appointmentDate = this.tender.scheduledAt
+        ? this.toLocalDateTime(this.tender.scheduledAt)
+        : '';
+    }
   }
   protected get offers() {
     return this.tender.responses.filter((response) => response.status === 'OFFERED');
@@ -58,15 +63,31 @@ export class TenderDetailComponent implements OnChanges {
   protected get selected() {
     return this.tender.responses.find((response) => response.status === 'SELECTED');
   }
-  protected get mine() {
-    return this.isClient ? undefined : this.tender.responses[0];
+  protected get needsAppointmentDate() {
+    return !this.tender.scheduledAt || new Date(this.tender.scheduledAt).getTime() <= Date.now();
   }
-  protected get canRespond() {
-    return (
-      this.tender.status === 'OPEN' &&
-      this.mine &&
-      ['INVITED', 'OFFERED', 'REJECTED'].includes(this.mine.status)
-    );
+  protected showAcceptedDate = false;
+  protected completeSelectedOffer(response: TenderResponse) {
+    this.dateError = '';
+    this.serviceError = '';
+    this.addressError = '';
+    this.completionError = '';
+    const date = new Date(this.appointmentDate);
+    if (!this.appointmentDate || !Number.isFinite(date.getTime()) || date.getTime() <= Date.now()) {
+      this.showAcceptedDate = true;
+      this.dateError = 'Choisissez une date et une heure futures.';
+    }
+    if (!this.tender.address.trim()) this.addressError = 'Ajoutez une adresse d’intervention.';
+    if (!response.serviceId) this.serviceError = 'Le service du prestataire est indisponible. Choisissez une autre offre.';
+    const serviceDuration = response.serviceDurationMinutes;
+    const duration = serviceDuration != null && Number.isInteger(serviceDuration) &&
+      serviceDuration >= 5 && serviceDuration <= 1440 ? serviceDuration : 60;
+    if (this.dateError || this.serviceError || this.addressError) return;
+    const appointmentDate = this.tender.scheduledAt &&
+      this.appointmentDate === this.toLocalDateTime(this.tender.scheduledAt)
+      ? this.tender.scheduledAt
+      : date.toISOString();
+    this.finalize.emit({ responseId: response.id, appointmentDate, durationMinutes: duration });
   }
   protected initials(name: string) {
     return name
@@ -77,23 +98,10 @@ export class TenderDetailComponent implements OnChanges {
       .join('')
       .toUpperCase();
   }
-  protected submitResponse(amount: number) {
-    if (!this.serviceId || this.busy) return;
-    this.action.emit({
-      kind: 'respond',
-      serviceId: this.serviceId,
-      amount,
-      message: this.message.trim() || undefined,
-    });
-  }
-  protected reservationQuery(response: TenderResponse) {
-    return {
-      negotiationId: response.negotiationId,
-      serviceId: response.serviceId,
-      address: this.tender.address,
-      appointmentDate: this.tender.scheduledAt,
-      clientLatitude: this.tender.latitude,
-      clientLongitude: this.tender.longitude,
-    };
+  private toLocalDateTime(value: string): string {
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return '';
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+    return local.toISOString().slice(0, 16);
   }
 }

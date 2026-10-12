@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard, clientCatalogGuard, roleGuard } from './core/auth/auth.guard';
+import { tenderClientDetailGuard } from './features/tenders/presentation/tender-detail.guard';
 
 export const routes: Routes = [
   {
@@ -13,7 +14,7 @@ export const routes: Routes = [
   },
   {
     path: 'appels-offres/:id',
-    canActivate: [roleGuard],
+    canActivate: [roleGuard, tenderClientDetailGuard],
     data: { roles: ['CLIENT', 'PRESTATAIRE'] },
     loadComponent: () =>
       import('./features/tenders/presentation/tenders-page.component').then(

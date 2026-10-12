@@ -1,36 +1,38 @@
-<main class="tender-page">
+<main class="tender-page" [class.tender-page--provider]="!isClient() && !detailId()" [class.tender-page--client-detail]="isClient() && !!detailId()">
   <header class="page-heading">
     <div>
       <a *ngIf="detailId()" class="back-link" routerLink="/appels-offres"
         ><lucide-icon name="arrow-left" size="17" />
         {{ isClient() ? 'Mes demandes' : 'Retour aux demandes' }}</a
       ><span class="eyebrow">{{
-        isClient() && (!detailId() || selected()?.status === 'OPEN')
+        isClient() && (!detailId() || selected()?.status === 'OPEN' || selected()?.status === 'SELECTED')
           ? 'Nouvelle demande'
           : isClient()
             ? 'Appels d’offres · Espace client'
-            : 'Appels d’offres · Espace prestataire'
+            : 'Espace prestataire'
       }}</span>
       <h1>
         {{
           detailId()
             ? isClient() && selected()?.status === 'OPEN'
               ? 'Recherche de'
-              : selected()?.job || 'Votre appel d’offres'
+              : isClient() && selected()?.status === 'SELECTED'
+                ? 'Proposez'
+                : selected()?.job || 'Votre appel d’offres'
             : isClient()
               ? 'Proposez'
               : 'Demandes'
         }}
-        <span *ngIf="!detailId() || (isClient() && selected()?.status === 'OPEN')">{{
-          isClient() ? (detailId() ? 'prestataires' : 'votre prix') : 'à proximité'
+        <span *ngIf="!detailId() || (isClient() && (selected()?.status === 'OPEN' || selected()?.status === 'SELECTED'))">{{
+          isClient() ? (detailId() && selected()?.status === 'OPEN' ? selected()?.job?.toLowerCase() || 'prestataires' : 'votre prix') : 'à proximité'
         }}</span>
       </h1>
     </div>
     <div *ngIf="!isClient() && !detailId(); else headingDescription" class="provider-status" role="status">
-      <div><strong>{{ providerOnline ? 'En ligne' : 'Hors ligne' }}</strong><small>Votre disponibilité est liée à votre connexion</small></div>
+      <div><strong>{{ providerOnline ? 'En ligne' : 'Hors ligne' }}</strong><small>{{ providerSubtitle() }}</small></div>
       <span class="provider-status__switch" [class.active]="providerOnline" aria-hidden="true"></span>
     </div>
-    <ng-template #headingDescription><p>
+    <ng-template #headingDescription><p *ngIf="!isClient() || !detailId() || selected()?.status === 'OPEN'">
       {{
         isClient()
           ? 'Les prestataires à proximité acceptent votre prix ou vous font une contre-offre. Vous choisissez.'
@@ -47,7 +49,9 @@
     [tender]="tender"
     [isClient]="isClient()"
     [busy]="busy()"
+    [reservationError]="reservationError()"
     (action)="act($event)"
+    (finalize)="finalizeTenderOffer(tender, $event)"
   />
   <ng-container *ngIf="!detailId()">
     <div class="two-columns" *ngIf="isClient(); else professionalInbox">
@@ -118,7 +122,7 @@
       </section>
     </div>
     <ng-template #professionalInbox>
-      <div class="two-columns">
+      <div class="two-columns provider-inbox">
         <section class="history">
           <div class="section-heading">
             <h2>Nouvelles demandes</h2>
@@ -132,28 +136,9 @@
               apparaîtront ici.
             </p>
           </div>
-          <article
-            *ngFor="let tender of pending()"
-            class="panel provider-request"
-            >
-            <div class="provider-request__head">
-              <img *ngIf="asset(tender.clientAvatarUrl) as avatar; else clientInitials" [src]="avatar" [alt]="tender.clientName" />
-              <ng-template #clientInitials><span class="avatar">{{ initials(tender.clientName) }}</span></ng-template>
-              <div class="provider-request__identity">
-                <a [routerLink]="['/appels-offres', tender.id]"><strong>{{ tender.clientName }}</strong></a> <span class="provider-request__new">Nouvelle</span>
-                <small>{{ tender.createdAt | date: 'dd/MM à HH:mm' }}<ng-container *ngIf="tender.responses[0]?.distanceKm !== null"> · à {{ tender.responses[0].distanceKm | number: '1.1-1' }} km</ng-container></small>
-              </div>
-              <div class="provider-request__price"><small>Prix proposé</small><strong>{{ tender.proposedPrice | number: '1.0-0' }} <span>FCFA</span></strong></div>
-            </div>
-            <div class="provider-request__tags"><span><lucide-icon name="briefcase-business" size="14" />{{ tender.job }}</span><span><lucide-icon name="map-pin" size="14" />{{ tender.address }}</span></div>
-            <p class="description">{{ tender.description || 'Aucune description fournie.' }}</p>
-            <div class="provider-request__actions">
-              <button type="button" class="secondary" (click)="actFor(tender, { kind: 'ignore' })" [disabled]="busy()">Ignorer</button>
-              <button type="button" class="secondary provider-request__counter" (click)="openCounter(tender)" [disabled]="busy() || !tender.responses[0]?.services?.length">Contre-offre</button>
-              <button type="button" class="primary" (click)="respondTo(tender, tender.proposedPrice)" [disabled]="busy() || !tender.responses[0]?.services?.length">Accepter {{ tender.proposedPrice | number: '1.0-0' }}</button>
-            </div>
-            <ng-container *ngTemplateOutlet="providerCounterEditor; context: { $implicit: tender }"></ng-container>
-          </article>
+          <ng-container *ngFor="let tender of pending()">
+            <ng-container *ngTemplateOutlet="providerCard; context: { $implicit: tender }" />
+          </ng-container>
         </section>
         <section class="history">
           <div class="section-heading">
@@ -165,41 +150,45 @@
             <h3>Aucune offre envoyée</h3>
             <p>Acceptez le prix d’un client ou proposez le vôtre. Sa réponse s’affichera ici.</p>
           </div>
-          <article
-            *ngFor="let tender of sent()"
-            class="panel request-link provider-sent"
-            ><span class="chip" [class.green]="tender.responses[0]?.status === 'SELECTED'">{{
-              tender.status === 'CANCELLED' ? labels.CANCELLED : labels[tender.responses[0].status]
-            }}</span>
-            <h3>{{ tender.clientName }}</h3>
-            <p>{{ tender.job }} · {{ tender.address }}</p>
-            <strong
-              >{{
-                tender.responses[0]?.amount ?? tender.proposedPrice | number: '1.0-0'
-              }}
-              FCFA</strong
-            >
-            <p *ngIf="tender.responses[0]?.status === 'SELECTED'" class="small">
-              {{
-                tender.responses[0]?.reservationId
-                  ? 'Réservation confirmée · Voir le rendez-vous'
-                  : 'Le client finalise sa réservation'
-              }}
-            </p>
-            <div class="provider-sent__actions">
-              <button *ngIf="tender.status === 'OPEN' && tender.responses[0]?.status === 'REJECTED'" type="button" class="primary" (click)="openCounter(tender)">Faire une nouvelle contre-offre</button>
-              <a class="view-link" [routerLink]="['/appels-offres', tender.id]">Consulter le suivi →</a>
-            </div>
-            <ng-container *ngTemplateOutlet="providerCounterEditor; context: { $implicit: tender }"></ng-container>
-          </article
-          >
+          <ng-container *ngFor="let tender of sent()">
+            <ng-container *ngTemplateOutlet="providerCard; context: { $implicit: tender }" />
+          </ng-container>
         </section>
       </div>
+      <ng-template #providerCard let-tender>
+        <article class="panel provider-request">
+          <div class="provider-request__head">
+            <img *ngIf="asset(tender.clientAvatarUrl) as avatar; else clientInitials" [src]="avatar" [alt]="tender.clientName" />
+            <ng-template #clientInitials><span class="avatar">{{ initials(tender.clientName) }}</span></ng-template>
+            <div class="provider-request__identity">
+              <strong>{{ tender.clientName }}</strong>
+              <span *ngIf="tender.responses[0]?.status === 'INVITED'" class="provider-request__new">Nouvelle</span>
+              <span *ngIf="tender.responses[0]?.status !== 'INVITED'" class="provider-request__state" [class.provider-request__state--selected]="tender.responses[0]?.status === 'SELECTED'">{{ providerStatusLabel(tender) }}</span>
+              <small>{{ relativeTime(tender.createdAt) }}<ng-container *ngIf="tender.responses[0]?.distanceKm != null"> · à {{ tender.responses[0].distanceKm | number: '1.1-1' }} km</ng-container></small>
+            </div>
+            <div class="provider-request__price"><small>Prix proposé</small><strong>{{ tender.proposedPrice | number: '1.0-0' }} <span>FCFA</span></strong></div>
+          </div>
+          <div class="provider-request__tags"><span><lucide-icon name="briefcase-business" size="14" />{{ tender.job }}</span><span><lucide-icon name="map-pin" size="14" />{{ tender.address }}</span></div>
+          <p class="description">{{ tender.description || 'Aucune description fournie.' }}</p>
+          <div class="provider-request__actions" *ngIf="counterTenderId !== tender.id && tender.status === 'OPEN' && tender.responses[0]?.status === 'INVITED'">
+            <button type="button" class="secondary" (click)="actFor(tender, { kind: 'ignore' })" [disabled]="busy()">Ignorer</button>
+            <button type="button" class="secondary provider-request__counter" (click)="openCounter(tender)" [disabled]="busy() || !serviceFor(tender)">Contre-offre</button>
+            <button type="button" class="primary" (click)="respondTo(tender, tender.proposedPrice)" [disabled]="busy() || !serviceFor(tender)">Accepter {{ tender.proposedPrice | number: '1.0-0' }}</button>
+          </div>
+          <div class="provider-request__actions provider-request__actions--retry" *ngIf="counterTenderId !== tender.id && tender.status === 'OPEN' && tender.responses[0]?.status === 'REJECTED'">
+            <button type="button" class="secondary provider-request__counter" (click)="openCounter(tender)" [disabled]="busy() || !serviceFor(tender)">Faire une nouvelle contre-offre</button>
+            <button type="button" class="primary" (click)="respondTo(tender, tender.proposedPrice)" [disabled]="busy() || !serviceFor(tender)">Accepter {{ tender.proposedPrice | number: '1.0-0' }}</button>
+          </div>
+          <p class="provider-request__result" *ngIf="counterTenderId !== tender.id && tender.responses[0]?.status === 'OFFERED'">Votre offre de {{ tender.responses[0].amount | number: '1.0-0' }} FCFA a été envoyée. En attente du client.</p>
+          <p class="provider-request__result" *ngIf="counterTenderId !== tender.id && tender.responses[0]?.status === 'SELECTED'">{{ tender.responses[0].reservationId ? 'Réservation créée par le client.' : 'Le client finalise sa réservation.' }}</p>
+          <a *ngIf="tender.responses[0]?.reservationId" class="provider-request__appointment" [routerLink]="['/appointments', tender.responses[0].reservationId]">Voir le rendez-vous</a>
+          <ng-container *ngTemplateOutlet="providerCounterEditor; context: { $implicit: tender }" />
+        </article>
+      </ng-template>
       <ng-template #providerCounterEditor let-tender>
         <div *ngIf="counterTenderId === tender.id" class="provider-request__counter-panel">
-          <h3>{{ tender.responses[0].status === 'REJECTED' ? 'Votre nouvelle contre-offre' : 'Votre contre-offre' }}</h3>
+          <h3>Votre contre-offre</h3>
           <span class="provider-request__delta" [class.lower]="counterPrice < tender.proposedPrice">{{ counterPrice >= tender.proposedPrice ? '+' : '−' }}{{ (counterPrice >= tender.proposedPrice ? counterPrice - tender.proposedPrice : tender.proposedPrice - counterPrice) | number: '1.0-0' }} FCFA vs client</span>
-          <label class="field" *ngIf="tender.responses[0].services.length > 1">Service proposé<select [(ngModel)]="counterServiceId"><option *ngFor="let service of tender.responses[0].services" [value]="service.id">{{ service.name }}</option></select></label>
           <app-tender-price-control [(amount)]="counterPrice" [showLabel]="false" [compact]="true" [disabled]="busy()" />
           <div class="actions provider-request__counter-actions"><button type="button" class="secondary" (click)="closeCounter()">Annuler</button><button type="button" class="primary" (click)="respondTo(tender, counterPrice, counterServiceId)" [disabled]="busy() || !counterServiceId"><lucide-icon name="send" size="16" /> Envoyer {{ counterPrice | number: '1.0-0' }} FCFA</button></div>
         </div>

@@ -21,6 +21,7 @@ import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating
 import { AppPresenceStatusComponent } from '../../../../../shared/ui/app-presence-status/app-presence-status.component';
 import { AppPresenceDotComponent } from '../../../../../shared/ui/app-presence-dot/app-presence-dot.component';
 import { MaterialQuoteSummaryCardComponent } from '../../../../../shared/ui/material-quote-summary-card/material-quote-summary-card.component';
+import { MaterialQuoteFormComponent } from '../../../../../shared/ui/material-quote-form/material-quote-form.component';
 import {
   AppointmentTrackingStepperComponent,
   appointmentJourneyProgress,
@@ -163,6 +164,7 @@ interface AcceptedReservationConfirmation {
     AppPresenceDotComponent,
     AppointmentTrackingStepperComponent,
     MaterialQuoteSummaryCardComponent,
+    MaterialQuoteFormComponent,
     ServiceProposalDetailsModalComponent,
   ],
   templateUrl: './service-proposal.component.html',
@@ -941,14 +943,6 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
   protected selectMaterialQuoteAuthor(author: MaterialQuoteAuthor): void {
     this.materialQuoteDraft.author = author;
-  }
-
-  protected decreaseMaterialQuoteQuantity(): void {
-    this.materialQuoteDraft.quantity = Math.max(1, this.materialQuoteDraft.quantity - 1);
-  }
-
-  protected increaseMaterialQuoteQuantity(): void {
-    this.materialQuoteDraft.quantity += 1;
   }
 
   protected validateMaterialQuoteDraft(): void {

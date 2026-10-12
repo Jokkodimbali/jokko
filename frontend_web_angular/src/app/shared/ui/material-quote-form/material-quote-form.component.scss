@@ -1,0 +1,125 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.material-quote-form {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid #e3e7ed;
+  border-radius: 16px;
+  background: #fff;
+}
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #edf0f4;
+}
+h3 {
+  margin: 0;
+  color: #07111f;
+  font-size: 13px;
+  font-weight: 950;
+}
+header span {
+  color: #865221;
+  font-size: 11px;
+  font-weight: 800;
+}
+.material-quote-form__fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px;
+  align-items: end;
+  gap: 10px;
+}
+label {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+label > span:first-child {
+  color: #98a2b3;
+  font-size: 11px;
+  font-weight: 950;
+}
+input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid #dfe3ea;
+  border-radius: 10px;
+  color: #07111f;
+  font: inherit;
+  font-size: 14px;
+}
+input:focus {
+  border-color: #9bbd8d;
+  outline: 3px solid rgb(79 136 58 / 12%);
+}
+.material-quote-form__quantity {
+  display: grid;
+  grid-template-columns: 32px 40px 32px;
+  width: 104px;
+  min-height: 44px;
+  overflow: hidden;
+  border: 1px solid #dfe3ea;
+  border-radius: 10px;
+}
+.material-quote-form__quantity button {
+  border: 0;
+  background: #fff;
+  color: #050505;
+  font: inherit;
+  font-weight: 950;
+  cursor: pointer;
+}
+.material-quote-form__quantity strong {
+  display: grid;
+  place-items: center;
+  border-inline: 1px solid #eef1f5;
+  background: #fbfbfa;
+  font-size: 12px;
+}
+footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+footer button {
+  min-height: 36px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 950;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.material-quote-form__cancel {
+  background: #fff1f3;
+  color: #ef233c;
+}
+.material-quote-form__submit {
+  background: #050505;
+  color: #fff;
+}
+@media (max-width: 420px) {
+  .material-quote-form {
+    padding: 14px;
+  }
+  .material-quote-form__fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  footer button {
+    flex: 1;
+  }
+}

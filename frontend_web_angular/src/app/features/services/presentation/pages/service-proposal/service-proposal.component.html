@@ -1492,49 +1492,14 @@
         *ngIf="materialQuoteExpanded()"
         class="service-proposal__materials-body"
       >
-        <form
+        <app-material-quote-form
           *ngIf="isMaterialQuoteFormOpen() && canCurrentUserCreateMaterialQuote()"
-          class="service-proposal__materials-form"
-          (ngSubmit)="validateMaterialQuoteDraft()"
-        >
-          <header>
-            <h3>DEVIS MATÉRIEL</h3>
-            <span class="service-proposal__materials-role">{{
-              materialQuoteDraftAuthorLabel()
-            }}</span>
-          </header>
-
-          <div class="service-proposal__materials-form-grid">
-            <label class="service-proposal__materials-designation">
-              <span>NOM DU MATÉRIEL</span>
-              <input
-                type="text"
-                name="materialDesignation"
-                [(ngModel)]="materialQuoteDraft.designation"
-                placeholder="Ex. : Inox flexible"
-              />
-            </label>
-            <label class="service-proposal__materials-quantity-field">
-              <span>QUANTITE</span>
-              <div class="service-proposal__materials-quantity">
-                <button type="button" (click)="decreaseMaterialQuoteQuantity()">-</button>
-                <strong>{{ materialQuoteDraft.quantity }}</strong>
-                <button type="button" (click)="increaseMaterialQuoteQuantity()">+</button>
-              </div>
-            </label>
-          </div>
-
-          <footer>
-            <button
-              type="button"
-              class="service-proposal__materials-cancel"
-              (click)="closeMaterialQuoteForm()"
-            >
-              Annuler
-            </button>
-            <button type="submit" class="service-proposal__materials-validate">Valider</button>
-          </footer>
-        </form>
+          [(designation)]="materialQuoteDraft.designation"
+          [(quantity)]="materialQuoteDraft.quantity"
+          [roleLabel]="materialQuoteDraftAuthorLabel()"
+          (submitted)="validateMaterialQuoteDraft()"
+          (cancelled)="closeMaterialQuoteForm()"
+        />
 
         <div *ngIf="isMaterialQuotesLoading()" class="service-proposal__materials-empty">
           <strong>Verification du devis materiel...</strong>

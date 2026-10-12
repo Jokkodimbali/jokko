@@ -36,6 +36,35 @@ it('lets the provider send material after payment', () => {
   ]);
   expect((component as any).items()).toHaveLength(1);
 });
+it('opens the shared negotiation material form from the provider summary action', async () => {
+  const { api } = setup();
+  const fixture = TestBed.createComponent(ReservationMaterialListComponent);
+  fixture.componentInstance.reservationId = 'reservation';
+  fixture.componentInstance.status = 'PAYEE_SEQUESTRE';
+  fixture.componentInstance.isProvider = true;
+  fixture.detectChanges();
+  const host = fixture.nativeElement as HTMLElement;
+  const openButton = Array.from(host.querySelectorAll('button')).find((button) => button.textContent?.includes('Ajouter du matériel'));
+  expect(openButton).toBeTruthy();
+  openButton!.click();
+  fixture.detectChanges();
+  await fixture.whenStable();
+  fixture.detectChanges();
+  const form = host.querySelector('app-material-quote-form');
+  expect(form).toBeTruthy();
+  const designation = form!.querySelector('input[name="materialDesignation"]') as HTMLInputElement;
+  designation.value = 'Tuyau PVC';
+  designation.dispatchEvent(new Event('input', { bubbles: true }));
+  designation.dispatchEvent(new Event('change', { bubbles: true }));
+  await fixture.whenStable();
+  fixture.detectChanges();
+  expect((fixture.componentInstance as any).rows[0].designation).toBe('Tuyau PVC');
+  (form!.querySelector('button[type="submit"]') as HTMLButtonElement).click();
+  await fixture.whenStable();
+  expect(api.createReservationMaterialList).toHaveBeenCalledWith('reservation', [
+    { designation: 'Tuyau PVC', quantity: 1, unitPrice: 0 },
+  ]);
+});
 it('does not submit for clients or closed reservations', () => {
   const { component, api } = setup();
   (component as any).save();

@@ -2,18 +2,18 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MessagesRealtimeService } from '../../../../messages/data-access/messages-realtime.service';
 import { CommonModule } from '@angular/common';
 import { Component, Input, OnChanges, SimpleChanges, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import {
   ServiceProposalService,
   MaterialQuoteView,
 } from '../../../../services/data-access/service-proposal.service';
 import { MaterialOrderEntryComponent } from '../material-order-entry/material-order-entry.component';
+import { MaterialQuoteFormComponent } from '../../../../../shared/ui/material-quote-form/material-quote-form.component';
 
 @Component({
   selector: 'app-reservation-material-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, MaterialOrderEntryComponent],
+  imports: [CommonModule, MaterialOrderEntryComponent, MaterialQuoteFormComponent],
   templateUrl: './reservation-material-list.component.html',
   styleUrl: './reservation-material-list.component.scss',
 })
@@ -21,6 +21,7 @@ export class ReservationMaterialListComponent implements OnChanges {
   @Input({ required: true }) reservationId = '';
   @Input() status = '';
   @Input() isProvider = false;
+  @Input() compact = false;
   private readonly api = inject(ServiceProposalService);
   protected readonly items = signal<MaterialQuoteView[]>([]);
   protected readonly saving = signal(false);
@@ -71,14 +72,6 @@ export class ReservationMaterialListComponent implements OnChanges {
         this.error.set('Impossible de charger la liste du matériel. Réessayez.');
       },
     });
-  }
-
-  protected addRow(): void {
-    if (this.rows.length < 50) this.rows.push({ designation: '', quantity: 1 });
-  }
-
-  protected removeRow(index: number): void {
-    this.rows.splice(index, 1);
   }
 
   protected save(): void {

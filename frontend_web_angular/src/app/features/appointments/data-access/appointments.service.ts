@@ -373,6 +373,20 @@ export class AppointmentsService {
       .pipe(map(unwrapApiResponse));
   }
 
+  verifyReservationPayment(reservationId: string): Observable<{ paid: boolean }> {
+    return this.http
+      .post<ApiResponse<{ paid: boolean }>>(
+        `${this.apiUrl}/payments/reservations/${reservationId}/verify`, {},
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
+  getAvailablePaymentMethods(): Observable<PaymentMethod[]> {
+    return this.http
+      .get<ApiResponse<{ methods: PaymentMethod[] }>>(`${this.apiUrl}/payments/available-methods`)
+      .pipe(map((response) => unwrapApiResponse(response).methods));
+  }
+
   cancelAppointment(
     reservationId: string,
     reason = 'Annulation demandee depuis l espace rendez-vous.',
@@ -512,6 +526,7 @@ export class AppointmentsService {
       professionalRole: reservation.professionnel?.utilisateur.role ?? null,
       serviceId: reservation.serviceId,
       status,
+      workStartedAt: reservation.prestationDemarreeLe ?? null,
       updatedAt: reservation.misAJourLe,
       scheduledAt: reservation.dateHeure,
       durationMinutes: reservation.dureeMinutes,
@@ -575,6 +590,15 @@ export class AppointmentsService {
       },
       prescriptionTemplate: reservation.professionnel?.modeleOrdonnance ?? null,
       agreedPrice,
+      paymentMethod: reservation.paiement?.methode ?? null,
+      paymentStatus: reservation.paiement?.statut ?? null,
+      refund: reservation.paiement?.remboursement ? {
+        amount: reservation.paiement.remboursement.montant,
+        status: reservation.paiement.remboursement.statut,
+        simulated: reservation.paiement.remboursement.estSimule,
+        reference: reservation.paiement.remboursement.reference,
+        completedAt: reservation.paiement.remboursement.termineLe,
+      } : null,
       priceAdjustmentStatus: reservation.statutAjustementPrix || 'AUCUN',
       proposedAdjustedPrice: reservation.prixAjustementPropose,
       priceAdjustmentReason: reservation.raisonAjustementPrix,

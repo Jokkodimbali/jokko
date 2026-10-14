@@ -226,6 +226,31 @@
                   <lucide-icon name="message-circle" size="19" [strokeWidth]="2.3"></lucide-icon>
                   Message
                 </a>
+                <button
+                  *ngIf="item.kind === 'appointment' && canRequestRefund(item)"
+                  type="button"
+                  class="appointment-row__refund"
+                  [disabled]="cancellingAppointmentId() === item.appointment.id"
+                  (click)="requestRefund(item.appointment, $event)"
+                >
+                  <img *ngIf="refundMethodLogo(item.appointment) as logo; else refundFallbackIcon" [src]="logo" [alt]="refundMethodLabel(item.appointment)" />
+                  <ng-template #refundFallbackIcon><lucide-icon name="wallet-cards" size="17" [strokeWidth]="2.3"></lucide-icon></ng-template>
+                  {{ cancellingAppointmentId() === item.appointment.id ? 'Remboursement…' : 'Rembourser' }}
+                </button>
+                <button
+                  *ngIf="item.kind === 'appointment' && canReportDispute(item)"
+                  type="button"
+                  class="appointment-row__dispute"
+                  [disabled]="reportingDisputeId() === item.appointment.id"
+                  (click)="reportDispute(item.appointment, $event)"
+                >
+                  <lucide-icon name="flag" size="17" [strokeWidth]="2.3"></lucide-icon>
+                  Signaler un litige
+                </button>
+                <span *ngIf="item.kind === 'appointment' && isRefunded(item)" class="appointment-row__refunded">
+                  <lucide-icon name="circle-check" size="17" [strokeWidth]="2.3"></lucide-icon>
+                  {{ item.appointment.refund?.simulated ? 'Remboursement simulé' : 'Remboursé sur ' + refundMethodLabel(item.appointment) }}
+                </span>
                 <a
                   class="appointment-row__primary"
                   [routerLink]="item.route"
@@ -239,7 +264,7 @@
                   {{ scheduleItemActionLabel(item) }}
                 </a>
                 <button
-                  *ngIf="!isFinishedItem(item)"
+                  *ngIf="item.kind === 'appointment' && item.appointment.status === 'CONFIRMEE'"
                   type="button"
                   class="appointment-row__cancel"
                   [disabled]="!scheduleItemCanCancel(item)"
@@ -257,4 +282,11 @@
   </section>
 
   <app-footer />
+  <app-refund-confirmation-dialog
+    *ngIf="refundToConfirm() as appointment"
+    [appointment]="appointment"
+    [busy]="cancellingAppointmentId() === appointment.id"
+    (cancel)="refundToConfirm.set(null)"
+    (confirm)="confirmRefund()"
+  />
 </main>

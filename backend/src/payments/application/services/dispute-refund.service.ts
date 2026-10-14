@@ -95,6 +95,9 @@ export class DisputeRefundService {
       where: refundKey,
     });
     if (existing?.statut === 'TERMINE') {
+      if (existing.estSimule) {
+        throw new ConflictException('PAYMENTS_REAL_REFUND_PROVIDER_REQUIRED');
+      }
       if (input.markPaymentRefunded) {
         await this.markCancellationPaymentRefunded(
           input.paymentId,
@@ -165,10 +168,14 @@ export class DisputeRefundService {
       if (!response.success) {
         throw new Error(response.error || 'PAYMENTS_REFUND_PROVIDER_REJECTED');
       }
+      if (response.data?.['simulated'] === true) {
+        throw new ConflictException('PAYMENTS_REAL_REFUND_PROVIDER_REQUIRED');
+      }
       await this.prisma.remboursementPaiement.update({
         where: { id: refund.id },
         data: {
           statut: 'TERMINE',
+          estSimule: false,
           referenceFournisseur: response.gatewayReference ?? null,
           termineLe: new Date(),
         },

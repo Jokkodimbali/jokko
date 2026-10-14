@@ -2662,3 +2662,189 @@
   color: #b84040;
   gap: 5px;
 }
+.appointment-detail__refund-action {
+  align-items: center;
+  background: #a8e4eb;
+  border: 1px solid #40c9e7;
+  border-radius: 13px;
+  color: #152d39;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  gap: 14px;
+  justify-content: center;
+  min-height: 56px;
+  padding: 8px 16px;
+  width: 100%;
+}
+
+.appointment-detail__refund-action--tracking {
+  margin-top: 14px;
+}
+
+.appointment-detail__refund-action:hover {
+  background: #91dce6;
+}
+
+.appointment-detail__refund-action:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.appointment-detail__refund-icon {
+  align-items: center;
+  background: #1ac5e9;
+  border-radius: 9px;
+  display: inline-flex;
+  flex: 0 0 42px;
+  height: 42px;
+  justify-content: center;
+}
+
+.appointment-detail__upcoming-provider .appointment-detail__refund-icon img,
+.appointment-detail__refund-icon img {
+  border-radius: 0;
+  height: 25px;
+  object-fit: contain;
+  width: 25px;
+}
+.appointment-detail__refund-page {
+  background: #fff;
+  min-height: 100vh;
+}
+
+.appointment-detail__refund-topbar {
+  align-items: center;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  min-height: 75px;
+  padding: 0 30px;
+}
+
+.appointment-detail__refund-topbar button {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 50%;
+  cursor: pointer;
+  display: inline-flex;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.appointment-detail__refund-layout {
+  display: grid;
+  gap: 44px;
+  grid-template-columns: minmax(0, 1.55fr) minmax(310px, 0.9fr);
+  margin: 78px auto 0;
+  max-width: 1144px;
+  padding: 0 24px 80px;
+}
+
+.appointment-detail__refund-card {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e9e9e9;
+  border-radius: 30px;
+  box-shadow: 0 2px 13px rgba(0, 0, 0, 0.19);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 625px;
+  padding: 116px 28px 40px;
+  text-align: center;
+}
+
+.appointment-detail__refund-check {
+  align-items: center;
+  background: #905920;
+  border-radius: 50%;
+  box-shadow: 0 20px 28px rgba(0, 0, 0, 0.22);
+  color: #fff;
+  display: inline-flex;
+  height: 76px;
+  justify-content: center;
+  width: 76px;
+}
+
+.appointment-detail__refund-card h2 {
+  color: #905920;
+  font-size: clamp(24px, 3vw, 34px);
+  margin: 56px 0 18px;
+}
+
+.appointment-detail__refund-card > strong {
+  color: #905920;
+  font-size: clamp(45px, 5.5vw, 82px);
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.appointment-detail__refund-destination {
+  align-items: center;
+  color: #8c919b;
+  display: flex;
+  font-size: 13px;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 26px;
+}
+
+.appointment-detail__refund-summary h1 {
+  color: #060606;
+  font-size: clamp(34px, 3.5vw, 48px);
+  line-height: 1.13;
+  margin: 8px 0 18px;
+}
+
+.appointment-detail__refund-summary > p {
+  border-bottom: 1px solid #f0f0f0;
+  color: #777e89;
+  font-size: 16px;
+  line-height: 1.7;
+  margin: 0;
+  padding-bottom: 31px;
+}
+
+.appointment-detail__refund-summary dl {
+  display: grid;
+  gap: 17px;
+  margin: 82px 0 0;
+}
+
+.appointment-detail__refund-summary dl > div {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 120px minmax(0, 1fr);
+}
+
+.appointment-detail__refund-summary dt {
+  color: #7c838d;
+}
+
+.appointment-detail__refund-summary dd {
+  color: #181818;
+  font-weight: 650;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 800px) {
+  .appointment-detail__refund-layout {
+    gap: 32px;
+    grid-template-columns: 1fr;
+    margin-top: 28px;
+  }
+
+  .appointment-detail__refund-card {
+    min-height: 390px;
+    padding-top: 70px;
+  }
+
+  .appointment-detail__refund-summary dl {
+    margin-top: 35px;
+  }
+}

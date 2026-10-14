@@ -201,7 +201,7 @@
                 aria-label="Moyens de paiement"
               >
                 <button
-                  *ngFor="let option of paymentOptions"
+                  *ngFor="let option of paymentOptions()"
                   type="button"
                   class="appointment-payment__method"
                   [class.appointment-payment__method--selected]="selectedMethod() === option.id"
@@ -220,6 +220,7 @@
                   <i aria-hidden="true"></i>
                 </button>
               </div>
+              <p *ngIf="!methodsLoading() && paymentOptions().length === 0" role="status">Aucun moyen de paiement réel n’est disponible pour le moment.</p>
             </section>
 
             <section
@@ -236,7 +237,7 @@
             <button
               type="button"
               class="appointment-payment__pay"
-              [disabled]="isPaying()"
+              [disabled]="isPaying() || paymentOptions().length === 0"
               (click)="pay()"
             >
               <lucide-icon name="check" size="19" [strokeWidth]="2.5"></lucide-icon>

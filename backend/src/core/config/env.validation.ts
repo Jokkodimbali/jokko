@@ -30,6 +30,8 @@ type EnvValide = {
   PAYMENT_WEBHOOK_SECRET?: string;
   WAVE_API_BASE_URL?: string;
   WAVE_API_KEY?: string;
+  WAVE_API_SIGNING_SECRET?: string;
+  ORANGE_MONEY_GATEWAY_CONTRACT?: string;
   ORANGE_MONEY_API_BASE_URL?: string;
   ORANGE_MONEY_API_KEY?: string;
   CARD_PAYMENT_API_BASE_URL?: string;
@@ -237,6 +239,8 @@ export function validerEnv(env: Record<string, unknown>): EnvValide {
     PAYMENT_WEBHOOK_SECRET: paymentWebhookSecret,
     WAVE_API_BASE_URL: asString(env.WAVE_API_BASE_URL),
     WAVE_API_KEY: asString(env.WAVE_API_KEY),
+    WAVE_API_SIGNING_SECRET: asString(env.WAVE_API_SIGNING_SECRET),
+    ORANGE_MONEY_GATEWAY_CONTRACT: asString(env.ORANGE_MONEY_GATEWAY_CONTRACT),
     ORANGE_MONEY_API_BASE_URL: asString(env.ORANGE_MONEY_API_BASE_URL),
     ORANGE_MONEY_API_KEY: asString(env.ORANGE_MONEY_API_KEY),
     CARD_PAYMENT_API_BASE_URL: asString(env.CARD_PAYMENT_API_BASE_URL),

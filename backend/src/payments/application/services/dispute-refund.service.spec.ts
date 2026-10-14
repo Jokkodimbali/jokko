@@ -99,6 +99,7 @@ describe('DisputeRefundService', () => {
       processRefund: jest.fn().mockResolvedValue({
         success: true,
         gatewayReference: 'refund-provider-1',
+        data: { refunded: true },
       }),
     };
     const service = new DisputeRefundService(prisma as never, gateway);
@@ -127,6 +128,37 @@ describe('DisputeRefundService', () => {
           escrowStatus: 'REFUNDED',
         }),
       }),
+    );
+    expect(prisma.remboursementPaiement.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ statut: 'TERMINE', estSimule: false }),
+      }),
+    );
+  });
+
+  it('rejects a simulated refund without marking the payment refunded', async () => {
+    const prisma = {
+      paiement: {
+        findUnique: jest.fn().mockImplementation(({ where }: { where: { reservationId?: string } }) =>
+          Promise.resolve(where.reservationId
+            ? { id: 'payment-1', montant: 5000, statut: 'SUCCES' }
+            : { gatewayReference: 'gateway-1', escrowStatus: 'LOCKED' })),
+        updateMany: jest.fn(),
+      },
+      remboursementPaiement: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({ id: 'refund-1' }),
+        update: jest.fn().mockResolvedValue(undefined),
+      },
+    };
+    const gateway = { processRefund: jest.fn().mockResolvedValue({ success: true, data: { simulated: true } }) };
+    const service = new DisputeRefundService(prisma as never, gateway);
+
+    await expect(service.refundForCancellation({ reservationId: 'reservation-1', reason: 'Annulation' }))
+      .rejects.toThrow('PAYMENTS_REAL_REFUND_PROVIDER_REQUIRED');
+    expect(prisma.paiement.updateMany).not.toHaveBeenCalled();
+    expect(prisma.remboursementPaiement.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ statut: 'ECHEC' }) }),
     );
   });
 

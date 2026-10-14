@@ -28,6 +28,7 @@ export interface BackendReservation {
   clientLongitude?: number | null;
   dureeMinutes: number;
   statut: AppointmentStatus;
+  prestationDemarreeLe?: string | null;
   notes: string | null;
   typeConsultation?: MedicalConsultationType;
   actesPrescriptionMedicale?: string[] | null;
@@ -102,6 +103,17 @@ export interface BackendReservation {
     }>;
   };
   conversation?: { id: string } | null;
+  paiement?: {
+    methode: 'WAVE' | 'ORANGE_MONEY' | 'CARTE';
+    statut: 'EN_ATTENTE' | 'SUCCES' | 'ECHEC' | 'REMBOURSE';
+    remboursement?: {
+      montant: number;
+      statut: 'EN_COURS' | 'TERMINE' | 'ECHEC';
+      estSimule: boolean;
+      reference: string | null;
+      termineLe: string | null;
+    } | null;
+  } | null;
 }
 
 export interface AppointmentView {
@@ -112,6 +124,7 @@ export interface AppointmentView {
   professionalRole: 'CLIENT' | 'PRESTATAIRE' | 'MEDECIN' | 'ADMIN' | null;
   serviceId: string;
   status: AppointmentStatus;
+  workStartedAt?: string | null;
   updatedAt: string;
   scheduledAt: string;
   durationMinutes: number;
@@ -149,6 +162,15 @@ export interface AppointmentView {
   medicalPrescription: MedicalPrescriptionPayload | null;
   prescriptionTemplate?: MedicalPrescriptionTemplate | null;
   agreedPrice: number | null;
+  paymentMethod: 'WAVE' | 'ORANGE_MONEY' | 'CARTE' | null;
+  paymentStatus: 'EN_ATTENTE' | 'SUCCES' | 'ECHEC' | 'REMBOURSE' | null;
+  refund: {
+    amount: number;
+    status: 'EN_COURS' | 'TERMINE' | 'ECHEC';
+    simulated: boolean;
+    reference: string | null;
+    completedAt: string | null;
+  } | null;
   priceAdjustmentStatus: 'AUCUN' | 'EN_ATTENTE_CLIENT' | 'ACCEPTE' | 'REFUSE';
   proposedAdjustedPrice: number | null;
   priceAdjustmentReason: string | null;

@@ -27,11 +27,6 @@ const RESCHEDULABLE_RESERVATION_STATUSES = new Set<ReservationStatus>([
   'CONFIRMEE',
   'PAYEE_SEQUESTRE',
 ]);
-const DISPUTABLE_ACTIVE_RESERVATION_STATUSES = new Set<ReservationStatus>([
-  'PAYEE_SEQUESTRE',
-  'EN_COURS',
-]);
-
 export type ReservationPriceAdjustmentStatus =
   | 'AUCUN'
   | 'EN_ATTENTE_CLIENT'
@@ -62,6 +57,7 @@ export type Reservation = {
   raisonAjustementPrix: string | null;
   demandeAjustementPrixLe: Date | null;
   raisonAnnulation: string | null;
+  prestationDemarreeLe?: Date | null;
   clientRating: number | null;
   clientReview: string | null;
   clientReviewedAt: Date | null;
@@ -92,6 +88,7 @@ export class ReservationEntity {
     private _raisonAjustementPrix: string | null,
     private _demandeAjustementPrixLe: Date | null,
     private _raisonAnnulation: string | null,
+    private _prestationDemarreeLe: Date | null,
     private _clientRating: number | null,
     private _clientReview: string | null,
     private _clientReviewedAt: Date | null,
@@ -234,6 +231,7 @@ export class ReservationEntity {
       null,
       null,
       null,
+      null,
       now,
       now,
     );
@@ -274,6 +272,7 @@ export class ReservationEntity {
         ? new Date(data.demandeAjustementPrixLe)
         : null,
       data.raisonAnnulation,
+      data.prestationDemarreeLe ? new Date(data.prestationDemarreeLe) : null,
       data.clientRating,
       data.clientReview,
       data.clientReviewedAt ? new Date(data.clientReviewedAt) : null,
@@ -289,6 +288,9 @@ export class ReservationEntity {
   }
 
   cancel(reason?: string | null): void {
+    if (this._prestationDemarreeLe) {
+      throw ReservationDomainError.cannotCancel();
+    }
     if (this.isFinalized()) {
       throw ReservationDomainError.alreadyClosed();
     }
@@ -420,6 +422,7 @@ export class ReservationEntity {
     }
 
     this._statut = 'EN_COURS';
+    this._prestationDemarreeLe = new Date();
     this.touch();
   }
 
@@ -477,6 +480,9 @@ export class ReservationEntity {
         ? new Date(this._demandeAjustementPrixLe)
         : null,
       raisonAnnulation: this._raisonAnnulation,
+      prestationDemarreeLe: this._prestationDemarreeLe
+        ? new Date(this._prestationDemarreeLe)
+        : null,
       clientRating: this._clientRating,
       clientReview: this._clientReview,
       clientReviewedAt: this._clientReviewedAt
@@ -518,15 +524,18 @@ export class ReservationEntity {
   }
 
   private canBeStarted(): boolean {
-    return this._statut === 'PAYEE_SEQUESTRE';
+    return (
+      !this._prestationDemarreeLe &&
+      (this._statut === 'PAYEE_SEQUESTRE' || this._statut === 'EN_COURS')
+    );
   }
 
   private canOpenDispute(): boolean {
     return (
       this._statut === 'TERMINEE' ||
       this._statut === 'NO_SHOW' ||
-      (DISPUTABLE_ACTIVE_RESERVATION_STATUSES.has(this._statut) &&
-        this.isPastScheduledEnd())
+      (this._statut === 'EN_COURS' && !!this._prestationDemarreeLe) ||
+      (this._statut === 'PAYEE_SEQUESTRE' && this.isPastScheduledEnd())
     );
   }
 

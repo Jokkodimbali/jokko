@@ -143,4 +143,15 @@ export type ReservationDetailedView = Reservation & {
     }>;
   };
   conversation: { id: string } | null;
+  paiement: {
+    methode: 'WAVE' | 'ORANGE_MONEY' | 'CARTE';
+    statut: 'EN_ATTENTE' | 'SUCCES' | 'ECHEC' | 'REMBOURSE';
+    remboursement?: {
+      montant: number;
+      statut: 'EN_COURS' | 'TERMINE' | 'ECHEC';
+      estSimule: boolean;
+      reference: string | null;
+      termineLe: Date | null;
+    } | null;
+  } | null;
 };

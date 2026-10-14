@@ -1,0 +1,12 @@
+.refund-dialog__backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 20px; background: #0d1b30a8; }
+.refund-dialog { width: min(440px, 100%); padding: 32px; border-radius: 24px; background: #fff; color: #11223d; text-align: center; box-shadow: 0 24px 70px #08142640; }
+.refund-dialog__icon { display: grid; place-items: center; width: 62px; height: 62px; margin: 0 auto 20px; border-radius: 50%; color: #87542b; background: #f5eadc; }
+.refund-dialog h2 { margin: 0; font-size: 25px; line-height: 1.2; }
+.refund-dialog p { margin: 14px 0; color: #657084; line-height: 1.5; }
+.refund-dialog strong { display: block; margin: 16px 0 24px; color: #87542b; font-size: 29px; }
+.refund-dialog__actions { display: flex; gap: 10px; }
+.refund-dialog__actions button { flex: 1; min-height: 48px; padding: 10px; border-radius: 11px; font: inherit; font-weight: 700; cursor: pointer; }
+.refund-dialog__cancel { border: 1px solid #d8dfe5; background: #fff; color: #11223d; }
+.refund-dialog__confirm { border: 1px solid #87542b; background: #87542b; color: #fff; }
+.refund-dialog__actions button:disabled { opacity: .65; cursor: wait; }
+@media (max-width: 420px) { .refund-dialog { padding: 25px 20px; } }

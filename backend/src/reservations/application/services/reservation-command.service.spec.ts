@@ -129,6 +129,7 @@ describe('ReservationCommandService', () => {
       notifyReservationCompleted: jest.fn(),
       notifyTripStatus: jest.fn(),
       notifyReservationCancelled: jest.fn(),
+      notifyReservationRefunded: jest.fn(),
       notifyReservationCancelledForProfessional: jest.fn(),
       notifyPriceAdjustmentProposed: jest.fn(),
     };
@@ -151,6 +152,15 @@ describe('ReservationCommandService', () => {
       },
       paiement: {
         updateMany: jest.fn(),
+      },
+      remboursementPaiement: {
+        findUnique: jest.fn().mockResolvedValue({
+          statut: 'TERMINE',
+          estSimule: false,
+          montant: 5000,
+          referenceFournisseur: 'refund-provider-1',
+          paiement: { methode: 'WAVE' },
+        }),
       },
       appel: {
         findFirst: jest.fn().mockResolvedValue(null),
@@ -723,6 +733,10 @@ describe('ReservationCommandService', () => {
             user.role === 'PRESTATAIRE' || user.role === 'MEDECIN',
         }),
       );
+      expect(reservationClientNotificationService.notifyReservationRefunded)
+        .toHaveBeenCalledWith(expect.objectContaining({
+          clientId: 'client-id', amount: 5000, method: 'WAVE',
+        }));
     },
   );
 
@@ -740,6 +754,38 @@ describe('ReservationCommandService', () => {
       }),
     ).rejects.toThrow('REFUND_REJECTED');
     expect(reservationsRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('does not request a refund after the prestation has started', async () => {
+    const { service, reservationsRepository, realtimeEvents } = buildService({
+      reservation: buildReservation({ statut: 'EN_COURS', prestationDemarreeLe: new Date() }),
+    });
+
+    await expect(service.cancelReservation(clientUser, 'reservation-id', {
+      reason: 'Demande de remboursement',
+    })).rejects.toThrow();
+    expect(realtimeEvents.emitAsync).not.toHaveBeenCalledWith(
+      'reservations.cancellation.refund.requested',
+      expect.anything(),
+    );
+    expect(reservationsRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('refunds an EN_COURS reservation when the prestation has not started', async () => {
+    const { service, reservationsRepository, realtimeEvents } = buildService({
+      reservation: buildReservation({ statut: 'EN_COURS', prestationDemarreeLe: null }),
+    });
+
+    const result = await service.cancelReservation(clientUser, 'reservation-id', {
+      reason: 'Annulation avant début',
+    });
+
+    expect(result.statut).toBe('ANNULEE');
+    expect(realtimeEvents.emitAsync).toHaveBeenCalledWith(
+      'reservations.cancellation.refund.requested',
+      expect.objectContaining({ paymentRequired: true }),
+    );
+    expect(reservationsRepository.update).toHaveBeenCalledTimes(1);
   });
 
   it('rejects no-show transition when the professional does not own the reservation', async () => {

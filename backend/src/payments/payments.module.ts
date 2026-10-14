@@ -118,7 +118,12 @@ import { CategoriesModule } from '../categories/categories.module';
             : 'mock');
         return mode === 'mock'
           ? [mockAdapter]
-          : [waveAdapter, orangeMoneyAdapter, cardAdapter];
+          : [
+              waveAdapter,
+              ...(configService.get<string>('ORANGE_MONEY_GATEWAY_CONTRACT') === 'compatible'
+                ? [orangeMoneyAdapter] : []),
+              cardAdapter,
+            ];
       },
       inject: [
         MockPaymentGatewayAdapter,

@@ -19,6 +19,7 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 import { CurrentUser } from '../../../auth/security/current-user.decorator';
 import type { AuthUser } from '../../../auth/security/auth-user.type';
 import { JwtAuthGuard } from '../../../auth/security/jwt-auth.guard';
@@ -49,7 +50,22 @@ export class PaymentsController {
   constructor(
     private readonly paymentsFacade: PaymentsFacade,
     private readonly savedPaymentMethods: SavedPaymentMethodsService,
+    private readonly configService: ConfigService,
   ) {}
+
+  @Get('available-methods')
+  @UseGuards(JwtAuthGuard)
+  availableMethods() {
+    const external = this.configService.get<string>('PAYMENT_GATEWAY_MODE') === 'external';
+    const methods: string[] = [];
+    if (external && this.configService.get<string>('WAVE_API_KEY')) methods.push('WAVE');
+    if (external && this.configService.get<string>('ORANGE_MONEY_API_KEY') &&
+      this.configService.get<string>('ORANGE_MONEY_API_BASE_URL') &&
+      this.configService.get<string>('ORANGE_MONEY_GATEWAY_CONTRACT') === 'compatible') {
+      methods.push('ORANGE_MONEY');
+    }
+    return createApiResponse({ methods }, 'Moyens de paiement disponibles.');
+  }
 
   @Post('initiate')
   @UseGuards(JwtAuthGuard)
@@ -96,6 +112,19 @@ export class PaymentsController {
         gatewayReference: result.gatewayReference,
       },
       appMessage('PAYMENTS_INITIATED').message,
+    );
+  }
+
+  @Post('reservations/:bookingId/verify')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async verifyReservationPayment(
+    @CurrentUser() user: AuthUser,
+    @Param('bookingId') bookingId: string,
+  ) {
+    return createApiResponse(
+      await this.paymentsFacade.verifyReservationPayment(user, bookingId),
+      'Statut du paiement vérifié auprès du fournisseur.',
     );
   }
 

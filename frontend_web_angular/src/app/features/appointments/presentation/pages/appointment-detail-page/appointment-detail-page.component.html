@@ -59,6 +59,19 @@
               </button>
             </nav>
           </header>
+          <button
+            *ngIf="canClientRequestRefund()"
+            type="button"
+            class="appointment-detail__refund-action"
+            [disabled]="isUpdatingStatus()"
+            (click)="requestRefund(appointment)"
+          >
+            <span class="appointment-detail__refund-icon">
+              <img *ngIf="refundMethodLogo(appointment) as logo; else upcomingRefundIcon" [src]="logo" alt="" />
+              <ng-template #upcomingRefundIcon><lucide-icon name="wallet-cards" size="19" [strokeWidth]="2.4"></lucide-icon></ng-template>
+            </span>
+            Rembourser {{ currentPriceLabel() }}
+          </button>
         </section>
 
         <section *ngIf="showRecipient" class="appointment-detail__upcoming-provider">
@@ -186,14 +199,14 @@
             Telecharger le recu
           </button>
           <button
-            *ngIf="showCancel"
+            *ngIf="showCancel && canCancelAppointment() && !canClientRequestRefund()"
             type="button"
             class="appointment-detail__upcoming-secondary"
             [disabled]="isUpdatingStatus() || !canCancelAppointment()"
             (click)="cancelAppointment(appointment)"
           >
             <lucide-icon name="circle-x" size="16" [strokeWidth]="2.4"></lucide-icon>
-            Annuler et se faire rembourser
+            {{ appointment.status === 'CONFIRMEE' ? 'Annuler la réservation' : 'Annuler et se faire rembourser' }}
           </button>
           <button
             *ngIf="isClientViewer() && isParcelTransportAppointment(appointment) && !isMedicineDelivery() && !isParcelPickupValidated()"
@@ -284,8 +297,48 @@
       </div>
     </section>
 
+    <section *ngIf="detailUiState() === 'closed' && hasCompletedRefund()" class="appointment-detail__refund-page">
+      <header class="appointment-detail__refund-topbar">
+        <button type="button" aria-label="Retour" (click)="goBack()">
+          <lucide-icon name="arrow-left" size="19" [strokeWidth]="2.4"></lucide-icon>
+        </button>
+      </header>
+
+      <div class="appointment-detail__refund-layout">
+        <article class="appointment-detail__refund-card">
+          <span class="appointment-detail__refund-check" aria-hidden="true">
+            <lucide-icon name="check" size="34" [strokeWidth]="2.4"></lucide-icon>
+          </span>
+          <h2>{{ appointment.refund?.simulated ? 'Montant simulé' : 'Montant remboursé' }}</h2>
+          <strong>{{ formatCurrency(appointment.refund?.amount ?? 0) }}</strong>
+          <div class="appointment-detail__refund-destination">
+            <span class="appointment-detail__refund-icon">
+              <img *ngIf="refundMethodLogo(appointment) as logo; else refundedWalletIcon" [src]="logo" alt="" />
+              <ng-template #refundedWalletIcon><lucide-icon name="wallet-cards" size="19" [strokeWidth]="2.4"></lucide-icon></ng-template>
+            </span>
+            <span>{{ appointment.refund?.simulated ? 'Simulation sur' : 'Vers' }} votre moyen de paiement {{ refundMethodLabel(appointment) }}</span>
+          </div>
+        </article>
+
+        <article class="appointment-detail__refund-summary">
+          <h1>{{ appointment.refund?.simulated ? 'Remboursement simulé' : 'Remboursement effectué' }}</h1>
+          <p *ngIf="appointment.refund?.simulated; else realRefundDescription">Cette opération a été simulée dans l'application. Aucun crédit réel sur votre compte n'a été vérifié.</p>
+          <ng-template #realRefundDescription><p>Le remboursement a été confirmé sur le moyen de paiement utilisé pour ce rendez-vous. Le crédit peut prendre du temps selon l'opérateur.</p></ng-template>
+          <dl>
+            <div><dt>Rendez-vous</dt><dd>{{ appointment.serviceName }}</dd></div>
+            <div><dt>Prestataire</dt><dd>{{ appointment.doctorName }} · {{ appointment.specialty || appointment.serviceName }}</dd></div>
+            <div><dt>Date du RDV</dt><dd>{{ appointment.fullDateLabel }}, {{ appointment.timeLabel }}</dd></div>
+            <div><dt>Moyen de paiement</dt><dd>{{ refundMethodLabel(appointment) }}</dd></div>
+            <div *ngIf="appointment.refund?.reference as reference"><dt>Référence</dt><dd>{{ reference }}</dd></div>
+            <div *ngIf="refundCompletedDate(appointment) as completedAt"><dt>Effectué le</dt><dd>{{ completedAt }}</dd></div>
+            <div><dt>Statut</dt><dd>{{ appointment.refund?.simulated ? 'Simulation terminée' : 'Remboursement confirmé' }}</dd></div>
+          </dl>
+        </article>
+      </div>
+    </section>
+
     <section
-      *ngIf="detailUiState() === 'closed'"
+      *ngIf="detailUiState() === 'closed' && !hasCompletedRefund()"
       class="appointment-detail__cancelled"
       [attr.aria-label]="cancelledScreenTitle(appointment)"
     >
@@ -1623,6 +1676,20 @@
           </button>
         </div>
 
+        <button
+          *ngIf="canClientRequestRefund()"
+          type="button"
+          class="appointment-detail__refund-action appointment-detail__refund-action--tracking"
+          [disabled]="isUpdatingStatus()"
+          (click)="requestRefund(appointment)"
+        >
+          <span class="appointment-detail__refund-icon">
+            <img *ngIf="refundMethodLogo(appointment) as logo; else trackingRefundIcon" [src]="logo" alt="" />
+            <ng-template #trackingRefundIcon><lucide-icon name="wallet-cards" size="19" [strokeWidth]="2.4"></lucide-icon></ng-template>
+          </span>
+          Rembourser {{ currentPriceLabel() }}
+        </button>
+
         <app-reservation-material-list
           [reservationId]="appointment.id"
           [status]="appointment.status"
@@ -2008,4 +2075,11 @@
       </footer>
     </article>
   </section>
+  <app-refund-confirmation-dialog
+    *ngIf="refundConfirmationOpen() && appointment() as refundAppointment"
+    [appointment]="refundAppointment"
+    [busy]="isUpdatingStatus()"
+    (cancel)="refundConfirmationOpen.set(false)"
+    (confirm)="confirmRefund()"
+  />
 </main>

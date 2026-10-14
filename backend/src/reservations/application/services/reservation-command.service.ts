@@ -279,6 +279,30 @@ export class ReservationCommandService extends ReservationAppService {
             requestUser.sub !== updated.clientId,
         },
       );
+      if (
+        reservation.statut === 'PAYEE_SEQUESTRE' ||
+        reservation.statut === 'EN_COURS'
+      ) {
+        const refund = await this.prisma.remboursementPaiement.findUnique({
+          where: { reservationId: updated.id },
+          select: {
+            statut: true,
+            estSimule: true,
+            montant: true,
+            referenceFournisseur: true,
+            paiement: { select: { methode: true } },
+          },
+        });
+        if (refund?.statut === 'TERMINE' && !refund.estSimule) {
+          await this.reservationClientNotificationService.notifyReservationRefunded({
+            reservationId: updated.id,
+            clientId: updated.clientId,
+            amount: Number(refund.montant),
+            method: refund.paiement.methode,
+            reference: refund.referenceFournisseur,
+          });
+        }
+      }
       if (requestUser.sub === updated.clientId) {
         const detailedReservation =
           await this.reservationsRepository.findDetailedById(updated.id);

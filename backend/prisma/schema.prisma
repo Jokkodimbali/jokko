@@ -623,6 +623,7 @@ model Reservation {
   raisonAjustementPrix            String?                         @map("price_adjustment_reason") @db.Text
   demandeAjustementPrixLe         DateTime?                       @map("price_adjustment_requested_at")
   raisonAnnulation                String?                         @map("cancel_reason") @db.Text
+  prestationDemarreeLe            DateTime?                       @map("work_started_at")
   clientRating                    Int?                            @map("client_rating") @db.SmallInt
   clientReview                    String?                         @map("client_review") @db.Text
   clientReviewedAt                DateTime?                       @map("client_reviewed_at")
@@ -923,6 +924,7 @@ model RemboursementPaiement {
   motif              String                      @map("reason") @db.Text
   cleIdempotence     String                      @unique @map("idempotency_key") @db.VarChar(200)
   statut             StatutRemboursementPaiement @default(EN_COURS)
+  estSimule          Boolean                     @default(false) @map("is_simulated")
   referenceFournisseur String?                   @map("provider_ref") @db.VarChar(200)
   erreur             String?                     @map("error") @db.Text
   creeLe             DateTime                    @default(now()) @map("created_at")

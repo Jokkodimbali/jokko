@@ -57,6 +57,8 @@ export class AppointmentPaymentPageComponent implements OnInit {
 
   protected readonly appointment = signal<AppointmentView | null>(null);
   protected readonly selectedMethod = signal<PaymentMethod>('WAVE');
+  protected readonly availableMethods = signal<PaymentMethod[]>([]);
+  protected readonly methodsLoading = signal(true);
   protected readonly isLoading = signal(true);
   protected readonly isPaying = signal(false);
   protected readonly isCancelling = signal(false);
@@ -67,7 +69,7 @@ export class AppointmentPaymentPageComponent implements OnInit {
     return role === 'PRESTATAIRE' || role === 'MEDECIN';
   });
 
-  protected readonly paymentOptions: PaymentOption[] = [
+  private readonly allPaymentOptions: PaymentOption[] = [
     { id: 'WAVE', label: 'Wave', logoUrl: '/wave.png', subtitle: 'Paiement mobile instantane' },
     {
       id: 'ORANGE_MONEY',
@@ -82,6 +84,9 @@ export class AppointmentPaymentPageComponent implements OnInit {
       subtitle: 'Visa, Mastercard acceptes',
     },
   ];
+  protected readonly paymentOptions = computed(() =>
+    this.allPaymentOptions.filter((option) => this.availableMethods().includes(option.id)),
+  );
 
   protected readonly amountValueLabel = computed(() =>
     new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 })
@@ -228,6 +233,14 @@ export class AppointmentPaymentPageComponent implements OnInit {
     }
 
     this.loadAppointment(reservationId);
+    this.appointmentsService.getAvailablePaymentMethods().subscribe({
+      next: (methods) => {
+        this.availableMethods.set(methods);
+        if (methods.length > 0) this.selectedMethod.set(methods[0]);
+        this.methodsLoading.set(false);
+      },
+      error: () => this.methodsLoading.set(false),
+    });
   }
 
   protected goBack(): void {
@@ -276,6 +289,10 @@ export class AppointmentPaymentPageComponent implements OnInit {
     if (!appointment || this.isPaying()) {
       return;
     }
+    if (!this.availableMethods().includes(this.selectedMethod())) {
+      this.errorMessage.set('Aucun moyen de paiement réel n’est configuré actuellement.');
+      return;
+    }
 
     if (!appointment.agreedPrice || appointment.agreedPrice <= 0) {
       this.errorMessage.set('Le prix convenu est manquant pour ce rendez-vous.');
@@ -300,17 +317,7 @@ export class AppointmentPaymentPageComponent implements OnInit {
             window.location.href = payment.paymentUrl;
             return;
           }
-
-          if (payment.paymentUrl) {
-            this.feedback.success('Paiement simule confirme pour le test web.');
-            this.appointmentsService.markAppointmentAsPaid(appointment.id).subscribe({
-              next: (paidAppointment) => this.handlePaidAppointment(paidAppointment),
-              error: () => this.navigateAfterPayment(appointment, 'PAYEE_SEQUESTRE'),
-            });
-            return;
-          }
-
-          this.router.navigate(['/appointments', appointment.id]);
+          this.errorMessage.set('Le fournisseur de paiement n’a pas fourni de lien sécurisé. Aucun paiement n’a été confirmé.');
         },
         error: (error) => {
           this.handlePaymentInitiationError(error, appointment);
@@ -445,19 +452,8 @@ export class AppointmentPaymentPageComponent implements OnInit {
         cancelPath?: string;
       }
     | undefined {
-    if (this.shouldReturnToMessages()) {
-      return {
-        successPath: this.buildMessagesPath(appointment, 'PAYEE_SEQUESTRE'),
-        cancelPath: this.router.url,
-      };
-    }
-
-    if (!this.isMedicineFlow()) {
-      return undefined;
-    }
-
     return {
-      successPath: this.paymentConfirmationPath(appointment),
+      successPath: `${this.router.url}${this.router.url.includes('?') ? '&' : '?'}paymentReturn=1`,
       cancelPath: this.paymentPath(appointment),
     };
   }
@@ -654,6 +650,9 @@ export class AppointmentPaymentPageComponent implements OnInit {
       next: (appointment) => {
         this.appointment.set(this.withPaymentDisplayLabels(appointment));
         this.isLoading.set(false);
+        if (this.route.snapshot.queryParamMap.get('paymentReturn') === '1' && !this.isPaymentConfirmed()) {
+          this.verifyReturnedPayment(reservationId);
+        }
       },
       error: () => {
         this.errorMessage.set('Impossible de charger le rendez-vous a payer.');
@@ -664,6 +663,27 @@ export class AppointmentPaymentPageComponent implements OnInit {
     this.serviceProposalService.listReservationMaterialQuotes(reservationId).subscribe({
       next: (quotes) => this.materialQuotes.set(quotes),
       error: () => this.materialQuotes.set([]),
+    });
+  }
+
+  private verifyReturnedPayment(reservationId: string): void {
+    this.isPaying.set(true);
+    this.appointmentsService.verifyReservationPayment(reservationId).subscribe({
+      next: ({ paid }) => {
+        this.isPaying.set(false);
+        if (!paid) {
+          this.errorMessage.set('Paiement encore en attente de confirmation chez Wave. Revenez dans quelques instants.');
+          return;
+        }
+        this.appointmentsService.getAppointmentById(reservationId).subscribe({
+          next: (appointment) => this.handlePaidAppointment(appointment),
+          error: () => this.errorMessage.set('Paiement confirmé, mais la réservation ne peut pas être rechargée pour le moment.'),
+        });
+      },
+      error: (error) => {
+        this.isPaying.set(false);
+        this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de vérifier le paiement chez Wave. Réessayez plus tard.'));
+      },
     });
   }
 

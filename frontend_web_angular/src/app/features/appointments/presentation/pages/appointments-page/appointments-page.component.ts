@@ -2,7 +2,7 @@
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { Subscription, forkJoin } from 'rxjs';
+import { Subscription, forkJoin, of, switchMap } from 'rxjs';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import {
   isNegotiationInProgressStatus,
@@ -17,6 +17,8 @@ import { AuthSessionService } from '../../../../../core/auth/auth-session.servic
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { AppointmentsService } from '../../../data-access/appointments.service';
 import { AppointmentStatus, AppointmentView } from '../../../domain/appointments.models';
+import { canRefundBeforeWork, hasCompletedCancellationRefund } from '../../../domain/refund-eligibility';
+import { RefundConfirmationDialogComponent } from '../../components/refund-confirmation-dialog/refund-confirmation-dialog.component';
 import {
   NegotiationScope,
   NegotiationView,
@@ -69,7 +71,7 @@ interface CalendarDay {
 @Component({
   selector: 'app-appointments-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, AppFooterComponent, LucideAngularModule],
+  imports: [CommonModule, RouterLink, AppFooterComponent, LucideAngularModule, RefundConfirmationDialogComponent],
   templateUrl: './appointments-page.component.html',
   styleUrl: './appointments-page.component.scss',
 })
@@ -98,6 +100,8 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   protected readonly cancellationMessage = signal<string | null>(null);
   protected readonly cancellationMessageTone = signal<'success' | 'error'>('success');
   protected readonly cancellingAppointmentId = signal<string | null>(null);
+  protected readonly refundToConfirm = signal<AppointmentView | null>(null);
+  protected readonly reportingDisputeId = signal<string | null>(null);
 
   protected readonly sortedAppointmentList = computed(() =>
     this.sortedAppointments(this.appointments()),
@@ -383,6 +387,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   }
 
   protected rowTone(appointment: AppointmentView): AppointmentTone {
+    if (appointment.status === 'ANNULEE' && appointment.paymentStatus === 'REMBOURSE') return 'green';
     if (
       appointment.status === 'LITIGE' ||
       appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT'
@@ -393,6 +398,8 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   }
 
   protected statusLabel(appointment: AppointmentView): string {
+    if (appointment.status === 'ANNULEE' && appointment.paymentStatus === 'REMBOURSE')
+      return appointment.refund?.simulated ? 'Simulation terminée' : 'Remboursé';
     if (appointment.status === 'LITIGE') return 'Litige';
     if (appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT') return 'Urgent';
     if (appointment.status === 'CONFIRMEE') return 'Confirmé';
@@ -405,7 +412,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     if (appointment.priceAdjustmentStatus === 'EN_ATTENTE_CLIENT') return 'Demande en cours';
     if (appointment.status === 'TERMINEE') return 'Prestation terminee';
     if (appointment.status === 'EN_COURS' || appointment.status === 'PAYEE_SEQUESTRE') {
-      return 'Prestation en cours';
+      return appointment.workStartedAt ? 'Prestation en cours' : 'Prestation non démarrée';
     }
     if (appointment.status === 'ANNULEE') return 'Rendez-vous annule';
     if (appointment.status === 'NO_SHOW') return 'Rendez-vous non honore';
@@ -444,6 +451,72 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     return this.hasCancellableStatus(appointment.status);
   }
 
+  protected canRequestRefund(item: ScheduleItem): boolean {
+    return item.kind === 'appointment' &&
+      canRefundBeforeWork(item.appointment) &&
+      this.resolveReservationScope() === 'CLIENT';
+  }
+
+  protected canReportDispute(item: ScheduleItem): boolean {
+    return item.kind === 'appointment' &&
+      ((item.appointment.status === 'EN_COURS' && !!item.appointment.workStartedAt) ||
+        ['TERMINEE', 'NO_SHOW'].includes(item.appointment.status)) &&
+      this.resolveReservationScope() === 'CLIENT';
+  }
+
+  protected isRefunded(item: ScheduleItem): boolean {
+    return item.kind === 'appointment' && hasCompletedCancellationRefund(item.appointment);
+  }
+
+  protected refundMethodLogo(appointment: AppointmentView): string | null {
+    switch (appointment.paymentMethod) {
+      case 'WAVE': return '/wave.png';
+      case 'ORANGE_MONEY': return '/Orange-Money-logo.png';
+      case 'CARTE': return '/logo vissa.avif';
+      default: return null;
+    }
+  }
+
+  protected refundMethodLabel(appointment: AppointmentView): string {
+    switch (appointment.paymentMethod) {
+      case 'WAVE': return 'Wave';
+      case 'ORANGE_MONEY': return 'Orange Money';
+      case 'CARTE': return 'carte bancaire';
+      default: return 'moyen de paiement initial';
+    }
+  }
+
+  protected requestRefund(appointment: AppointmentView, event: Event): void {
+    event.stopPropagation();
+    if (!canRefundBeforeWork(appointment) || this.resolveReservationScope() !== 'CLIENT') return;
+    this.refundToConfirm.set(appointment);
+  }
+
+  protected confirmRefund(): void {
+    const appointment = this.refundToConfirm();
+    if (!appointment || this.cancellingAppointmentId()) return;
+    this.cancelAppointment(appointment);
+  }
+
+  protected reportDispute(appointment: AppointmentView, event: Event): void {
+    event.stopPropagation();
+    if (!((appointment.status === 'EN_COURS' && appointment.workStartedAt) ||
+      ['TERMINEE', 'NO_SHOW'].includes(appointment.status)) ||
+      this.reportingDisputeId()) return;
+    this.reportingDisputeId.set(appointment.id);
+    this.appointmentsService.openDispute(appointment.id, 'Signalement client depuis la liste des réservations : problème après le début de la prestation.').subscribe({
+      next: (updated) => {
+        this.appointments.update((items) => items.map((item) => item.id === appointment.id ? updated : item));
+        this.reportingDisputeId.set(null);
+        this.showCancellationMessage('Litige signalé. Vous pouvez suivre son traitement dans le détail de la réservation.', 'success');
+      },
+      error: (error) => {
+        this.reportingDisputeId.set(null);
+        this.showCancellationMessage(getHttpErrorMessage(error, 'Impossible de signaler le litige pour le moment.'), 'error');
+      },
+    });
+  }
+
   protected primaryActionLabel(appointment: AppointmentView): string {
     if (this.canProviderCloseAppointment(appointment)) return 'Cloturer';
     if (this.shouldPayAppointment(appointment)) return 'Payer';
@@ -476,9 +549,9 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
     return 'Annuler ce rendez-vous.';
   }
 
-  protected cancelAppointment(appointment: AppointmentView, event: Event): void {
-    event.preventDefault();
-    event.stopPropagation();
+  protected cancelAppointment(appointment: AppointmentView, event?: Event): void {
+    event?.preventDefault();
+    event?.stopPropagation();
 
     if (!this.canCancel(appointment)) {
       this.showCancellationMessage(this.cancellationDisabledReason(appointment), 'error');
@@ -487,18 +560,34 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
 
     this.cancellingAppointmentId.set(appointment.id);
     this.cancellationMessage.set(null);
+    const wasPaidBeforeWork = canRefundBeforeWork(appointment);
 
     this.appointmentsService
       .cancelAppointment(appointment.id, 'Annulation demandee depuis la page rendez-vous.')
+      .pipe(switchMap((updated) => wasPaidBeforeWork
+        ? this.appointmentsService.getAppointmentById(updated.id)
+        : of(updated)))
       .subscribe({
         next: (updated) => {
           this.appointments.update((appointments) =>
-            appointments.map((item) => (item.id === appointment.id ? updated : item)),
+            appointments.map((item) => (item.id === appointment.id ? {
+              ...updated,
+              paymentMethod: appointment.paymentMethod,
+              paymentStatus: updated.paymentStatus ?? appointment.paymentStatus,
+              refund: updated.refund ?? appointment.refund,
+            } : item)),
           );
           this.cancellingAppointmentId.set(null);
+          this.refundToConfirm.set(null);
+          this.refreshAppointments('CLIENT');
+          if (wasPaidBeforeWork && hasCompletedCancellationRefund(updated)) {
+            void this.router.navigate(['/appointments', appointment.id]);
+          }
           this.showCancellationMessage(
-            appointment.status === 'PAYEE_SEQUESTRE' || appointment.status === 'EN_COURS'
-              ? 'Rendez-vous annulé. Le remboursement a été accepté sur votre moyen de paiement initial. Le crédit peut prendre du temps.'
+            wasPaidBeforeWork
+              ? hasCompletedCancellationRefund(updated)
+                ? 'Remboursement confirmé.'
+                : 'Réservation annulée. Le remboursement n’est pas encore confirmé. Consultez le détail.'
               : 'Rendez-vous annulé avec succès.',
             'success',
           );
@@ -637,7 +726,9 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   protected scheduleItemStatusIcon(item: ScheduleItem): string | null {
     return item.kind === 'negotiation'
       ? negotiationStatusIcon(item.negotiation.statut)
-      : reservationStatusIcon(item.appointment.status);
+      : item.appointment.status === 'ANNULEE' && item.appointment.paymentStatus === 'REMBOURSE'
+        ? 'circle-check'
+        : reservationStatusIcon(item.appointment.status);
   }
 
   protected scheduleItemRoute(item: ScheduleItem): string[] {
@@ -653,7 +744,7 @@ export class AppointmentsPageComponent implements OnInit, OnDestroy {
   }
 
   protected scheduleItemCanCancel(item: ScheduleItem): boolean {
-    return item.kind === 'appointment' && this.canCancel(item.appointment);
+    return item.kind === 'appointment' && item.appointment.status === 'CONFIRMEE' && this.canCancel(item.appointment);
   }
 
   protected scheduleItemCancelLabel(item: ScheduleItem): string {

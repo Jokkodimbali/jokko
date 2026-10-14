@@ -33,6 +33,7 @@ const RESERVATION_SELECT = {
   raisonAjustementPrix: true,
   demandeAjustementPrixLe: true,
   raisonAnnulation: true,
+  prestationDemarreeLe: true,
   clientRating: true,
   clientReview: true,
   clientReviewedAt: true,
@@ -125,6 +126,24 @@ const RESERVATION_DETAIL_SELECT = {
   conversation: {
     select: { id: true },
   },
+  paiement: {
+    select: {
+      methode: true,
+      statut: true,
+      remboursements: {
+        where: { reservationId: { not: null } },
+        orderBy: { creeLe: 'desc' as const },
+        take: 1,
+        select: {
+          montant: true,
+          statut: true,
+          estSimule: true,
+          referenceFournisseur: true,
+          termineLe: true,
+        },
+      },
+    },
+  },
 } as const;
 
 type ReservationRecord = {
@@ -150,6 +169,7 @@ type ReservationRecord = {
   raisonAjustementPrix: string | null;
   demandeAjustementPrixLe: Date | null;
   raisonAnnulation: string | null;
+  prestationDemarreeLe: Date | null;
   clientRating: number | null;
   clientReview: string | null;
   clientReviewedAt: Date | null;
@@ -217,6 +237,17 @@ type ReservationDetailRecord = ReservationRecord & {
     propositions: Array<{ message: string | null }>;
   } | null;
   conversation: { id: string } | null;
+  paiement: {
+    methode: $Enums.MethodePaiement;
+    statut: $Enums.StatutPaiement;
+    remboursements: Array<{
+      montant: Prisma.Decimal;
+      statut: $Enums.StatutRemboursementPaiement;
+      estSimule: boolean;
+      referenceFournisseur: string | null;
+      termineLe: Date | null;
+    }>;
+  } | null;
 };
 
 @Injectable()
@@ -398,6 +429,7 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
             raisonAjustementPrix: reservation.raisonAjustementPrix,
             demandeAjustementPrixLe: reservation.demandeAjustementPrixLe,
             raisonAnnulation: reservation.raisonAnnulation,
+            prestationDemarreeLe: reservation.prestationDemarreeLe ?? null,
             clientRating: reservation.clientRating,
             clientReview: reservation.clientReview,
             clientReviewedAt: reservation.clientReviewedAt,
@@ -472,6 +504,7 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
             raisonAjustementPrix: reservation.raisonAjustementPrix,
             demandeAjustementPrixLe: reservation.demandeAjustementPrixLe,
             raisonAnnulation: reservation.raisonAnnulation,
+            prestationDemarreeLe: reservation.prestationDemarreeLe ?? null,
             clientRating: reservation.clientRating,
             clientReview: reservation.clientReview,
             clientReviewedAt: reservation.clientReviewedAt,
@@ -546,6 +579,7 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
           raisonAjustementPrix: reservation.raisonAjustementPrix,
           demandeAjustementPrixLe: reservation.demandeAjustementPrixLe,
           raisonAnnulation: reservation.raisonAnnulation,
+          prestationDemarreeLe: reservation.prestationDemarreeLe ?? null,
           clientRating: reservation.clientRating,
           clientReview: reservation.clientReview,
           clientReviewedAt: reservation.clientReviewedAt,
@@ -836,6 +870,7 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
       raisonAjustementPrix: record.raisonAjustementPrix,
       demandeAjustementPrixLe: record.demandeAjustementPrixLe,
       raisonAnnulation: record.raisonAnnulation,
+      prestationDemarreeLe: record.prestationDemarreeLe,
       clientRating: record.clientRating,
       clientReview: record.clientReview,
       clientReviewedAt: record.clientReviewedAt,
@@ -873,6 +908,19 @@ export class ReservationsRepository implements ReservationsRepositoryPort {
         noteGlobale: record.professionnel.noteGlobale.toNumber(),
       },
       conversation: record.conversation,
+      paiement: record.paiement ? {
+        methode: record.paiement.methode,
+        statut: record.paiement.statut,
+        remboursement: record.paiement.remboursements[0]
+          ? {
+              montant: record.paiement.remboursements[0].montant.toNumber(),
+              statut: record.paiement.remboursements[0].statut,
+              estSimule: record.paiement.remboursements[0].estSimule,
+              reference: record.paiement.remboursements[0].referenceFournisseur,
+              termineLe: record.paiement.remboursements[0].termineLe,
+            }
+          : null,
+      } : null,
     };
   }
 

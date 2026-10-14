@@ -76,7 +76,7 @@ export class MockPaymentGatewayAdapter implements PaymentGatewayAdapter {
     return Promise.resolve({
       success: true,
       gatewayReference: params.gatewayReference,
-      data: { refunded: true, amount: params.amount },
+      data: { refunded: true, amount: params.amount, simulated: true },
     });
   }
 

@@ -519,7 +519,9 @@
 
 .appointment-row__ghost,
 .appointment-row__primary,
-.appointment-row__cancel {
+.appointment-row__cancel,
+.appointment-row__refund,
+.appointment-row__dispute {
   align-items: center;
   border-radius: 13px;
   display: inline-flex;
@@ -530,6 +532,22 @@
   min-height: 41px;
   padding: 0 18px;
   text-decoration: none;
+}
+
+.appointment-row__dispute:disabled { cursor: wait; opacity: 0.6; }
+
+.appointment-row__refunded {
+  align-items: center;
+  background: #ebfaf3;
+  border: 1px solid #bcebd5;
+  border-radius: 13px;
+  color: #18745a;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 6px;
+  min-height: 41px;
+  padding: 0 12px;
 }
 
 .appointment-row__ghost {
@@ -557,6 +575,35 @@
 .appointment-row__cancel:disabled {
   cursor: not-allowed;
   opacity: 0.45;
+}
+
+.appointment-row__refund {
+  background: #13b9ed;
+  border: 1px solid #13b9ed;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.appointment-row__refund img {
+  background: #fff;
+  border-radius: 50%;
+  height: 19px;
+  object-fit: contain;
+  width: 19px;
+}
+
+.appointment-row__refund:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.appointment-row__dispute {
+  background: #fff;
+  border: 1px solid #cfc5bc;
+  color: #8a5221;
+  cursor: pointer;
+  font-weight: 700;
 }
 
 .appointments-feedback,
@@ -1006,13 +1053,15 @@
     display: grid;
     gap: 5px;
     grid-column: 1 / -1;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     width: 100%;
   }
 
   .appointment-row__ghost,
   .appointment-row__primary,
-  .appointment-row__cancel {
+  .appointment-row__cancel,
+  .appointment-row__refund,
+  .appointment-row__dispute {
     align-items: center;
     border-radius: 8px;
     display: inline-flex;
@@ -1046,5 +1095,10 @@
 
   .appointment-row__cancel {
     grid-column: 1 / -1;
+  }
+
+  .appointment-row__refund img {
+    height: 14px;
+    width: 14px;
   }
 }

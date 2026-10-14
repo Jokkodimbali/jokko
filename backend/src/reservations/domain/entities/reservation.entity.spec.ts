@@ -73,6 +73,42 @@ describe('ReservationEntity', () => {
     });
   });
 
+  it('refuses a refund cancellation once the prestation has started', () => {
+    const reservation = ReservationEntity.reconstitute({
+      ...buildEntity().toView(),
+      statut: 'EN_COURS',
+      prestationDemarreeLe: new Date(),
+    });
+
+    expect(() => reservation.cancel('Remboursement')).toThrow();
+    expect(reservation.toView().statut).toBe('EN_COURS');
+    reservation.openDispute('Prestation contestée après le démarrage.');
+    expect(reservation.toView().statut).toBe('LITIGE');
+  });
+
+  it('allows refund cancellation during travel before the prestation starts', () => {
+    const reservation = ReservationEntity.reconstitute({
+      ...buildEntity().toView(),
+      statut: 'EN_COURS',
+      prestationDemarreeLe: null,
+    });
+
+    reservation.cancel('Annulation avant intervention');
+    expect(reservation.toView().statut).toBe('ANNULEE');
+  });
+
+  it('records the actual start even when the reservation was already marked in progress', () => {
+    const reservation = ReservationEntity.reconstitute({
+      ...buildEntity().toView(),
+      statut: 'EN_COURS',
+      prestationDemarreeLe: null,
+    });
+
+    reservation.startReservation();
+    expect(reservation.toView().prestationDemarreeLe).toBeInstanceOf(Date);
+    expect(() => reservation.cancel('Remboursement')).toThrow();
+  });
+
   it('allows the owning professional to reschedule a future reservation within 24 hours', () => {
     const reservation = ReservationEntity.reconstitute({
       ...buildEntity().toView(),

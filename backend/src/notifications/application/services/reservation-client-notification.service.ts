@@ -345,6 +345,31 @@ export class ReservationClientNotificationService {
     );
   }
 
+  async notifyReservationRefunded(input: {
+    reservationId: string;
+    clientId: string;
+    amount: number;
+    method: string | null;
+    reference: string | null;
+  }): Promise<void> {
+    const method = input.method === 'ORANGE_MONEY' ? 'Orange Money'
+      : input.method === 'WAVE' ? 'Wave'
+      : input.method === 'CARTE' ? 'votre carte' : 'votre moyen de paiement';
+    await this.notificationsService.createInAppNotification({
+      userId: input.clientId,
+      type: NOTIFICATION_TYPES.RESERVATION_ANNULEE,
+      title: 'Remboursement effectué',
+      body: `Votre remboursement de ${input.amount.toLocaleString('fr-FR')} FCFA a été confirmé sur ${method}.`,
+      data: {
+        reservationId: input.reservationId,
+        amount: input.amount,
+        paymentMethod: input.method,
+        refundReference: input.reference,
+        refundStatus: 'TERMINE',
+      },
+    });
+  }
+
   async notifyReservationCancelledForProfessional(
     input: ReservationProfessionalCancellationNotificationInput,
   ): Promise<void> {

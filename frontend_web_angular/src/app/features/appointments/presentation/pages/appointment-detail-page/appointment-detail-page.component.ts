@@ -60,6 +60,8 @@ import {
   AppointmentView,
   MedicalPrescriptionPayload,
 } from '../../../domain/appointments.models';
+import { canRefundBeforeWork, hasCompletedCancellationRefund } from '../../../domain/refund-eligibility';
+import { RefundConfirmationDialogComponent } from '../../components/refund-confirmation-dialog/refund-confirmation-dialog.component';
 import { AppointmentDetailFormatService } from './appointment-detail-format.service';
 import { AppointmentDocumentBuilderService } from './appointment-document-builder.service';
 import { AppointmentDocumentRendererService } from './appointment-document-renderer.service';
@@ -183,6 +185,7 @@ const LIVE_TRACKING_STATUSES: ReadonlySet<AppointmentStatus> = new Set([
     CallMediaTrackDirective,
     ReservationMaterialListComponent,
     PharmacyOrderEntryComponent,
+    RefundConfirmationDialogComponent,
   ],
   templateUrl: './appointment-detail-page.component.html',
   styleUrls: [
@@ -411,6 +414,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly alertEnabled = signal(false);
   protected readonly isUpdatingStatus = signal(false);
+  protected readonly refundConfirmationOpen = signal(false);
   protected readonly locationSharingState = signal<'active' | 'recovering' | 'unavailable'>(
     'active',
   );
@@ -544,9 +548,56 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     );
   });
   protected readonly canCancelAppointment = computed(() => {
-    const status = this.appointment()?.status;
-    return !!status && !this.isTerminalAppointmentStatus(status);
+    const appointment = this.appointment();
+    return !!appointment && !appointment.workStartedAt &&
+      ['CONFIRMEE', 'PAYEE_SEQUESTRE', 'EN_COURS'].includes(appointment.status);
   });
+  protected readonly canClientRequestRefund = computed(() => {
+    const appointment = this.appointment();
+    return !!appointment && this.isClientViewer() && canRefundBeforeWork(appointment);
+  });
+  protected readonly hasCompletedRefund = computed(() => {
+    const appointment = this.appointment();
+    return !!appointment && this.isClientViewer() && hasCompletedCancellationRefund(appointment);
+  });
+
+  protected refundMethodLabel(appointment: AppointmentView): string {
+    switch (appointment.paymentMethod) {
+      case 'WAVE': return 'Wave';
+      case 'ORANGE_MONEY': return 'Orange Money';
+      case 'CARTE': return 'carte bancaire';
+      default: return 'moyen de paiement initial';
+    }
+  }
+
+  protected refundCompletedDate(appointment: AppointmentView): string | null {
+    const raw = appointment.refund?.completedAt;
+    if (!raw) return null;
+    const date = new Date(raw);
+    return Number.isNaN(date.getTime()) ? null : new Intl.DateTimeFormat('fr-SN', {
+      dateStyle: 'long', timeStyle: 'short', timeZone: 'Africa/Dakar',
+    }).format(date);
+  }
+
+  protected refundMethodLogo(appointment: AppointmentView): string | null {
+    switch (appointment.paymentMethod) {
+      case 'WAVE': return '/wave.png';
+      case 'ORANGE_MONEY': return '/Orange-Money-logo.png';
+      case 'CARTE': return '/logo vissa.avif';
+      default: return null;
+    }
+  }
+
+  protected requestRefund(appointment: AppointmentView): void {
+    if (!this.canClientRequestRefund() || this.isUpdatingStatus()) return;
+    this.refundConfirmationOpen.set(true);
+  }
+
+  protected confirmRefund(): void {
+    const appointment = this.appointment();
+    if (!appointment || !this.refundConfirmationOpen() || this.isUpdatingStatus()) return;
+    this.cancelAppointment(appointment);
+  }
   protected readonly minRescheduleDateTime = computed(() =>
     this.formatter.toDateTimeLocalValue(new Date(Date.now() + 15 * 60 * 1000)),
   );
@@ -642,7 +693,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
     // La presence est globale au professionnel et peut concerner une autre
     // mission. Seul le statut de cette reservation peut declarer son debut.
-    return appointment.status === 'EN_COURS';
+    return appointment.status === 'EN_COURS' && !!appointment.workStartedAt;
   });
   protected readonly isProviderOnTheWay = computed(() => {
     const appointment = this.appointment();
@@ -894,7 +945,7 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
   });
   protected readonly canProviderCompleteWork = computed(() => {
     const appointment = this.appointment();
-    const isWorkStarted = appointment?.status === 'EN_COURS' || this.isProviderWorking();
+    const isWorkStarted = !!appointment?.workStartedAt;
     return (
       !!appointment &&
       this.canManageProviderStatus() &&
@@ -2339,7 +2390,8 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
 
   protected canOpenDispute(appointment: AppointmentView): boolean {
     if (appointment.status === 'TERMINEE' || appointment.status === 'NO_SHOW') return true;
-    if (appointment.status !== 'PAYEE_SEQUESTRE' && appointment.status !== 'EN_COURS') return false;
+    if (appointment.status === 'EN_COURS') return !!appointment.workStartedAt;
+    if (appointment.status !== 'PAYEE_SEQUESTRE') return false;
     return this.isPastScheduledEnd(appointment);
   }
 
@@ -2640,18 +2692,24 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     this.isUpdatingStatus.set(true);
     this.appointmentsService
       .cancelAppointment(appointment.id, 'Annulation demandee depuis le detail du rendez-vous.')
+      .pipe(switchMap((updated) => this.appointmentsService.getAppointmentById(updated.id)))
       .subscribe({
         next: (updated) => {
+          this.refundConfirmationOpen.set(false);
           this.appointment.update((current) =>
             this.mergeAppointment(current ?? appointment, updated),
           );
           this.synchronizeLiveNavigation(updated);
           this.isUpdatingStatus.set(false);
-          this.feedback.success('Rendez-vous annule.');
+          this.feedback.success(canRefundBeforeWork(appointment)
+            ? hasCompletedCancellationRefund(updated)
+              ? 'Remboursement confirmé.'
+              : 'Réservation annulée. Le remboursement n’est pas encore confirmé.'
+            : 'Rendez-vous annulé.');
         },
         error: () => {
           this.isUpdatingStatus.set(false);
-          this.feedback.error("Impossible d'annuler ce rendez-vous.");
+          this.feedback.error("Impossible de confirmer le remboursement. Vérifiez son statut avant de réessayer.");
         },
       });
   }

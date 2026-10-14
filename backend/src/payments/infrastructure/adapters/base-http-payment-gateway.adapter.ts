@@ -61,7 +61,7 @@ export abstract class BaseHttpPaymentGatewayAdapter implements PaymentGatewayAda
     );
 
     return {
-      success: true,
+      success: response.success !== false && !!response.reference,
       gatewayReference: response.reference ?? gatewayReference,
       data: response,
     };
@@ -76,10 +76,10 @@ export abstract class BaseHttpPaymentGatewayAdapter implements PaymentGatewayAda
     );
 
     return {
-      success: response.refunded === true,
+      success: response.success !== false && response.refunded === true,
       gatewayReference: response.reference ?? params.gatewayReference,
       error:
-        response.refunded === true
+        response.success !== false && response.refunded === true
           ? undefined
           : (response.error ??
             `${this.providerName} n'a pas confirmé le remboursement.`),
@@ -98,13 +98,14 @@ export abstract class BaseHttpPaymentGatewayAdapter implements PaymentGatewayAda
       return this.buildMissingConfigurationResponse() as TResponse;
     }
 
-    const response = await fetch(`${baseUrl}${path}`, {
+    const response = await fetch(`${baseUrl.replace(/\/$/, '')}${path}`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(10_000),
     });
 
     const json = (await response.json()) as TResponse;
@@ -112,6 +113,7 @@ export abstract class BaseHttpPaymentGatewayAdapter implements PaymentGatewayAda
       return {
         ...json,
         success: false,
+        refunded: false,
         error: `${this.providerName} a refuse la requete paiement.`,
       } as TResponse;
     }

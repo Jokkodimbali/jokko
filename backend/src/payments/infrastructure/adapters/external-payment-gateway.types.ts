@@ -10,12 +10,14 @@ export type ExternalPaymentInitResponse = {
 };
 
 export type ExternalPaymentVerifyResponse = {
+  success?: boolean;
   reference?: string;
   status?: string;
   amount?: number;
 };
 
 export type ExternalPaymentRefundResponse = {
+  success?: boolean;
   reference?: string;
   refunded?: boolean;
   status?: string;

@@ -58,6 +58,7 @@ export class AppointmentPaymentPageComponent implements OnInit {
   protected readonly appointment = signal<AppointmentView | null>(null);
   protected readonly selectedMethod = signal<PaymentMethod>('WAVE');
   protected readonly availableMethods = signal<PaymentMethod[]>([]);
+  protected readonly simulatedPayment = signal(false);
   protected readonly methodsLoading = signal(true);
   protected readonly isLoading = signal(true);
   protected readonly isPaying = signal(false);
@@ -234,8 +235,9 @@ export class AppointmentPaymentPageComponent implements OnInit {
 
     this.loadAppointment(reservationId);
     this.appointmentsService.getAvailablePaymentMethods().subscribe({
-      next: (methods) => {
+      next: ({ methods, simulated }) => {
         this.availableMethods.set(methods);
+        this.simulatedPayment.set(simulated);
         if (methods.length > 0) this.selectedMethod.set(methods[0]);
         this.methodsLoading.set(false);
       },
@@ -290,7 +292,7 @@ export class AppointmentPaymentPageComponent implements OnInit {
       return;
     }
     if (!this.availableMethods().includes(this.selectedMethod())) {
-      this.errorMessage.set('Aucun moyen de paiement réel n’est configuré actuellement.');
+      this.errorMessage.set('Aucun moyen de paiement n’est disponible actuellement.');
       return;
     }
 
@@ -310,6 +312,10 @@ export class AppointmentPaymentPageComponent implements OnInit {
       )
       .subscribe({
         next: (payment) => {
+          if (this.simulatedPayment()) {
+            this.confirmSimulatedPayment(appointment.id);
+            return;
+          }
           this.isPaying.set(false);
           this.feedback.success('Paiement initialise avec succes.');
 
@@ -323,6 +329,29 @@ export class AppointmentPaymentPageComponent implements OnInit {
           this.handlePaymentInitiationError(error, appointment);
         },
       });
+  }
+
+  private confirmSimulatedPayment(reservationId: string): void {
+    this.appointmentsService.simulateReservationPayment(reservationId).subscribe({
+      next: ({ paid }) => {
+        if (!paid) {
+          this.isPaying.set(false);
+          this.errorMessage.set('La simulation du paiement n’a pas été confirmée.');
+          return;
+        }
+        this.appointmentsService.getAppointmentById(reservationId).subscribe({
+          next: (appointment) => this.handlePaidAppointment(appointment),
+          error: () => {
+            this.isPaying.set(false);
+            this.errorMessage.set('Simulation confirmée, mais la réservation ne peut pas être rechargée.');
+          },
+        });
+      },
+      error: (error) => {
+        this.isPaying.set(false);
+        this.errorMessage.set(getHttpErrorMessage(error, 'Impossible de confirmer la simulation du paiement.'));
+      },
+    });
   }
 
   protected cancelReservation(): void {
@@ -399,6 +428,10 @@ export class AppointmentPaymentPageComponent implements OnInit {
 
   private handlePaidAppointment(appointment: AppointmentView): void {
     this.isPaying.set(false);
+    if (this.route.snapshot.queryParamMap.get('source') === 'tender') {
+      void this.router.navigateByUrl('/appels-offres', { replaceUrl: true });
+      return;
+    }
     if (!this.shouldReturnToMessages()) {
       this.appointment.set(this.withPaymentDisplayLabels(appointment));
       this.router.navigateByUrl(
@@ -426,19 +459,9 @@ export class AppointmentPaymentPageComponent implements OnInit {
   private handlePaymentInitiationError(error: unknown, appointment: AppointmentView): void {
     const errorCode = (error as { error?: { errorCode?: string } })?.error?.errorCode;
     if (errorCode === 'PAYMENT_ALREADY_PROCESSED') {
-      this.feedback.info('Paiement deja initie. Confirmation de la reservation en cours.');
-      this.appointmentsService.markAppointmentAsPaid(appointment.id).subscribe({
-        next: (paidAppointment) => this.handlePaidAppointment(paidAppointment),
-        error: (markPaidError) => {
-          this.errorMessage.set(
-            getHttpErrorMessage(
-              markPaidError,
-              'Paiement deja initie, mais la reservation na pas pu etre confirmee.',
-            ),
-          );
-          this.isPaying.set(false);
-        },
-      });
+      this.feedback.info('Paiement déjà initié. Vérification de la réservation en cours.');
+      if (this.simulatedPayment()) this.confirmSimulatedPayment(appointment.id);
+      else this.verifyReturnedPayment(appointment.id);
       return;
     }
 
@@ -650,6 +673,10 @@ export class AppointmentPaymentPageComponent implements OnInit {
       next: (appointment) => {
         this.appointment.set(this.withPaymentDisplayLabels(appointment));
         this.isLoading.set(false);
+        if (this.route.snapshot.queryParamMap.get('source') === 'tender' && this.isPaymentConfirmed()) {
+          this.handlePaidAppointment(appointment);
+          return;
+        }
         if (this.route.snapshot.queryParamMap.get('paymentReturn') === '1' && !this.isPaymentConfirmed()) {
           this.verifyReturnedPayment(reservationId);
         }
@@ -672,7 +699,7 @@ export class AppointmentPaymentPageComponent implements OnInit {
       next: ({ paid }) => {
         this.isPaying.set(false);
         if (!paid) {
-          this.errorMessage.set('Paiement encore en attente de confirmation chez Wave. Revenez dans quelques instants.');
+          this.errorMessage.set('Paiement encore en attente de confirmation chez le fournisseur. Revenez dans quelques instants.');
           return;
         }
         this.appointmentsService.getAppointmentById(reservationId).subscribe({

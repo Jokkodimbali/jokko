@@ -63,10 +63,11 @@
             *ngIf="canClientRequestRefund()"
             type="button"
             class="appointment-detail__refund-action"
+            [attr.data-payment-method]="appointment.paymentMethod"
             [disabled]="isUpdatingStatus()"
             (click)="requestRefund(appointment)"
           >
-            <span class="appointment-detail__refund-icon">
+            <span class="appointment-detail__refund-icon" [attr.data-payment-method]="appointment.paymentMethod">
               <img *ngIf="refundMethodLogo(appointment) as logo; else upcomingRefundIcon" [src]="logo" alt="" />
               <ng-template #upcomingRefundIcon><lucide-icon name="wallet-cards" size="19" [strokeWidth]="2.4"></lucide-icon></ng-template>
             </span>
@@ -312,7 +313,7 @@
           <h2>{{ appointment.refund?.simulated ? 'Montant simulé' : 'Montant remboursé' }}</h2>
           <strong>{{ formatCurrency(appointment.refund?.amount ?? 0) }}</strong>
           <div class="appointment-detail__refund-destination">
-            <span class="appointment-detail__refund-icon">
+            <span class="appointment-detail__refund-icon" [attr.data-payment-method]="appointment.paymentMethod">
               <img *ngIf="refundMethodLogo(appointment) as logo; else refundedWalletIcon" [src]="logo" alt="" />
               <ng-template #refundedWalletIcon><lucide-icon name="wallet-cards" size="19" [strokeWidth]="2.4"></lucide-icon></ng-template>
             </span>
@@ -1680,10 +1681,11 @@
           *ngIf="canClientRequestRefund()"
           type="button"
           class="appointment-detail__refund-action appointment-detail__refund-action--tracking"
+          [attr.data-payment-method]="appointment.paymentMethod"
           [disabled]="isUpdatingStatus()"
           (click)="requestRefund(appointment)"
         >
-          <span class="appointment-detail__refund-icon">
+          <span class="appointment-detail__refund-icon" [attr.data-payment-method]="appointment.paymentMethod">
             <img *ngIf="refundMethodLogo(appointment) as logo; else trackingRefundIcon" [src]="logo" alt="" />
             <ng-template #trackingRefundIcon><lucide-icon name="wallet-cards" size="19" [strokeWidth]="2.4"></lucide-icon></ng-template>
           </span>

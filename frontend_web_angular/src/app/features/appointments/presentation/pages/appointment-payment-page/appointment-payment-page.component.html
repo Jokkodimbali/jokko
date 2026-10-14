@@ -39,6 +39,9 @@
           <h1>Rendez-vous confirme !</h1>
           <p>{{ confirmedHeadingDescription() }}</p>
         </header>
+        <p *ngIf="simulatedPayment()" class="appointment-payment__simulation-note" role="status">
+          Paiement simulé : aucun argent réel n’a été débité.
+        </p>
 
         <section
           class="appointment-payment__confirmed-summary"
@@ -192,6 +195,9 @@
               <h2>Paiement</h2>
               <p>Choisissez votre moyen de paiement pour finaliser la reservation.</p>
             </header>
+            <p *ngIf="simulatedPayment()" class="appointment-payment__simulation-note" role="status">
+              Mode simulation : aucun argent ne sera débité ni remboursé par Wave ou Orange Money.
+            </p>
 
             <section class="appointment-payment__method-card" aria-label="Moyen de paiement">
               <h3>Moyen de paiement</h3>
@@ -220,7 +226,7 @@
                   <i aria-hidden="true"></i>
                 </button>
               </div>
-              <p *ngIf="!methodsLoading() && paymentOptions().length === 0" role="status">Aucun moyen de paiement réel n’est disponible pour le moment.</p>
+              <p *ngIf="!methodsLoading() && paymentOptions().length === 0" role="status">Aucun moyen de paiement n’est disponible pour le moment.</p>
             </section>
 
             <section
@@ -241,7 +247,7 @@
               (click)="pay()"
             >
               <lucide-icon name="check" size="19" [strokeWidth]="2.5"></lucide-icon>
-              {{ isPaying() ? 'Paiement...' : 'Payer le rendez-vous' }}
+              {{ isPaying() ? 'Paiement...' : simulatedPayment() ? 'Simuler le paiement' : 'Payer le rendez-vous' }}
             </button>
 
             <button

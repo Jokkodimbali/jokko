@@ -126,11 +126,6 @@ export class TendersPageComponent {
       ? this.labels.CANCELLED
       : this.labels[tender.responses[0]?.status ?? 'INVITED'];
   }
-  protected clientOffers(tender: Tender) {
-    return tender.responses.filter(
-      (response) => response.status === 'OFFERED' || response.status === 'SELECTED',
-    );
-  }
   protected initials(name: string) {
     return name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
   }
@@ -187,7 +182,9 @@ export class TendersPageComponent {
       });
   }
   private loadContext(context: { id: string; page: number }): Observable<Tender | TenderList> {
-    return context.id ? this.api.detail(context.id) : this.api.list(context.page, this.isClient());
+    if (context.id) return this.api.detail(context.id);
+    if (this.isClient()) return of({ items: [], total: 0, page: 1, limit: 20 });
+    return this.api.list(context.page);
   }
   protected retry() {
     this.error.set('');
@@ -274,7 +271,11 @@ export class TendersPageComponent {
         next: (reservation) => {
           this.refresh.next();
           void this.router.navigate(['/appointments', reservation.id, 'payment'], {
-            queryParams: { returnUrl: '/appointments', providerName: chosen.name },
+            queryParams: {
+              source: 'tender',
+              returnUrl: `/appels-offres/${tender.id}`,
+              providerName: chosen.name,
+            },
           });
         },
         error: (error) => {

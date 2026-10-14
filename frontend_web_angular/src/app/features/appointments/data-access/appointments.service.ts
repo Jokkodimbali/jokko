@@ -381,10 +381,18 @@ export class AppointmentsService {
       .pipe(map(unwrapApiResponse));
   }
 
-  getAvailablePaymentMethods(): Observable<PaymentMethod[]> {
+  simulateReservationPayment(reservationId: string): Observable<{ paid: boolean }> {
     return this.http
-      .get<ApiResponse<{ methods: PaymentMethod[] }>>(`${this.apiUrl}/payments/available-methods`)
-      .pipe(map((response) => unwrapApiResponse(response).methods));
+      .post<ApiResponse<{ paid: boolean }>>(
+        `${this.apiUrl}/payments/reservations/${reservationId}/simulate`, {},
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
+  getAvailablePaymentMethods(): Observable<{ methods: PaymentMethod[]; simulated: boolean }> {
+    return this.http
+      .get<ApiResponse<{ methods: PaymentMethod[]; simulated: boolean }>>(`${this.apiUrl}/payments/available-methods`)
+      .pipe(map(unwrapApiResponse));
   }
 
   cancelAppointment(

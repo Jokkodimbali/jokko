@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Headers,
   HttpCode,
@@ -56,15 +57,47 @@ export class PaymentsController {
   @Get('available-methods')
   @UseGuards(JwtAuthGuard)
   availableMethods() {
-    const external = this.configService.get<string>('PAYMENT_GATEWAY_MODE') === 'external';
+    const simulated =
+      this.configService.get<string>('PAYMENT_GATEWAY_MODE') === 'mock' &&
+      this.configService.get<string>('NODE_ENV') !== 'production';
+    const external =
+      this.configService.get<string>('PAYMENT_GATEWAY_MODE') === 'external';
     const methods: string[] = [];
-    if (external && this.configService.get<string>('WAVE_API_KEY')) methods.push('WAVE');
-    if (external && this.configService.get<string>('ORANGE_MONEY_API_KEY') &&
+    if (simulated) methods.push('WAVE', 'ORANGE_MONEY', 'CARD');
+    if (external && this.configService.get<string>('WAVE_API_KEY'))
+      methods.push('WAVE');
+    if (
+      external &&
+      this.configService.get<string>('ORANGE_MONEY_API_KEY') &&
       this.configService.get<string>('ORANGE_MONEY_API_BASE_URL') &&
-      this.configService.get<string>('ORANGE_MONEY_GATEWAY_CONTRACT') === 'compatible') {
+      this.configService.get<string>('ORANGE_MONEY_GATEWAY_CONTRACT') ===
+        'compatible'
+    ) {
       methods.push('ORANGE_MONEY');
     }
-    return createApiResponse({ methods }, 'Moyens de paiement disponibles.');
+    return createApiResponse(
+      { methods, simulated },
+      'Moyens de paiement disponibles.',
+    );
+  }
+
+  @Post('reservations/:bookingId/simulate')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async simulateReservationPayment(
+    @CurrentUser() user: AuthUser,
+    @Param('bookingId') bookingId: string,
+  ) {
+    if (
+      this.configService.get<string>('NODE_ENV') === 'production' ||
+      this.configService.get<string>('PAYMENT_GATEWAY_MODE') !== 'mock'
+    ) {
+      throw new ForbiddenException('PAYMENT_SIMULATION_DISABLED');
+    }
+    return createApiResponse(
+      await this.paymentsFacade.simulateReservationPayment(user, bookingId),
+      'Paiement simulé confirmé. Aucun montant réel débité.',
+    );
   }
 
   @Post('initiate')

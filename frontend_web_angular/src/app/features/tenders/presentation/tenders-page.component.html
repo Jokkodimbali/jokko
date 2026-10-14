@@ -3,7 +3,7 @@
     <div>
       <a *ngIf="detailId()" class="back-link" routerLink="/appels-offres"
         ><lucide-icon name="arrow-left" size="17" />
-        {{ isClient() ? 'Mes demandes' : 'Retour aux demandes' }}</a
+        {{ isClient() ? 'Nouvel appel d’offre' : 'Retour aux demandes' }}</a
       ><span class="eyebrow">{{
         isClient() && (!detailId() || selected()?.status === 'OPEN' || selected()?.status === 'SELECTED')
           ? 'Nouvelle demande'
@@ -60,7 +60,7 @@
         (publish)="publish($event)"
         (audienceChange)="audience.set($event)"
       />
-      <section class="history client-history">
+      <section class="client-history" aria-label="Prestataires disponibles">
         <div class="client-history__audience">
           <span class="client-history__avatars" aria-hidden="true"
             ><ng-container *ngIf="audience() as preview"
@@ -87,38 +87,6 @@
             }}</small></span
           >
         </div>
-        <div class="section-heading">
-          <h2>Mes demandes · réponses reçues</h2>
-          <span class="count">{{ list().total }}</span>
-        </div>
-        <div class="panel empty" *ngIf="!loading() && !list().items.length">
-          <lucide-icon name="users-round" size="34" />
-          <h3>Aucune réponse reçue</h3>
-          <p>Les réponses des prestataires à vos demandes apparaîtront ici dès leur arrivée.</p>
-        </div>
-        <ng-container *ngFor="let tender of list().items">
-          <a
-            *ngFor="let offer of clientOffers(tender)"
-            class="panel request-link client-response-card"
-            [routerLink]="['/appels-offres', tender.id]"
-          >
-            <div class="client-response-card__top">
-              <img *ngIf="asset(offer.avatarUrl) as avatar; else offerInitials" [src]="avatar" [alt]="offer.name" />
-              <ng-template #offerInitials><span class="avatar">{{ initials(offer.name) }}</span></ng-template>
-              <div>
-                <strong>{{ offer.name }}</strong>
-                <p>{{ tender.job }}<ng-container *ngIf="offer.serviceName && offer.serviceName !== tender.job"> · {{ offer.serviceName }}</ng-container></p>
-              </div>
-              <span class="chip" [class.green]="offer.amount === tender.proposedPrice">{{ offer.amount === tender.proposedPrice ? 'Accepte votre prix' : 'Contre-offre' }}</span>
-            </div>
-            <p *ngIf="offer.message" class="description">{{ offer.message }}</p>
-            <div class="client-response-card__footer">
-              <strong>{{ offer.amount | number: '1.0-0' }} FCFA</strong>
-              <span *ngIf="offer.offeredAt">{{ offer.offeredAt | date: 'dd/MM/yyyy à HH:mm' }}</span>
-            </div>
-            <span class="view-link">Voir cette réponse →</span>
-          </a>
-        </ng-container>
       </section>
     </div>
     <ng-template #professionalInbox>
@@ -195,7 +163,7 @@
       </ng-template>
     </ng-template>
     <nav
-      *ngIf="list().total > list().limit"
+      *ngIf="!isClient() && list().total > list().limit"
       class="pagination"
       aria-label="Pages des appels d’offres"
     >

@@ -42,6 +42,12 @@ describe('validerEnv', () => {
     ).toThrow('PAYMENT_WEBHOOK_SECRET');
   });
 
+  it('rejects simulated payments in production', () => {
+    expect(() =>
+      validerEnv({ ...baseEnv, PAYMENT_GATEWAY_MODE: 'mock' }),
+    ).toThrow('PAYMENT_GATEWAY_MODE=mock');
+  });
+
   it('rejects production placeholder secret text', () => {
     expect(() =>
       validerEnv({

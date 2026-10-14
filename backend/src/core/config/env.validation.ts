@@ -162,6 +162,9 @@ export function validerEnv(env: Record<string, unknown>): EnvValide {
     nodeEnv === 'production' ? 'external' : 'mock',
   );
   const paymentWebhookSecret = asString(env.PAYMENT_WEBHOOK_SECRET).trim();
+  if (nodeEnv === 'production' && paymentGatewayMode === 'mock') {
+    throw new Error('PAYMENT_GATEWAY_MODE=mock est interdit en production.');
+  }
   const jwtAccessSecret =
     nodeEnv === 'production'
       ? requiredProductionSecret('JWT_ACCESS_SECRET', env.JWT_ACCESS_SECRET)

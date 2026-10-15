@@ -1,6 +1,7 @@
 import { geoapifyTileUrl, GEOAPIFY_ATTRIBUTION } from './geoapify-tiles';
 import type * as Leaflet from 'leaflet';
 import { MapProviderService } from './map-provider.service';
+import { loadLeaflet } from './leaflet-loader';
 
 export async function renderGeoapifyMerchantMap<T extends { id: string; latitude: number; longitude: number; name: string }>(
   element: HTMLElement,
@@ -10,7 +11,7 @@ export async function renderGeoapifyMerchantMap<T extends { id: string; latitude
   createMarker: (item: T) => HTMLButtonElement,
   select: (item: T) => void,
 ): Promise<Leaflet.Map> {
-  const [config, leaflet] = await Promise.all([provider.config(), import('leaflet')]);
+  const [config, leaflet] = await Promise.all([provider.config(), loadLeaflet()]);
   if (!config.geoapifyBrowserApiKey) throw new Error('Cle navigateur Geoapify manquante.');
   const map = leaflet.map(element).setView([position.latitude, position.longitude], 13);
   leaflet.tileLayer(geoapifyTileUrl(config.geoapifyBrowserApiKey), {

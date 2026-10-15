@@ -1,6 +1,7 @@
 import { geoapifyTileUrl, GEOAPIFY_ATTRIBUTION } from '../../../shared/maps/geoapify-tiles';
 import { Injectable, inject } from '@angular/core';
 import type * as Leaflet from 'leaflet';
+import { loadLeaflet } from '../../../shared/maps/leaflet-loader';
 import { MapProviderService } from '../../../shared/maps/map-provider.service';
 import type { MapPoint } from '../../../shared/maps/map.models';
 import type { NavigationCameraMode, TrackingMapRenderState } from './tracking-map.models';
@@ -52,7 +53,7 @@ export class TrackingGeoapifyMapRendererService implements TrackingMapRendererPo
   }
 
   private async createRouteMap(element: HTMLElement, onRouteSelected: (id: string) => void, initialCenter: MapPoint | undefined, generation: number): Promise<void> {
-    const [config, leaflet] = await Promise.all([this.provider.config(), import('leaflet')]);
+    const [config, leaflet] = await Promise.all([this.provider.config(), loadLeaflet()]);
     if (generation !== this.generation) return;
     if (!config.geoapifyBrowserApiKey) throw new Error('Cle navigateur Geoapify manquante.');
     this.leaflet = leaflet;

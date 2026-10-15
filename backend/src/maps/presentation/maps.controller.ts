@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Header, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/security/jwt-auth.guard';
 import { GeocodeAddressUseCase } from '../../geolocation/application/use-cases/geocode-address.use-case';
@@ -21,6 +21,7 @@ export class MapsController {
   ) {}
 
   @Get('config')
+  @Header('Cache-Control', 'no-store')
   @ApiOperation({
     summary: 'Recuperer la configuration publique du fournisseur de cartes.',
   })

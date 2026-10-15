@@ -294,15 +294,15 @@
               <lucide-icon name="phone" size="15" [strokeWidth]="2.4"></lucide-icon>
               <span>{{ formatPhone() }}</span>
             </p>
-            <iframe
-              *ngIf="mapUrl()"
-              [src]="mapUrl()"
-              [title]="'Carte de localisation - ' + formatLocation()"
-              loading="lazy"
-              referrerpolicy="no-referrer-when-downgrade"
-            ></iframe>
-            <p *ngIf="!mapUrl()" class="provider-profile__map-empty">
-              Localisation non renseignee par ce prestataire.
+            <app-location-map
+              *ngIf="mapCoordinates() as coordinates"
+              [latitude]="coordinates.latitude"
+              [longitude]="coordinates.longitude"
+              [label]="displayName()"
+              [address]="formatLocation()"
+            />
+            <p *ngIf="!mapCoordinates()" class="provider-profile__map-empty">
+              {{ formatLocation() || 'Localisation non renseignée par ce prestataire.' }}
             </p>
           </article>
 

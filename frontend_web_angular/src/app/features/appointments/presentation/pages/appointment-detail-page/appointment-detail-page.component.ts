@@ -618,12 +618,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     );
   }
 
-  protected pharmacySearchUrl(appointment: AppointmentView): string {
-    const location = appointment.addressLabel?.trim();
-    const query = location ? `pharmacie ${location}` : 'pharmacie près de moi';
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
-  }
-
   protected readonly isAppointmentClosed = computed(() => {
     const status = this.appointment()?.status;
     return !!status && this.isClosedAppointmentStatus(status);
@@ -2224,18 +2218,6 @@ export class AppointmentDetailPageComponent implements AfterViewInit, OnDestroy,
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
     this.feedback.success('Fichier calendrier genere.');
-  }
-
-  protected mapDirectionsUrl(appointment: AppointmentView): string {
-    const latitude = this.trackingLatitude();
-    const longitude = this.trackingLongitude();
-    const destination = encodeURIComponent(this.currentRouteDestinationAddress(appointment));
-
-    if (this.hasTrackingCoordinates() && latitude !== null && longitude !== null) {
-      return `https://www.google.com/maps/dir/?api=1&origin=${latitude},${longitude}&destination=${destination}&travelmode=driving`;
-    }
-
-    return `https://www.google.com/maps/search/?api=1&query=${destination}`;
   }
 
   protected messageProvider(appointment: AppointmentView): void {

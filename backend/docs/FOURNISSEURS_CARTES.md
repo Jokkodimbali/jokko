@@ -41,6 +41,14 @@ GEOAPIFY_BROWSER_API_KEY=<cle-navigateur-geoapify>
 
 Ne placer aucune de ces valeurs dans les fichiers Angular, la documentation ou Git. `backend/.env` est ignoré par Git ; dans un déploiement, configurer les mêmes variables directement sur l'hébergement. Voir le [guide officiel des clés Geoapify](https://myprojects.geoapify.com/help/api-keys/).
 
+### Déploiement Render
+
+Le service `jokko-backend` de `render.yaml` ne renseigne pas `MAP_PROVIDER` ni les clés Geoapify. Un `git push` ou l'ajout des clés dans `backend/.env` local ne les transmet donc pas à Render. Dans le tableau de bord Render, ouvrir **jokko-backend → Environment** et définir `MAP_PROVIDER=geoapify`, `GEOAPIFY_API_KEY` et `GEOAPIFY_BROWSER_API_KEY` avec leurs valeurs réelles. Enregistrer les variables et laisser Render redémarrer le service ; si nécessaire, lancer un nouveau déploiement. Ne jamais copier les clés dans `render.yaml` ou dans Git.
+
+Après le redémarrage, ouvrir `https://jokko-dimbali.onrender.com/api/v1/maps/config` et vérifier uniquement que `data.provider` vaut `geoapify`. La réponse contient aussi la clé navigateur publique : ne pas la partager intégralement. Recharger ensuite complètement le frontend, qui garde ce choix en mémoire jusqu'au rechargement de la page. Si `data.provider` vaut encore `google`, vérifier les variables du **service backend réellement appelé** par le frontend et son dernier déploiement. Si la réponse indique `geoapify` mais que les tuiles sont absentes, contrôler la restriction de domaine de la clé navigateur et les erreurs réseau du navigateur.
+
+Le crédit **OpenStreetMap contributors** sur une carte Geoapify est normal : il indique la provenance des données géographiques utilisées par le style `osm-bright`. Les tuiles doivent cependant venir de `maps.geoapify.com`, tandis que celles du mode Google viennent de Google. La carte de création d'appel d'offres n'utilise plus de carte OpenStreetMap tierce en repli : une erreur de chargement affiche le fournisseur indisponible au lieu de masquer le problème. Si la carte affiche encore l'ancien fournisseur après une bascule, déployer aussi la nouvelle version du frontend et recharger sa page.
+
 ## Vérifier une bascule
 
 Depuis `backend/`, lancer le backend avec `npm run start:dev` ou redémarrer le processus déjà lancé. Son terminal doit indiquer qu'il écoute sur le port configuré. Ensuite, vérifier `http://localhost:3000/api/v1/maps/config` : le champ `data.provider` doit valoir `google` ou `geoapify` selon `MAP_PROVIDER`. Cet endpoint retourne aussi une **clé navigateur publique** ; ne pas copier sa réponse complète dans un ticket ou une conversation.

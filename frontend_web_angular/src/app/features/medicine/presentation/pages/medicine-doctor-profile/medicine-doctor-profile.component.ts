@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthSessionService } from '../../../../../core/auth/auth-session.service';
@@ -10,6 +9,7 @@ import { FavoritesService } from '../../../../../core/favorites/favorites.servic
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppPresenceStatusComponent } from '../../../../../shared/ui/app-presence-status/app-presence-status.component';
+import { LocationMapComponent } from '../../../../../shared/maps/location-map.component';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { publicAssetUrl } from '../../../../../shared/utils/public-asset-url';
 import { ServicesService } from '../../../../services/data-access/services.service';
@@ -61,6 +61,7 @@ const TRAVEL_MODE_IMAGES: Record<ServiceTravelMode, string> = {
     RouterLink,
     AppFooterComponent,
     AppPresenceStatusComponent,
+    LocationMapComponent,
     LucideAngularModule,
   ],
   templateUrl: './medicine-doctor-profile.component.html',
@@ -70,7 +71,6 @@ export class MedicineDoctorProfileComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly backNavigation = inject(BackNavigationService);
-  private readonly sanitizer = inject(DomSanitizer);
   private readonly feedback = inject(AppFeedbackService);
   private readonly favoritesService = inject(FavoritesService);
   private readonly authSession = inject(AuthSessionService);
@@ -95,7 +95,7 @@ export class MedicineDoctorProfileComponent implements OnInit {
   });
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly failedImageUrls = signal<Set<string>>(new Set());
-  protected readonly mapUrl = computed<SafeResourceUrl | null>(() => {
+  protected readonly mapCoordinates = computed(() => {
     const doctor = this.doctor();
     if (
       typeof doctor.latitude !== 'number' ||
@@ -106,9 +106,7 @@ export class MedicineDoctorProfileComponent implements OnInit {
       return null;
     }
 
-    const query = `${doctor.latitude},${doctor.longitude}`;
-    const src = `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed`;
-    return this.sanitizer.bypassSecurityTrustResourceUrl(src);
+    return { latitude: doctor.latitude, longitude: doctor.longitude };
   });
   protected readonly phoneLabel = computed(
     () => this.detail()?.profile.utilisateur.numeroTelephone || 'Telephone non renseigne',

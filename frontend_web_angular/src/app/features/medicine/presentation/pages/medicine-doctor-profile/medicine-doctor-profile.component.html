@@ -128,14 +128,14 @@
             <lucide-icon name="phone" size="15" [strokeWidth]="2.4"></lucide-icon>
             <span>{{ phoneLabel() }}</span>
           </p>
-          <iframe
-            *ngIf="mapUrl()"
-            [src]="mapUrl()"
-            [title]="'Carte de localisation - ' + doctorLocation()"
-            loading="lazy"
-            referrerpolicy="no-referrer-when-downgrade"
-          ></iframe>
-          <p *ngIf="!mapUrl()" class="doctor-profile__map-empty">
+          <app-location-map
+            *ngIf="mapCoordinates() as coordinates"
+            [latitude]="coordinates.latitude"
+            [longitude]="coordinates.longitude"
+            [label]="doctor().name"
+            [address]="doctorLocation()"
+          />
+          <p *ngIf="!mapCoordinates()" class="doctor-profile__map-empty">
             Localisation GPS non renseignee par ce medecin.
           </p>
         </article>

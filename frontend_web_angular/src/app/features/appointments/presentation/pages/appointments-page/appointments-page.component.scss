@@ -578,11 +578,29 @@
 }
 
 .appointment-row__refund {
-  background: #13b9ed;
-  border: 1px solid #13b9ed;
-  color: #fff;
+  background: #f1f4f8;
+  border: 1px solid #b8c5d4;
+  color: #25364c;
   cursor: pointer;
   font-weight: 700;
+}
+
+.appointment-row__refund[data-payment-method='WAVE'] {
+  background: #13b9ed;
+  border-color: #13b9ed;
+  color: #fff;
+}
+
+.appointment-row__refund[data-payment-method='ORANGE_MONEY'] {
+  background: #ff7900;
+  border-color: #ff7900;
+  color: #fff;
+}
+
+.appointment-row__refund[data-payment-method='CARTE'] {
+  background: #25364c;
+  border-color: #25364c;
+  color: #fff;
 }
 
 .appointment-row__refund img {
@@ -591,6 +609,12 @@
   height: 19px;
   object-fit: contain;
   width: 19px;
+}
+
+.appointment-row__refund[data-payment-method='ORANGE_MONEY'] img {
+  border-radius: 4px;
+  height: 24px;
+  width: 30px;
 }
 
 .appointment-row__refund:disabled {

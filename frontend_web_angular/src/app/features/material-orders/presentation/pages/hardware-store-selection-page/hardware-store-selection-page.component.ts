@@ -1,6 +1,9 @@
 import { MERCHANT_MAP_IMAGES, applyMerchantAvatarStyle } from '../../../../../shared/maps/merchant-map-assets';
+import { MapProviderService } from '../../../../../shared/maps/map-provider.service';
+import { renderGeoapifyMerchantMap } from '../../../../../shared/maps/geoapify-merchant-map';
+import type * as Leaflet from 'leaflet';
 import { CommonModule } from '@angular/common';
-import { AfterViewInit, Component, ElementRef, ViewChild, inject, signal } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { finalize } from 'rxjs';
@@ -26,11 +29,13 @@ import {
   templateUrl: './hardware-store-selection-page.component.html',
   styleUrl: './hardware-store-selection-page.component.scss',
 })
-export class HardwareStoreSelectionPageComponent implements AfterViewInit {
+export class HardwareStoreSelectionPageComponent implements AfterViewInit, OnDestroy {
   @ViewChild('map') private mapElement?: ElementRef<HTMLElement>;
 
   private readonly orders = inject(MaterialOrdersService);
   private readonly maps = inject(GoogleMapsLoaderService);
+  private readonly mapProvider = inject(MapProviderService);
+  private leafletMap: Leaflet.Map | null = null;
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly backNavigation = inject(BackNavigationService);
@@ -50,6 +55,10 @@ export class HardwareStoreSelectionPageComponent implements AfterViewInit {
   protected readonly error = signal<string | null>(null);
   private position: { latitude: number; longitude: number } | null = null;
   private readonly markerElements = new Map<string, HTMLButtonElement>();
+
+  ngOnDestroy(): void {
+    this.leafletMap?.remove();
+  }
 
   ngAfterViewInit(): void {
     const reservationId = this.route.snapshot.queryParamMap.get('reservationId');
@@ -74,7 +83,9 @@ export class HardwareStoreSelectionPageComponent implements AfterViewInit {
   }
 
   private startSelection(): void {
-    void this.maps.load().catch(() => undefined);
+    void this.mapProvider.config().then((config) => {
+      if (config.provider === 'google') void this.maps.load().catch(() => undefined);
+    });
     void this.geolocation.getCurrentPosition().then((position) => {
       this.position = position;
       this.load();
@@ -136,6 +147,18 @@ export class HardwareStoreSelectionPageComponent implements AfterViewInit {
     const element = this.mapElement?.nativeElement;
     if (!element || !this.position) return;
     try {
+      if ((await this.mapProvider.config()).provider === 'geoapify') {
+        this.leafletMap?.remove();
+        this.markerElements.clear();
+        this.leafletMap = await renderGeoapifyMerchantMap(element, this.position, stores,
+          this.mapProvider, (store) => {
+            const marker = this.createHardwareStoreMarker(store);
+            this.markerElements.set(store.id, marker);
+            return marker;
+          }, (store) => this.choose(store));
+        this.syncMarkerSelection();
+        return;
+      }
       const google = await this.maps.load();
       const map = new google.maps.Map(element, {
         center: { lat: this.position.latitude, lng: this.position.longitude },

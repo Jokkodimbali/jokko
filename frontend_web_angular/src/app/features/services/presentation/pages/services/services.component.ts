@@ -55,7 +55,7 @@ import {
   AppSearchTextSuggestion,
 } from '../../../../../shared/ui/app-search-bar/app-search-bar.component';
 import { userInitials } from '../../../../../shared/utils/user-initials';
-import { GoogleMapsLoaderService } from '../../../../../shared/maps/google-maps-loader.service';
+import { MapsApiService } from '../../../../../shared/maps/maps-api.service';
 import {
   ProviderCardComponent,
   ProviderCardView,
@@ -97,7 +97,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly senegalGeolocation = inject(SenegalGeolocationService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly router = inject(Router);
-  private readonly googleMaps = inject(GoogleMapsLoaderService);
+  private readonly mapsApi = inject(MapsApiService);
   private readonly catalogRealtime = inject(CatalogRealtimeService);
   private readonly navbarPresentation = inject(AppNavbarPresentationService);
 
@@ -660,7 +660,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     this.isLocating.set(true);
-    this.googleMaps.geocodeAddress(address + ', Sénégal').subscribe({
+    this.mapsApi.geocodeAddress(address + ', Sénégal').subscribe({
       next: (result) => {
         this.isLocating.set(false);
         if (!result || !this.senegalGeolocation.isInSenegal(result.latitude, result.longitude)) {
@@ -1509,7 +1509,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
         continue;
       }
 
-      this.googleMaps
+      this.mapsApi
         .reverseGeocode({
           latitude: provider.latitude as number,
           longitude: provider.longitude as number,
@@ -1587,7 +1587,7 @@ export class ServicesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private resolveMobileLocationLabel(latitude: number, longitude: number): void {
-    this.googleMaps.reverseGeocode({ latitude, longitude }).subscribe({
+    this.mapsApi.reverseGeocode({ latitude, longitude }).subscribe({
       next: (result) => {
         const address = this.compactMobileLocationLabel(result?.formattedAddress ?? '');
         if (address) {

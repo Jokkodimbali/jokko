@@ -6,6 +6,10 @@ export class MapsPublicConfigService {
   constructor(private readonly configService: ConfigService) {}
 
   getConfig() {
+    const provider =
+      this.configService.get<string>('MAP_PROVIDER') === 'geoapify'
+        ? 'geoapify'
+        : 'google';
     const browserApiKey = this.configService
       .get<string>('GOOGLE_MAPS_BROWSER_API_KEY')
       ?.trim();
@@ -15,7 +19,15 @@ export class MapsPublicConfigService {
         : this.configService.get<string>('GOOGLE_MAPS_API_KEY')?.trim() || '';
 
     return {
-      browserApiKey: browserApiKey || developmentFallback,
+      provider,
+      geoapifyBrowserApiKey:
+        provider === 'geoapify'
+          ? this.configService
+              .get<string>('GEOAPIFY_BROWSER_API_KEY')
+              ?.trim() || ''
+          : '',
+      browserApiKey:
+        provider === 'google' ? browserApiKey || developmentFallback : '',
       mapId:
         this.configService.get<string>('GOOGLE_MAPS_MAP_ID')?.trim() ||
         'DEMO_MAP_ID',

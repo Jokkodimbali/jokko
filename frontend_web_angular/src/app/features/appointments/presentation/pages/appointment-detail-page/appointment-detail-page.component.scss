@@ -2664,8 +2664,8 @@
 }
 .appointment-detail__refund-action {
   align-items: center;
-  background: #a8e4eb;
-  border: 1px solid #40c9e7;
+  background: #f1f4f8;
+  border: 1px solid #b8c5d4;
   border-radius: 13px;
   color: #152d39;
   cursor: pointer;
@@ -2685,7 +2685,36 @@
 }
 
 .appointment-detail__refund-action:hover {
+  background: #e5eaf1;
+}
+
+.appointment-detail__refund-action[data-payment-method='WAVE'] {
+  background: #a8e4eb;
+  border-color: #40c9e7;
+}
+
+.appointment-detail__refund-action[data-payment-method='WAVE']:hover {
   background: #91dce6;
+}
+
+.appointment-detail__refund-action[data-payment-method='ORANGE_MONEY'] {
+  background: #fff0df;
+  border-color: #ff7900;
+  color: #713900;
+}
+
+.appointment-detail__refund-action[data-payment-method='ORANGE_MONEY']:hover {
+  background: #ffe4c7;
+}
+
+.appointment-detail__refund-action[data-payment-method='CARTE'] {
+  background: #f1f4f8;
+  border-color: #b8c5d4;
+  color: #25364c;
+}
+
+.appointment-detail__refund-action[data-payment-method='CARTE']:hover {
+  background: #e5eaf1;
 }
 
 .appointment-detail__refund-action:disabled {
@@ -2695,12 +2724,21 @@
 
 .appointment-detail__refund-icon {
   align-items: center;
-  background: #1ac5e9;
+  background: #fff;
   border-radius: 9px;
   display: inline-flex;
   flex: 0 0 42px;
   height: 42px;
   justify-content: center;
+}
+
+.appointment-detail__refund-icon[data-payment-method='WAVE'] {
+  background: #1ac5e9;
+}
+
+.appointment-detail__refund-icon[data-payment-method='ORANGE_MONEY'],
+.appointment-detail__refund-icon[data-payment-method='CARTE'] {
+  background: #fff;
 }
 
 .appointment-detail__upcoming-provider .appointment-detail__refund-icon img,
@@ -2709,6 +2747,11 @@
   height: 25px;
   object-fit: contain;
   width: 25px;
+}
+
+.appointment-detail__refund-icon[data-payment-method='ORANGE_MONEY'] img {
+  height: 32px;
+  width: 36px;
 }
 .appointment-detail__refund-page {
   background: #fff;

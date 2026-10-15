@@ -1,7 +1,7 @@
 import { reservationServiceNameFromNotes } from '../domain/reservation-service-name';
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpContext } from '@angular/common/http';
-import { Observable, catchError, forkJoin, map, of, shareReplay, switchMap } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of, shareReplay, switchMap, tap } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { publicAssetUrl } from '../../../shared/utils/public-asset-url';
 import { ApiResponse } from '../../../core/http/api-response.models';
@@ -9,10 +9,11 @@ import { unwrapApiResponse } from '../../../core/http/api-response.utils';
 import { SKIP_HTTP_CACHE } from '../../../core/http/http-cache.interceptor';
 import { ServicesService } from '../../services/data-access/services.service';
 import {
-  GoogleMapsCoordinate,
-  GoogleMapsGeocodeResult,
-  GoogleMapsRouteResult,
-} from '../../../shared/maps/google-maps-loader.service';
+  MapCoordinate,
+  GeocodedAddress,
+  MapRouteResult,
+} from '../../../shared/maps/map.models';
+import { MapsApiService } from '../../../shared/maps/maps-api.service';
 import {
   AppointmentView,
   AppointmentTrackingView,
@@ -27,9 +28,10 @@ import {
   providedIn: 'root',
 })
 export class AppointmentsService {
-  private readonly geocodeCache = new Map<string, Observable<GoogleMapsGeocodeResult | null>>();
+  private readonly geocodeCache = new Map<string, Observable<GeocodedAddress | null>>();
   private readonly http = inject(HttpClient);
   private readonly servicesService = inject(ServicesService);
+  private readonly mapsApi = inject(MapsApiService);
   private readonly apiUrl = environment.apiUrl;
 
   listMyAppointments(scope: 'CLIENT' | 'PRESTATAIRE' = 'CLIENT'): Observable<AppointmentView[]> {
@@ -151,27 +153,29 @@ export class AppointmentsService {
       .pipe(map(unwrapApiResponse));
   }
 
-  geocodeAddress(address: string): Observable<GoogleMapsGeocodeResult | null> {
+  geocodeAddress(address: string): Observable<GeocodedAddress | null> {
     const key = address.trim().toLocaleLowerCase('fr-FR');
     const cached = this.geocodeCache.get(key);
     if (cached) return cached;
-    const request = this.http
-      .get<ApiResponse<GoogleMapsGeocodeResult | null>>(`${this.apiUrl}/maps/geocode`, {
-        params: { address },
-      })
-      .pipe(map(unwrapApiResponse), shareReplay({ bufferSize: 1, refCount: false }));
+    const request = this.mapsApi.geocodeAddress(address).pipe(
+      tap({
+        next: (result) => {
+          if (!result) this.geocodeCache.delete(key);
+        },
+        error: () => this.geocodeCache.delete(key),
+      }),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    );
     this.geocodeCache.set(key, request);
     return request;
   }
 
   computeRoutes(input: {
-    origin: GoogleMapsCoordinate;
-    destination: GoogleMapsCoordinate;
+    origin: MapCoordinate;
+    destination: MapCoordinate;
     alternatives?: boolean;
-  }): Observable<GoogleMapsRouteResult[]> {
-    return this.http
-      .post<ApiResponse<GoogleMapsRouteResult[]>>(`${this.apiUrl}/maps/routes`, input)
-      .pipe(map(unwrapApiResponse));
+  }): Observable<MapRouteResult[]> {
+    return this.mapsApi.computeRoutes(input);
   }
 
   markAppointmentAsPaid(reservationId: string): Observable<AppointmentView> {
@@ -381,10 +385,18 @@ export class AppointmentsService {
       .pipe(map(unwrapApiResponse));
   }
 
-  getAvailablePaymentMethods(): Observable<PaymentMethod[]> {
+  simulateReservationPayment(reservationId: string): Observable<{ paid: boolean }> {
     return this.http
-      .get<ApiResponse<{ methods: PaymentMethod[] }>>(`${this.apiUrl}/payments/available-methods`)
-      .pipe(map((response) => unwrapApiResponse(response).methods));
+      .post<ApiResponse<{ paid: boolean }>>(
+        `${this.apiUrl}/payments/reservations/${reservationId}/simulate`, {},
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
+  getAvailablePaymentMethods(): Observable<{ methods: PaymentMethod[]; simulated: boolean }> {
+    return this.http
+      .get<ApiResponse<{ methods: PaymentMethod[]; simulated: boolean }>>(`${this.apiUrl}/payments/available-methods`)
+      .pipe(map(unwrapApiResponse));
   }
 
   cancelAppointment(

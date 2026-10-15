@@ -122,6 +122,10 @@ export class PaymentsFacade {
     return this.paymentCommandService.verifyReservationPayment(bookingId, requestUser.sub);
   }
 
+  async simulateReservationPayment(requestUser: AuthUser, bookingId: string) {
+    return this.paymentCommandService.simulateReservationPayment(bookingId, requestUser.sub);
+  }
+
   async processGatewayWebhook(gatewayReference: string, status: string) {
     if (
       await this.pharmacyOrderPayments.processGatewayStatus(

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { GoogleMapsCoordinate } from '../../../../../shared/maps/google-maps-loader.service';
+import { MapCoordinate } from '../../../../../shared/maps/map.models';
 
 export interface ParcelDraft {
   id: string;
@@ -68,7 +68,7 @@ export class ServiceProposalParcelService {
     );
   }
 
-  normalizeCoordinate(coordinate: GoogleMapsCoordinate | null): GoogleMapsCoordinate | null {
+  normalizeCoordinate(coordinate: MapCoordinate | null): MapCoordinate | null {
     const latitude = Number(coordinate?.latitude);
     const longitude = Number(coordinate?.longitude);
     if (
@@ -86,8 +86,8 @@ export class ServiceProposalParcelService {
   }
 
   estimateRoadDistanceMeters(
-    origin: GoogleMapsCoordinate,
-    destination: GoogleMapsCoordinate,
+    origin: MapCoordinate,
+    destination: MapCoordinate,
   ): number {
     const earthRadiusMeters = 6_371_000;
     const toRadians = (value: number) => (value * Math.PI) / 180;

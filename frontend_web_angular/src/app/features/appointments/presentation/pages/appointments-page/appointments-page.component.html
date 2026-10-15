@@ -230,6 +230,7 @@
                   *ngIf="item.kind === 'appointment' && canRequestRefund(item)"
                   type="button"
                   class="appointment-row__refund"
+                  [attr.data-payment-method]="item.appointment.paymentMethod"
                   [disabled]="cancellingAppointmentId() === item.appointment.id"
                   (click)="requestRefund(item.appointment, $event)"
                 >

@@ -239,7 +239,10 @@ export class PaymentCommandService {
     return payment;
   }
 
-  async verifyReservationPayment(bookingId: string, clientId: string): Promise<{ paid: boolean }> {
+  async verifyReservationPayment(
+    bookingId: string,
+    clientId: string,
+  ): Promise<{ paid: boolean }> {
     const payment = await this.paymentsRepository.findByBookingId(bookingId);
     if (!payment || payment.clientId !== clientId) {
       throw PaymentDomainError.unauthorizedAccess(clientId);
@@ -248,19 +251,54 @@ export class PaymentCommandService {
     if (payment.method !== PaymentMethod.WAVE || !payment.gatewayReference) {
       return { paid: false };
     }
-    const response = await this.paymentGateway.verifyPayment(payment.gatewayReference);
-    if (!response.success || response.gatewayReference !== payment.gatewayReference) {
-      throw PaymentDomainError.gatewayError(response.error ?? 'WAVE_VERIFICATION_FAILED');
+    const response = await this.paymentGateway.verifyPayment(
+      payment.gatewayReference,
+    );
+    if (
+      !response.success ||
+      response.gatewayReference !== payment.gatewayReference
+    ) {
+      throw PaymentDomainError.gatewayError(
+        response.error ?? 'WAVE_VERIFICATION_FAILED',
+      );
     }
     const data = response.data;
-    if (data?.['currency'] !== 'XOF' || Number(data['amount']) !== payment.amount.getValue() ||
-      data['client_reference'] !== payment.id) {
+    if (
+      data?.['currency'] !== 'XOF' ||
+      Number(data['amount']) !== payment.amount.getValue() ||
+      data['client_reference'] !== payment.id
+    ) {
       throw PaymentDomainError.gatewayError('WAVE_PAYMENT_DETAILS_MISMATCH');
     }
-    if (data['payment_status'] !== 'succeeded' || data['checkout_status'] !== 'complete') {
+    if (
+      data['payment_status'] !== 'succeeded' ||
+      data['checkout_status'] !== 'complete'
+    ) {
       return { paid: false };
     }
-    await this.processPaymentWebhook(payment.gatewayReference, PaymentStatus.SUCCESS);
+    await this.processPaymentWebhook(
+      payment.gatewayReference,
+      PaymentStatus.SUCCESS,
+    );
+    return { paid: true };
+  }
+
+  async simulateReservationPayment(
+    bookingId: string,
+    clientId: string,
+  ): Promise<{ paid: boolean }> {
+    const payment = await this.paymentsRepository.findByBookingId(bookingId);
+    if (!payment || payment.clientId !== clientId) {
+      throw PaymentDomainError.unauthorizedAccess(clientId);
+    }
+    if (payment.isSuccessful()) return { paid: true };
+    if (!payment.gatewayReference) {
+      throw PaymentDomainError.gatewayError('PAYMENT_SIMULATION_NOT_INITIATED');
+    }
+    await this.processPaymentWebhook(
+      payment.gatewayReference,
+      PaymentStatus.SUCCESS,
+    );
     return { paid: true };
   }
 

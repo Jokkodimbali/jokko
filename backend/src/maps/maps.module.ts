@@ -11,7 +11,16 @@ import { PrismaModule } from '../prisma/prisma.module';
 @Module({
   imports: [AuthModule, GeolocationModule, RoutingModule, PrismaModule],
   controllers: [MapsController],
-  providers: [MapsPublicConfigService, DeliveryPricingService, DeliveryPricingSettingsService],
-  exports: [GeolocationModule, RoutingModule, DeliveryPricingService, DeliveryPricingSettingsService],
+  providers: [
+    MapsPublicConfigService,
+    DeliveryPricingService,
+    DeliveryPricingSettingsService,
+  ],
+  exports: [
+    GeolocationModule,
+    RoutingModule,
+    DeliveryPricingService,
+    DeliveryPricingSettingsService,
+  ],
 })
 export class MapsModule {}

@@ -14,6 +14,9 @@ type EnvValide = {
   GOOGLE_MAPS_API_KEY?: string;
   GOOGLE_MAPS_BROWSER_API_KEY?: string;
   GOOGLE_MAPS_MAP_ID?: string;
+  MAP_PROVIDER: 'google' | 'geoapify';
+  GEOAPIFY_API_KEY?: string;
+  GEOAPIFY_BROWSER_API_KEY?: string;
   THROTTLE_SHORT_TTL: number;
   THROTTLE_SHORT_LIMIT: number;
   THROTTLE_MEDIUM_TTL: number;
@@ -155,6 +158,19 @@ export function validerEnv(env: Record<string, unknown>): EnvValide {
   if (!databaseUrl.startsWith('postgresql://')) {
     throw new Error(ENV_MESSAGES.INVALID_DATABASE_URL);
   }
+  const mapProvider = asString(env.MAP_PROVIDER, 'google').trim().toLowerCase();
+  if (mapProvider !== 'google' && mapProvider !== 'geoapify') {
+    throw new Error('MAP_PROVIDER doit valoir google ou geoapify.');
+  }
+  if (
+    mapProvider === 'geoapify' &&
+    (!asString(env.GEOAPIFY_API_KEY).trim() ||
+      !asString(env.GEOAPIFY_BROWSER_API_KEY).trim())
+  ) {
+    throw new Error(
+      'GEOAPIFY_API_KEY et GEOAPIFY_BROWSER_API_KEY sont obligatoires lorsque MAP_PROVIDER=geoapify.',
+    );
+  }
 
   const corsOrigins = asString(env.CORS_ORIGINS);
   const paymentGatewayMode = asString(
@@ -162,6 +178,9 @@ export function validerEnv(env: Record<string, unknown>): EnvValide {
     nodeEnv === 'production' ? 'external' : 'mock',
   );
   const paymentWebhookSecret = asString(env.PAYMENT_WEBHOOK_SECRET).trim();
+  if (nodeEnv === 'production' && paymentGatewayMode === 'mock') {
+    throw new Error('PAYMENT_GATEWAY_MODE=mock est interdit en production.');
+  }
   const jwtAccessSecret =
     nodeEnv === 'production'
       ? requiredProductionSecret('JWT_ACCESS_SECRET', env.JWT_ACCESS_SECRET)
@@ -223,6 +242,9 @@ export function validerEnv(env: Record<string, unknown>): EnvValide {
       env.GOOGLE_MAPS_BROWSER_API_KEY,
     ).trim(),
     GOOGLE_MAPS_MAP_ID: asString(env.GOOGLE_MAPS_MAP_ID).trim(),
+    MAP_PROVIDER: mapProvider,
+    GEOAPIFY_API_KEY: asString(env.GEOAPIFY_API_KEY).trim(),
+    GEOAPIFY_BROWSER_API_KEY: asString(env.GEOAPIFY_BROWSER_API_KEY).trim(),
     THROTTLE_SHORT_TTL: asNombre(env.THROTTLE_SHORT_TTL, 1000),
     THROTTLE_SHORT_LIMIT: asNombre(env.THROTTLE_SHORT_LIMIT, 100),
     THROTTLE_MEDIUM_TTL: asNombre(env.THROTTLE_MEDIUM_TTL, 60000),

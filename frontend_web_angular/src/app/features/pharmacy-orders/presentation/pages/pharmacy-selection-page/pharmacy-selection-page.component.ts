@@ -1,6 +1,9 @@
 import { MERCHANT_MAP_IMAGES, applyMerchantAvatarStyle } from '../../../../../shared/maps/merchant-map-assets';
+import { MapProviderService } from '../../../../../shared/maps/map-provider.service';
+import { renderGeoapifyMerchantMap } from '../../../../../shared/maps/geoapify-merchant-map';
+import type * as Leaflet from 'leaflet';
 import { CommonModule } from '@angular/common';
-import { AfterViewInit, Component, ElementRef, ViewChild, inject, signal } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { finalize } from 'rxjs';
@@ -23,11 +26,13 @@ import { NearbyPharmacyView, PharmacyOrdersService } from '../../../data-access/
   templateUrl: './pharmacy-selection-page.component.html',
   styleUrl: './pharmacy-selection-page.component.scss',
 })
-export class PharmacySelectionPageComponent implements AfterViewInit {
+export class PharmacySelectionPageComponent implements AfterViewInit, OnDestroy {
   @ViewChild('map') private mapElement?: ElementRef<HTMLElement>;
 
   private readonly orders = inject(PharmacyOrdersService);
   private readonly maps = inject(GoogleMapsLoaderService);
+  private readonly mapProvider = inject(MapProviderService);
+  private leafletMap: Leaflet.Map | null = null;
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly backNavigation = inject(BackNavigationService);
@@ -46,6 +51,10 @@ export class PharmacySelectionPageComponent implements AfterViewInit {
   protected readonly sending = signal(false);
   protected readonly error = signal<string | null>(null);
   private position: { latitude: number; longitude: number } | null = null;
+
+  ngOnDestroy(): void {
+    this.leafletMap?.remove();
+  }
 
   ngAfterViewInit(): void {
     const reservationId = this.route.snapshot.queryParamMap.get('reservationId');
@@ -73,8 +82,9 @@ export class PharmacySelectionPageComponent implements AfterViewInit {
   }
 
   private startSelection(): void {
-    // Start downloading Google Maps while the browser resolves the user's position.
-    void this.maps.load().catch(() => undefined);
+    void this.mapProvider.config().then((config) => {
+      if (config.provider === 'google') void this.maps.load().catch(() => undefined);
+    });
     void this.geolocation.getCurrentPosition().then((position) => {
       this.position = position;
       this.load();
@@ -132,6 +142,18 @@ export class PharmacySelectionPageComponent implements AfterViewInit {
     const element = this.mapElement?.nativeElement;
     if (!element || !this.position) return;
     try {
+      if ((await this.mapProvider.config()).provider === 'geoapify') {
+        this.leafletMap?.remove();
+        this.markerElements.clear();
+        this.leafletMap = await renderGeoapifyMerchantMap(element, this.position, items,
+          this.mapProvider, (pharmacy) => {
+            const marker = this.createPharmacyMarker(pharmacy);
+            this.markerElements.set(pharmacy.id, marker);
+            return marker;
+          }, (pharmacy) => this.choose(pharmacy));
+        this.syncMarkerSelection();
+        return;
+      }
       const google = await this.maps.load();
       const map = new google.maps.Map(element, {
         center: { lat: this.position.latitude, lng: this.position.longitude },

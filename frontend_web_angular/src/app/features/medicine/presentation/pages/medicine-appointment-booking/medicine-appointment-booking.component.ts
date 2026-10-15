@@ -39,7 +39,7 @@ import {
 } from '../../../../services/domain/models/services.models';
 import { publicAssetUrl } from '../../../../../shared/utils/public-asset-url';
 import { userInitials } from '../../../../../shared/utils/user-initials';
-import { GoogleMapsLoaderService } from '../../../../../shared/maps/google-maps-loader.service';
+import { MapsApiService } from '../../../../../shared/maps/maps-api.service';
 import {
   AppointmentTrackingStepperComponent,
   appointmentJourneyProgress,
@@ -137,7 +137,7 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
   private readonly authSession = inject(AuthSessionService);
   private readonly feedback = inject(AppFeedbackService);
   private readonly geolocation = inject(SenegalGeolocationService);
-  private readonly googleMaps = inject(GoogleMapsLoaderService);
+  private readonly mapsApi = inject(MapsApiService);
 
   protected readonly isLoading = signal(true);
   protected readonly isSubmitting = signal(false);
@@ -1120,7 +1120,7 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
     fallbackLabel: string,
   ): Promise<string> {
     try {
-      const result = await firstValueFrom(this.googleMaps.reverseGeocode({ latitude, longitude }));
+      const result = await firstValueFrom(this.mapsApi.reverseGeocode({ latitude, longitude }));
       return result?.formattedAddress || fallbackLabel;
     } catch {
       return fallbackLabel;

@@ -21,4 +21,16 @@ describe('shared delivery tracking scenario', () => {
     expect(scenario.isParcelDelivery()).toBe(true);
     expect(scenario.shouldUseCurrentGpsOnly()).toBe(false);
   });
+
+  it.each([
+    ['PRESTATAIRE_SE_DEPLACE', 'doctor-to-client', false],
+    ['CLIENT_SE_DEPLACE', 'client-to-doctor', true],
+  ] as const)('partage le même acteur du trajet médical %s pour les deux écrans', (travelMode, id, clientTraveler) => {
+    const appointment = { travelMode } as AppointmentView;
+    const scenario = scenarios.scenarioFor(appointment, true);
+    expect(scenario.id).toBe(id);
+    expect(scenario.isClientTraveler()).toBe(clientTraveler);
+    expect(scenarios.routeActorIsClient(appointment, true)).toBe(clientTraveler);
+    expect(scenarios.routeActorIsProvider(appointment, true)).toBe(!clientTraveler);
+  });
 });

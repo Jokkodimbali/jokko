@@ -138,6 +138,17 @@ Variables importantes :
 - `REDIS_PASSWORD`
 - `PAYMENT_WEBHOOK_SECRET`
 
+Pour un deploiement de **test** dont les paiements restent simules, definir
+`PAYMENT_GATEWAY_MODE=mock` et `ALLOW_MOCK_PAYMENTS_IN_PRODUCTION=true` dans
+les variables d'environnement du service backend (par exemple sur Render),
+puis redeployer. Ce second parametre est obligatoire uniquement si
+`NODE_ENV=production`. L'API annonce alors les moyens de paiement comme
+simules et autorise la confirmation simulee des reservations, des medicaments
+et du materiel. Aucun argent n'est debite ni rembourse par Wave ou Orange
+Money dans ce mode. Pour les vrais paiements, remettre
+`PAYMENT_GATEWAY_MODE=external`, retirer l'autorisation de simulation et
+configurer les identifiants marchands et `PAYMENT_WEBHOOK_SECRET`.
+
 Providers optionnels selon environnement :
 
 - Resend

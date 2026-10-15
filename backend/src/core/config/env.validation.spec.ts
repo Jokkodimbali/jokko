@@ -65,6 +65,25 @@ describe('validerEnv', () => {
     ).toThrow('PAYMENT_GATEWAY_MODE=mock');
   });
 
+  it('allows simulated production payments only with explicit opt-in', () => {
+    const env = validerEnv({
+      ...baseEnv,
+      PAYMENT_GATEWAY_MODE: 'mock',
+      PAYMENT_WEBHOOK_SECRET: '',
+      ALLOW_MOCK_PAYMENTS_IN_PRODUCTION: 'true',
+    });
+
+    expect(env.PAYMENT_GATEWAY_MODE).toBe('mock');
+    expect(env.ALLOW_MOCK_PAYMENTS_IN_PRODUCTION).toBe(true);
+    expect(() =>
+      validerEnv({
+        ...baseEnv,
+        PAYMENT_GATEWAY_MODE: 'mock',
+        ALLOW_MOCK_PAYMENTS_IN_PRODUCTION: 'false',
+      }),
+    ).toThrow('ALLOW_MOCK_PAYMENTS_IN_PRODUCTION=true');
+  });
+
   it('rejects production placeholder secret text', () => {
     expect(() =>
       validerEnv({

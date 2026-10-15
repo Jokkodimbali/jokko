@@ -30,6 +30,7 @@ type EnvValide = {
   TWILIO_AUTH_TOKEN?: string;
   TWILIO_PHONE_NUMBER?: string;
   PAYMENT_GATEWAY_MODE?: string;
+  ALLOW_MOCK_PAYMENTS_IN_PRODUCTION: boolean;
   PAYMENT_WEBHOOK_SECRET?: string;
   WAVE_API_BASE_URL?: string;
   WAVE_API_KEY?: string;
@@ -177,9 +178,19 @@ export function validerEnv(env: Record<string, unknown>): EnvValide {
     env.PAYMENT_GATEWAY_MODE,
     nodeEnv === 'production' ? 'external' : 'mock',
   );
+  const allowMockPaymentsInProduction = asBoolean(
+    env.ALLOW_MOCK_PAYMENTS_IN_PRODUCTION,
+    false,
+  );
   const paymentWebhookSecret = asString(env.PAYMENT_WEBHOOK_SECRET).trim();
-  if (nodeEnv === 'production' && paymentGatewayMode === 'mock') {
-    throw new Error('PAYMENT_GATEWAY_MODE=mock est interdit en production.');
+  if (
+    nodeEnv === 'production' &&
+    paymentGatewayMode === 'mock' &&
+    !allowMockPaymentsInProduction
+  ) {
+    throw new Error(
+      'PAYMENT_GATEWAY_MODE=mock en production requiert ALLOW_MOCK_PAYMENTS_IN_PRODUCTION=true.',
+    );
   }
   const jwtAccessSecret =
     nodeEnv === 'production'
@@ -258,6 +269,7 @@ export function validerEnv(env: Record<string, unknown>): EnvValide {
     TWILIO_AUTH_TOKEN: asString(env.TWILIO_AUTH_TOKEN),
     TWILIO_PHONE_NUMBER: asString(env.TWILIO_PHONE_NUMBER),
     PAYMENT_GATEWAY_MODE: paymentGatewayMode,
+    ALLOW_MOCK_PAYMENTS_IN_PRODUCTION: allowMockPaymentsInProduction,
     PAYMENT_WEBHOOK_SECRET: paymentWebhookSecret,
     WAVE_API_BASE_URL: asString(env.WAVE_API_BASE_URL),
     WAVE_API_KEY: asString(env.WAVE_API_KEY),

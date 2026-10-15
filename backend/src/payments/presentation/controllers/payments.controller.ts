@@ -58,8 +58,7 @@ export class PaymentsController {
   @UseGuards(JwtAuthGuard)
   availableMethods() {
     const simulated =
-      this.configService.get<string>('PAYMENT_GATEWAY_MODE') === 'mock' &&
-      this.configService.get<string>('NODE_ENV') !== 'production';
+      this.configService.get<string>('PAYMENT_GATEWAY_MODE') === 'mock';
     const external =
       this.configService.get<string>('PAYMENT_GATEWAY_MODE') === 'external';
     const methods: string[] = [];
@@ -88,10 +87,7 @@ export class PaymentsController {
     @CurrentUser() user: AuthUser,
     @Param('bookingId') bookingId: string,
   ) {
-    if (
-      this.configService.get<string>('NODE_ENV') === 'production' ||
-      this.configService.get<string>('PAYMENT_GATEWAY_MODE') !== 'mock'
-    ) {
+    if (this.configService.get<string>('PAYMENT_GATEWAY_MODE') !== 'mock') {
       throw new ForbiddenException('PAYMENT_SIMULATION_DISABLED');
     }
     return createApiResponse(

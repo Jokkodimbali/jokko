@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/security/jwt-auth.guard';
 import { GeocodeAddressUseCase } from '../../geolocation/application/use-cases/geocode-address.use-case';
 import { ReverseGeocodeUseCase } from '../../geolocation/application/use-cases/reverse-geocode.use-case';
+import { AutocompleteAddressesUseCase } from '../../geolocation/application/use-cases/autocomplete-addresses.use-case';
 import { ComputeRoutesUseCase } from '../../routing/application/use-cases/compute-routes.use-case';
 import { createApiResponse } from '../../shared/dto/api-response.dto';
 import { MapsPublicConfigService } from '../application/maps-public-config.service';
@@ -16,14 +17,28 @@ export class MapsController {
     private readonly geocodeAddress: GeocodeAddressUseCase,
     private readonly reverseGeocodeAddress: ReverseGeocodeUseCase,
     private readonly computeRoutesUseCase: ComputeRoutesUseCase,
+    private readonly autocompleteAddresses: AutocompleteAddressesUseCase,
   ) {}
 
   @Get('config')
-  @ApiOperation({ summary: 'Recuperer la configuration publique Google Maps.' })
+  @ApiOperation({
+    summary: 'Recuperer la configuration publique du fournisseur de cartes.',
+  })
   getConfig() {
     return createApiResponse(
       this.mapsConfig.getConfig(),
-      'Configuration Google Maps recuperee.',
+      'Configuration des cartes recuperee.',
+    );
+  }
+
+  @Get('autocomplete')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Proposer des adresses au Senegal.' })
+  async autocomplete(@Query('text') text = '') {
+    return createApiResponse(
+      await this.autocompleteAddresses.execute(text),
+      'Suggestions recuperees.',
     );
   }
 
@@ -31,7 +46,7 @@ export class MapsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Convertir une adresse en coordonnees GPS Google Maps.',
+    summary: 'Convertir une adresse en coordonnees GPS.',
   })
   async geocode(@Query('address') address = '') {
     const result = await this.geocodeAddress.execute(address);
@@ -52,7 +67,7 @@ export class MapsController {
   @Post('routes')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Calculer un itineraire Google Maps.' })
+  @ApiOperation({ summary: 'Calculer un itineraire.' })
   async computeRoutes(@Body() body: ComputeRoutesDto) {
     const result = await this.computeRoutesUseCase.execute(body);
     return createApiResponse(result, 'Itineraire calcule.');

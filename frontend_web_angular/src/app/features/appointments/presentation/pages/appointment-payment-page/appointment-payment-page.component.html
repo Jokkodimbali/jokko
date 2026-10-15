@@ -226,7 +226,8 @@
                   <i aria-hidden="true"></i>
                 </button>
               </div>
-              <p *ngIf="!methodsLoading() && paymentOptions().length === 0" role="status">Aucun moyen de paiement n’est disponible pour le moment.</p>
+              <p *ngIf="!methodsLoading() && methodsLoadError()" role="alert">Impossible de charger les moyens de paiement. Réessayez après avoir vérifié la connexion au serveur.</p>
+              <p *ngIf="!methodsLoading() && !methodsLoadError() && paymentOptions().length === 0" role="status">Aucun moyen de paiement n’est disponible pour le moment.</p>
             </section>
 
             <section

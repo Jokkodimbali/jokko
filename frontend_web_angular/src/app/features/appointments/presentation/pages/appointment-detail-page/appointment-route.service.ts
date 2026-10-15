@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { GoogleMapsRouteResult } from '../../../../../shared/maps/google-maps-loader.service';
+import { MapRouteResult } from '../../../../../shared/maps/map.models';
 import { AppointmentTrackingView } from '../../../domain/appointments.models';
 import { AppointmentGeoService, AppointmentMapCoordinate } from './appointment-geo.service';
 
@@ -39,7 +39,7 @@ export type SerializedAppointmentMapRoute = {
 export class AppointmentRouteService {
   constructor(private readonly geo: AppointmentGeoService) {}
 
-  mapGoogleRoutes(routes: GoogleMapsRouteResult[]): AppointmentRouteOption[] {
+  mapGoogleRoutes(routes: MapRouteResult[]): AppointmentRouteOption[] {
     return routes
       .map((route, index): AppointmentRouteOption | null => {
         const coordinates = route.coordinates

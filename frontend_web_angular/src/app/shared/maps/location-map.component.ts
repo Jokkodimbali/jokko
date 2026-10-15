@@ -1,3 +1,4 @@
+import { geoapifyTileUrl, GEOAPIFY_ATTRIBUTION } from './geoapify-tiles';
 import { MerchantMapKind, applyMerchantAvatarStyle } from './merchant-map-assets';
 import {
   AfterViewInit,
@@ -11,6 +12,8 @@ import {
   signal,
 } from '@angular/core';
 import { userInitials } from '../utils/user-initials';
+import type * as Leaflet from 'leaflet';
+import { MapProviderService } from './map-provider.service';
 import {
   GoogleMapsAdvancedMarkerInstance,
   GoogleMapsLoaderService,
@@ -102,6 +105,13 @@ export class LocationMapComponent implements AfterViewInit, OnChanges, OnDestroy
   @ViewChild('canvas', { static: true }) private canvas!: ElementRef<HTMLElement>;
   protected readonly unavailable = signal(true);
   private readonly loader = inject(GoogleMapsLoaderService);
+  private readonly provider = inject(MapProviderService);
+  private leafletMap: Leaflet.Map | null = null;
+  private leafletMarker: Leaflet.CircleMarker | null = null;
+  private leafletRuntime: typeof Leaflet | null = null;
+  private geoapifyKey = '';
+  private providerLoaded = false;
+  private useGeoapify = false;
   private runtime: GoogleMapsRuntime | null = null;
   private map: GoogleMapsMapInstance | null = null;
   private marker: GoogleMapsAdvancedMarkerInstance | null = null;
@@ -121,6 +131,8 @@ export class LocationMapComponent implements AfterViewInit, OnChanges, OnDestroy
     if (this.marker) this.marker.map = null;
     if (this.map) this.runtime?.maps.event?.clearInstanceListeners(this.map);
     this.map = null;
+    this.leafletMap?.remove();
+    this.leafletMap = null;
   }
   private async render(): Promise<void> {
     if (this.merchantKind)
@@ -135,6 +147,26 @@ export class LocationMapComponent implements AfterViewInit, OnChanges, OnDestroy
     ) {
       this.unavailable.set(true);
       if (this.marker) this.marker.map = null;
+      return;
+    }
+    if (!this.providerLoaded) {
+      if (this.loading) return;
+      this.loading = true;
+      try {
+        const config = await this.provider.config();
+        this.useGeoapify = config.provider === 'geoapify';
+        this.geoapifyKey = config.geoapifyBrowserApiKey;
+        this.providerLoaded = true;
+      } catch {
+        this.unavailable.set(true);
+        return;
+      } finally {
+        this.loading = false;
+      }
+      if (!this.destroyed) return this.render();
+    }
+    if (this.useGeoapify) {
+      await this.renderGeoapify();
       return;
     }
     if (!this.runtime) {
@@ -179,5 +211,39 @@ export class LocationMapComponent implements AfterViewInit, OnChanges, OnDestroy
       }
     }
     this.unavailable.set(false);
+  }
+
+  private async renderGeoapify(): Promise<void> {
+    if (!this.geoapifyKey || this.destroyed || this.latitude == null || this.longitude == null) {
+      this.unavailable.set(true);
+      return;
+    }
+    if (!this.leafletRuntime) this.leafletRuntime = await import('leaflet');
+    if (this.destroyed) return;
+    const leaflet = this.leafletRuntime;
+    const position: Leaflet.LatLngExpression = [this.latitude, this.longitude];
+    if (!this.leafletMap) {
+      this.leafletMap = leaflet.map(this.canvas.nativeElement, {
+        zoomControl: false,
+        dragging: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        keyboard: false,
+      }).setView(position, 15);
+      leaflet.tileLayer(geoapifyTileUrl(this.geoapifyKey), {
+        maxZoom: 19,
+        attribution: GEOAPIFY_ATTRIBUTION,
+      }).addTo(this.leafletMap);
+    } else this.leafletMap.setView(position, 15);
+    if (this.leafletMarker) this.leafletMarker.setLatLng(position);
+    else this.leafletMarker = leaflet.circleMarker(position, {
+      radius: 9,
+      color: '#ffffff',
+      weight: 3,
+      fillColor: '#865221',
+      fillOpacity: 1,
+    }).addTo(this.leafletMap);
+    this.unavailable.set(false);
+    setTimeout(() => this.leafletMap?.invalidateSize(), 0);
   }
 }

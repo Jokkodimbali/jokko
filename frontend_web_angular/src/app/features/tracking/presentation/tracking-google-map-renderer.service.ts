@@ -1,3 +1,6 @@
+import type { TrackingMapRoute, TrackingMapNavigationStep, TrackingMapRenderState, TrackingTravelerMarker, TrackingDestinationMarker, NavigationCameraMode } from './tracking-map.models';
+import type { TrackingMapRendererPort } from './tracking-map-renderer.port';
+export type { TrackingMapRoute, TrackingMapNavigationStep, TrackingMapRenderState, TrackingTravelerMarker, TrackingDestinationMarker, NavigationCameraMode } from './tracking-map.models';
 import { MERCHANT_MAP_IMAGES, MERCHANT_MAP_STYLE, applyMerchantAvatarStyle } from '../../../shared/maps/merchant-map-assets';
 import { Injectable, inject } from '@angular/core';
 import {
@@ -15,46 +18,7 @@ import {
   NavigationCameraEngine,
   shortestAngleDelta,
 } from './navigation-camera.engine';
-
-export type TrackingMapRoute = {
-  id: string;
-  coordinates: GoogleMapsPoint[];
-  selected: boolean;
-  navigationSteps?: TrackingMapNavigationStep[];
-};
-
-export type TrackingMapNavigationStep = {
-  id: string;
-  instruction: string;
-  maneuver: string | null;
-  distanceMeters: number | null;
-  start: GoogleMapsPoint | null;
-  end: GoogleMapsPoint | null;
-};
-
-export type TrackingTravelerMarker = {
-  kind: 'avatar' | 'vehicle' | 'navigation';
-  imageUrl: string | null;
-  initials: string;
-  name: string;
-  roleLabel: string;
-  badgeAccent?: 'blue' | 'red';
-};
-
-export type TrackingDestinationMarker = {
-  title: string;
-  subtitle: string;
-  etaLabel: string;
-  accent: 'blue' | 'red';
-  person?: {
-    imageUrl: string | null;
-    initials: string;
-    name: string;
-    label: string;
-    badgeAccent: 'blue' | 'red';
-    icon?: 'pharmacy' | 'hardware';
-  } | null;
-};
+import { createNavigationArrowIcon } from './navigation-arrow-icon';
 
 type DestinationMarkerSize = {
   bodyGap: number;
@@ -77,25 +41,6 @@ type DestinationMarkerSize = {
   scale: number;
   subtitleFont: number;
   titleFont: number;
-};
-
-export type TrackingMapRenderState = {
-  provider: GoogleMapsPoint | null;
-  positionTimestampMs?: number | null;
-  accuracyMeters?: number | null;
-  speedKmh?: number | null;
-  destination: GoogleMapsPoint | null;
-  routes: TrackingMapRoute[];
-  showAlternativeRoutes?: boolean;
-  showManeuverMarkers?: boolean;
-  routeCalculating?: boolean;
-  routeMatchMode?: 'MATCHED' | 'SUSPECTED_OFF_ROUTE' | 'REROUTING' | 'JOINING_ROUTE';
-  destinationMarker: TrackingDestinationMarker;
-  remainingLabel: string;
-  statusLabel: string;
-  headingDegrees: number | null;
-  arrived: boolean;
-  travelerMarker: TrackingTravelerMarker;
 };
 
 const DAKAR_CENTER: GoogleMapsPoint = { lat: 14.7167, lng: -17.4677 };
@@ -162,10 +107,10 @@ type RouteProjection = {
   distanceFromRouteMeters: number;
 };
 
-export type NavigationCameraMode = 'FOLLOWING' | 'FREE' | 'RECENTERING' | 'OVERVIEW' | 'ARRIVAL';
 
 @Injectable()
-export class TrackingGoogleMapRendererService {
+export class TrackingGoogleMapRendererService implements TrackingMapRendererPort {
+  readonly supportsSatellite = true;
   private readonly loader = inject(GoogleMapsLoaderService);
   private google?: GoogleMapsRuntime;
   private routeMap?: GoogleMapsMapInstance;
@@ -2313,21 +2258,7 @@ export class TrackingGoogleMapRendererService {
 
       shell.className = 'jokko-tracking-navigation-arrow';
       shell.style.cssText = `align-items:center;background-color:#fff;border:1px solid rgba(15,23,42,0.1);border-radius:999px;box-shadow:0 9px 18px rgba(15,23,42,0.22);box-sizing:border-box;display:flex;height:${size.shell}px;isolation:isolate;justify-content:center;overflow:hidden;width:${size.shell}px;`;
-      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      svg.setAttribute('viewBox', '0 0 64 64');
-      svg.setAttribute('width', String(size.icon));
-      svg.setAttribute('height', String(size.icon));
-      svg.setAttribute('aria-hidden', 'true');
-      svg.style.cssText =
-        'display:block;filter:drop-shadow(0 2px 2px rgba(15,23,42,.24));transform:translateY(-1px);transform-origin:50% 50%;';
-      const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      arrow.setAttribute('d', 'M32 4 51 56 33.5 45.5 16 56 32 4Z');
-      arrow.setAttribute('fill', '#1a73e8');
-      arrow.setAttribute('stroke', '#ffffff');
-      arrow.setAttribute('stroke-width', '2.2');
-      arrow.setAttribute('stroke-linejoin', 'round');
-      svg.appendChild(arrow);
-      shell.appendChild(svg);
+      shell.appendChild(createNavigationArrowIcon(size.icon));
       return shell;
     }
 

@@ -1,45 +1,16 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, Subject, map, shareReplay } from 'rxjs';
+import { Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ApiResponse } from '../../core/http/api-response.models';
-import { unwrapApiResponse } from '../../core/http/api-response.utils';
+import type { GeocodedAddress, MapCoordinate, MapNavigationStep, MapRouteResult, MapPoint } from './map.models';
+import { MapProviderService } from './map-provider.service';
 
-export type GoogleMapsCoordinate = {
-  latitude: number;
-  longitude: number;
-};
+/** Kept as type aliases for existing Google-specific integrations. */
+export type GoogleMapsCoordinate = MapCoordinate;
+export type GoogleMapsGeocodeResult = GeocodedAddress;
+export type GoogleMapsRouteResult = MapRouteResult;
+export type GoogleMapsNavigationStep = MapNavigationStep;
 
-export type GoogleMapsGeocodeResult = GoogleMapsCoordinate & {
-  formattedAddress: string;
-  placeId: string | null;
-};
-
-export type GoogleMapsRouteResult = {
-  id: string;
-  distanceMeters: number | null;
-  durationSeconds: number | null;
-  encodedPolyline: string;
-  coordinates: GoogleMapsCoordinate[];
-  navigationSteps: GoogleMapsNavigationStep[];
-};
-
-export type GoogleMapsNavigationStep = {
-  id: string;
-  instruction: string;
-  maneuver: string | null;
-  distanceMeters: number | null;
-  durationSeconds: number | null;
-  start: GoogleMapsCoordinate | null;
-  end: GoogleMapsCoordinate | null;
-};
-
-type GoogleMapsConfig = {
-  browserApiKey: string;
-  mapId: string;
-};
-
-export type GoogleMapsPoint = { lat: number; lng: number };
+export type GoogleMapsPoint = MapPoint;
 export type GoogleMapsPixel = { x: number; y: number };
 
 export type GoogleMapsOverlayViewInstance = {
@@ -190,13 +161,10 @@ let googleMapsAuthenticationFailed = false;
 
 @Injectable({ providedIn: 'root' })
 export class GoogleMapsLoaderService {
-  private readonly http = inject(HttpClient);
-  private readonly apiUrl = environment.apiUrl;
+  private readonly provider = inject(MapProviderService);
   private readonly authenticationFailure = new Subject<void>();
   readonly authenticationFailed$ = this.authenticationFailure.asObservable();
-  private readonly config$ = this.http
-    .get<ApiResponse<GoogleMapsConfig>>(`${this.apiUrl}/maps/config`)
-    .pipe(map(unwrapApiResponse), shareReplay({ bufferSize: 1, refCount: false }));
+  private readonly config$ = this.provider.config$;
 
   load(): Promise<GoogleMapsRuntime> {
     if (typeof window === 'undefined') {
@@ -216,6 +184,10 @@ export class GoogleMapsLoaderService {
     const loadPromise = new Promise<GoogleMapsRuntime>((resolve, reject) => {
       this.config$.subscribe({
         next: (config) => {
+          if (config.provider === 'geoapify') {
+            reject(new Error('Google Maps est desactive : fournisseur Geoapify actif.'));
+            return;
+          }
           const apiKey = config.browserApiKey || environment.googleMapsApiKey;
           if (!apiKey) {
             reject(new Error('Google Maps API key is missing.'));
@@ -281,34 +253,6 @@ export class GoogleMapsLoaderService {
     });
 
     return loadPromise;
-  }
-
-  geocodeAddress(address: string): Observable<GoogleMapsGeocodeResult | null> {
-    return this.http
-      .get<ApiResponse<GoogleMapsGeocodeResult | null>>(`${this.apiUrl}/maps/geocode`, {
-        params: { address },
-      })
-      .pipe(map(unwrapApiResponse));
-  }
-
-  computeRoutes(input: {
-    origin: GoogleMapsCoordinate;
-    destination: GoogleMapsCoordinate;
-  }): Observable<GoogleMapsRouteResult[]> {
-    return this.http
-      .post<ApiResponse<GoogleMapsRouteResult[]>>(`${this.apiUrl}/maps/routes`, input)
-      .pipe(map(unwrapApiResponse));
-  }
-
-  reverseGeocode(coordinate: GoogleMapsCoordinate): Observable<GoogleMapsGeocodeResult | null> {
-    return this.http
-      .get<ApiResponse<GoogleMapsGeocodeResult | null>>(`${this.apiUrl}/maps/reverse-geocode`, {
-        params: {
-          latitude: coordinate.latitude,
-          longitude: coordinate.longitude,
-        },
-      })
-      .pipe(map(unwrapApiResponse));
   }
 
   private googleRuntime(mapId: string): GoogleMapsRuntime | undefined {

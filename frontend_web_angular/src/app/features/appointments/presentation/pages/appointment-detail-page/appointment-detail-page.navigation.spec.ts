@@ -5,6 +5,70 @@ describe('AppointmentDetailPageComponent - rerouting state contracts', () => {
     vi.useRealTimers();
   });
 
+  it('affiche le client comme destination pour les deux rôles lorsque le scénario fait déplacer le prestataire', () => {
+    const component = bareComponent();
+    const appointment = {
+      travelMode: null,
+      clientName: 'Awa Ndiaye',
+      clientAvatarUrl: '/uploads/awa.png',
+    };
+    component['isParcelTransportAppointment'] = () => false;
+    component['clientTravelsToProvider'] = () => false;
+    component['providerTravelsToClient'] = () => true;
+    component['clientFirstNameLabel'] = () => 'Awa';
+
+    component['isClientViewer'] = () => false;
+    expect(component['destinationMapMarkerPerson'](appointment)).toMatchObject({
+      imageUrl: '/uploads/awa.png',
+      name: 'Awa Ndiaye',
+    });
+
+    component['isClientViewer'] = () => true;
+    expect(component['destinationMapMarkerPerson'](appointment)).toMatchObject({
+      imageUrl: '/uploads/awa.png',
+      name: 'Awa Ndiaye',
+      label: 'Moi',
+    });
+  });
+
+  it('retrouve la destination du client depuis le trajet partagé si la réservation ancienne n’a pas de coordonnées', () => {
+    const component = bareComponent();
+    component['appointment'] = () => ({ id: 'reservation-1', clientLatitude: null, clientLongitude: null });
+    component['isParcelTransportAppointment'] = () => false;
+    component['currentRouteDestinationCoordinates'] = () => null;
+    component['destinationCoordinates'] = writableValue<{ lat: number; lng: number } | null>(null);
+    component['destinationStatus'] = writableValue<'idle' | 'ready'>('idle');
+
+    component['restoreDestinationFromRoute']([
+      { latitude: 14.7, longitude: -17.5 },
+      { latitude: 14.72, longitude: -17.46 },
+    ]);
+
+    expect(component['destinationCoordinates']()).toEqual({ lat: 14.72, lng: -17.46 });
+    expect(component['destinationStatus']()).toBe('ready');
+  });
+
+  it('conserve le point de retrait du colis fourni par le serveur sur la carte du livreur', () => {
+    const component = bareComponent();
+    component['appointment'] = () => ({ id: 'colis-1', travelMode: 'TRANSPORT_COLIS' });
+    component['isParcelTransportAppointment'] = () => true;
+    component['isParcelPickupValidated'] = () => false;
+    component['destinationCoordinates'] = writableValue<{ lat: number; lng: number } | null>(null);
+    component['destinationStatus'] = writableValue<'idle' | 'ready'>('idle');
+    component['currentRouteDestinationCoordinates'] = () => null;
+    component['updateGoogleMaps'] = vi.fn();
+    component['_trackingValue'].route = {
+      coordinates: [{ latitude: 14.7, longitude: -17.5 }, { latitude: 14.72, longitude: -17.46 }],
+    };
+
+    component['restoreDestinationFromRoute'](component['_trackingValue'].route.coordinates);
+    component['resolveDestinationCoordinates']('Adresse textuelle du retrait');
+
+    expect(component['destinationCoordinates']()).toEqual({ lat: 14.72, lng: -17.46 });
+    expect(component['destinationStatus']()).toBe('ready');
+    expect(component['updateGoogleMaps']).toHaveBeenCalled();
+  });
+
   it.each(['prestation', 'consultation'])(
     'restaure une arrivee %s confirmee apres rechargement',
     () => {
@@ -34,6 +98,29 @@ describe('AppointmentDetailPageComponent - rerouting state contracts', () => {
         lastLongitude: -17.5,
       }),
     ).toEqual(destination);
+  });
+
+  it('garde le marqueur de navigation a destination apres Sur place meme si le dernier GPS est au depart', () => {
+    const component = bareComponent();
+    const destination = { lat: 14.72, lng: -17.46 };
+    component['_trackingValue'] = {
+      ...component['_trackingValue'],
+      trackingStatus: 'EN_ROUTE',
+      lastLatitude: 14.7,
+      lastLongitude: -17.5,
+      startedAt: '2026-10-14T10:00:00.000Z',
+    };
+    component['appointment'] = () => ({ id: 'reservation-1' });
+    component['mapRenderer'] = { render: vi.fn() };
+    component['destinationMapMarker'] = () => ({});
+    component['travelerMapMarker'] = () => ({});
+    component['isRouteActorViewer'] = () => true;
+
+    component['renderArrivalOnMap']({ id: 'reservation-1' }, destination, null);
+
+    expect(component['mapRenderer'].render).toHaveBeenCalledWith(
+      expect.objectContaining({ provider: destination, destination, arrived: true, routes: [] }),
+    );
   });
 
   it.each(['colis simple', 'medicaments', 'materiel'])(
@@ -93,10 +180,13 @@ describe('AppointmentDetailPageComponent - rerouting state contracts', () => {
     ).toEqual(dropoff);
   });
 
-  it('affiche la route serveur au client sans attendre la selection du livreur', () => {
+  it.each(['client', 'livreur'])('affiche la route serveur au %s sans attendre une sélection locale', (viewer) => {
     const component = bareComponent();
+    component['appointment'] = () => ({ id: 'colis-1', travelMode: 'TRANSPORT_COLIS' });
+    component['isParcelTransportAppointment'] = () => true;
     component['isParcelDropoffNavigationActive'] = () => false;
-    component['isRouteActorViewer'] = () => false;
+    component['isRouteActorViewer'] = () => viewer === 'livreur';
+    component['restoreDestinationFromRoute'] = vi.fn();
     component['trackingStore'] = { setRouteMetadata: () => true };
     component['routeDistanceKm'] = writableValue<number | null>(null);
     component['routeDurationMinutes'] = writableValue<number | null>(null);
@@ -128,6 +218,94 @@ describe('AppointmentDetailPageComponent - rerouting state contracts', () => {
     expect(component['routeOptions']).toHaveLength(1);
     expect(component['routeStatus']()).toBe('ready');
     expect(component['updateGoogleMaps']).toHaveBeenCalled();
+  });
+
+  it('affiche le destinataire et son avatar lorsque le colis rejoint le client', () => {
+    const component = bareComponent();
+    const appointment = {
+      travelMode: 'TRANSPORT_COLIS',
+      notes: 'Destinataire: Client. Arrivee destinataire: Dakar',
+      clientName: 'Awa Ndiaye',
+      clientAvatarUrl: '/uploads/awa.png',
+    };
+    component['isParcelTransportAppointment'] = () => true;
+    component['isParcelPickupValidated'] = () => true;
+    component['isClientViewer'] = () => true;
+
+    expect(component['destinationMapMarkerPerson'](appointment)).toMatchObject({
+      imageUrl: '/uploads/awa.png',
+      name: 'Awa Ndiaye',
+      label: 'Moi',
+    });
+    component['isClientViewer'] = () => false;
+    expect(component['destinationMapMarkerPerson'](appointment)).toMatchObject({
+      imageUrl: '/uploads/awa.png',
+      name: 'Awa Ndiaye',
+    });
+  });
+
+  it('affiche les initiales du destinataire tiers sans lui attribuer l avatar du client', () => {
+    const component = bareComponent();
+    component['isParcelTransportAppointment'] = () => true;
+    component['isParcelPickupValidated'] = () => true;
+    component['isClientViewer'] = () => true;
+
+    expect(component['destinationMapMarkerPerson']({
+      notes: 'Destinataire: Moussa Fall - +221771234567. Arrivee destinataire: Dakar',
+      clientName: 'Awa Ndiaye',
+      clientAvatarUrl: '/uploads/awa.png',
+    })).toMatchObject({ imageUrl: null, initials: 'MF', name: 'Moussa Fall' });
+  });
+
+  it.each([
+    {
+      kind: 'médicaments',
+      notes: 'Type de livraison: Medicaments. Expediteur: Pharmacie Jokko. Depart colis: Pharmacie Mermoz. Destinataire: Client. Arrivee destinataire: Client Ouakam.',
+      icon: 'pharmacy',
+      pickup: 'Pharmacie Mermoz',
+      dropoff: 'Client Ouakam',
+    },
+    {
+      kind: 'matériel',
+      notes: 'Type de livraison: Materiel de prestation. Expediteur: Quincaillerie Jokko. Depart colis: Quincaillerie Liberté. Destinataire: Awa Ndiaye. Arrivee destinataire: Client Almadies.',
+      icon: 'hardware',
+      pickup: 'Quincaillerie Liberté',
+      dropoff: 'Client Almadies',
+    },
+  ])('garde le retrait et le dépôt visibles pour la livraison de $kind', ({ notes, icon, pickup, dropoff }) => {
+    const component = bareComponent();
+    const appointment = {
+      travelMode: 'TRANSPORT_COLIS', notes,
+      clientName: 'Awa Ndiaye', clientAvatarUrl: '/uploads/awa.png',
+      addressLabel: dropoff,
+    };
+    let pickupValidated = false;
+    component['isParcelTransportAppointment'] = () => true;
+    component['isParcelPickupValidated'] = () => pickupValidated;
+    component['isMedicineDelivery'] = () => icon === 'pharmacy';
+    component['isMaterialDelivery'] = () => icon === 'hardware';
+    component['parcelPickupAddress'] = () => component['extractAppointmentNoteValue'](notes, 'Depart colis');
+    component['parcelDropoffAddress'] = () => component['extractAppointmentNoteValue'](notes, 'Arrivee destinataire');
+
+    for (const viewer of ['client', 'livreur']) {
+      component['isClientViewer'] = () => viewer === 'client';
+      expect(component['currentRouteDestinationAddress'](appointment)).toBe(pickup);
+      expect(component['destinationMapMarkerPerson'](appointment)).toMatchObject({
+        icon,
+        name: icon === 'pharmacy' ? 'Pharmacie Jokko' : 'Quincaillerie Jokko',
+      });
+    }
+
+    pickupValidated = true;
+    for (const viewer of ['client', 'livreur']) {
+      component['isClientViewer'] = () => viewer === 'client';
+      expect(component['currentRouteDestinationAddress'](appointment)).toBe(dropoff);
+      expect(component['destinationMapMarkerPerson'](appointment)).toMatchObject({
+        imageUrl: '/uploads/awa.png',
+        name: 'Awa Ndiaye',
+        label: viewer === 'client' ? 'Moi' : 'Awa Ndiaye',
+      });
+    }
   });
 
   it('starts the autonomous timer when a valid fast reroute is installed', () => {
@@ -162,6 +340,8 @@ describe('AppointmentDetailPageComponent - rerouting state contracts', () => {
     component['updateGoogleMaps'] = vi.fn();
     component['announceNavigationInstruction'] = vi.fn();
     component['geo'].routePointKey = () => 'destination';
+    component['appointment'] = () => null;
+    component['isRouteActorViewer'] = () => false;
 
     component['applyRouteRecalculationResult']({
       request: {
@@ -291,6 +471,12 @@ describe('AppointmentDetailPageComponent - rerouting state contracts', () => {
     component['trackingStore'] = { reset: vi.fn() };
     component['reservationsRealtime'] = { stopWatching: vi.fn() };
     component['isProviderViewer'] = () => false;
+    component['closeTeleconsultationDocumentPreview'] = vi.fn();
+    component['closePrescriptionPreview'] = vi.fn();
+    component['calls'] = {
+      call: () => null,
+      isEmbeddedVideoSession: Object.assign(() => false, { set: vi.fn() }),
+    };
 
     component['ngOnDestroy']();
 
@@ -391,7 +577,7 @@ describe('AppointmentDetailPageComponent - rerouting state contracts', () => {
   );
 
   it.each([
-    ['stale age', 9_000, 0],
+    ['stale age', 14_000, 0],
     ['origin drift', 100, 100],
   ])('releases calculating and preserves the old route after %s', (_label, ageMs, driftMeters) => {
     vi.useFakeTimers();

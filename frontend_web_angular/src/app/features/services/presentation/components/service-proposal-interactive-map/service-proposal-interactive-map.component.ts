@@ -1,3 +1,4 @@
+import { geoapifyTileUrl, GEOAPIFY_ATTRIBUTION } from '../../../../../shared/maps/geoapify-tiles';
 import { CommonModule } from '@angular/common';
 import {
   AfterViewInit,
@@ -17,18 +18,21 @@ import {
 } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import type * as Leaflet from 'leaflet';
+import { firstValueFrom } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { LucideAngularModule } from 'lucide-angular';
 import {
   GoogleMapsAdvancedMarkerInstance,
   GoogleMapsAutocompleteSessionToken,
-  GoogleMapsCoordinate,
   GoogleMapsLoaderService,
   GoogleMapsPlace,
   GoogleMapsPlacePrediction,
   GoogleMapsRuntime,
 } from '../../../../../shared/maps/google-maps-loader.service';
+import { MapCoordinate } from '../../../../../shared/maps/map.models';
+import { MapsApiService } from '../../../../../shared/maps/maps-api.service';
+import { MapProviderService } from '../../../../../shared/maps/map-provider.service';
 
 type MapStyle = 'roadmap' | 'satellite';
 type GoogleMapInstance = {
@@ -43,12 +47,13 @@ type GoogleMapInstance = {
 type AddressSuggestion = {
   id: string;
   label: string;
-  prediction: GoogleMapsPlacePrediction;
+  prediction?: GoogleMapsPlacePrediction;
+  coordinate?: MapCoordinate;
 };
 
 export type ServiceProposalMapAddressSelection = {
   address: string;
-  coordinate: GoogleMapsCoordinate;
+  coordinate: MapCoordinate;
 };
 
 @Component({
@@ -79,13 +84,17 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
 
   private readonly zone = inject(NgZone);
   private readonly googleMaps = inject(GoogleMapsLoaderService);
+  private readonly mapsApi = inject(MapsApiService);
+  private readonly mapProvider = inject(MapProviderService);
+  private geoapifyKey = '';
+  protected isGeoapify = false;
   private readonly sanitizer = inject(DomSanitizer);
   private readonly cdr = inject(ChangeDetectorRef);
   protected readonly fallbackMapUrl: SafeResourceUrl =
     this.sanitizer.bypassSecurityTrustResourceUrl(
       'https://www.openstreetmap.org/export/embed.html?bbox=-17.5677%2C14.6167%2C-17.3677%2C14.8167&layer=mapnik&marker=14.7167%2C-17.4677',
     );
-  private readonly dakarCoords: GoogleMapsCoordinate = {
+  private readonly dakarCoords: MapCoordinate = {
     latitude: 14.7167,
     longitude: -17.4677,
   };
@@ -178,7 +187,17 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
   }
 
   protected selectAddressSuggestion(suggestion: AddressSuggestion): void {
-    void this.selectAutocompletePlace(suggestion.prediction);
+    if (suggestion.coordinate) {
+      const { latitude, longitude } = suggestion.coordinate;
+      this.searchQuery = suggestion.label;
+      this.addressSuggestions.set([]);
+      this.placeFallbackMarker(latitude, longitude);
+      this.leafletMap?.setView([latitude, longitude], 16);
+      this.applyAddress(suggestion.label, suggestion.coordinate);
+      this.geocodingStatus = this.statusLabel(suggestion.label);
+    } else if (suggestion.prediction) {
+      void this.selectAutocompletePlace(suggestion.prediction);
+    }
   }
 
   protected submitSearch(): void {
@@ -186,11 +205,13 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
     if (!query) return;
 
     this.isSearching = true;
-    this.googleMaps.geocodeAddress(query).subscribe({
+    this.mapsApi.geocodeAddress(query).subscribe({
       next: (result) => {
         this.isSearching = false;
         if (!result) {
-          this.geocodingStatus = 'Adresse introuvable sur Google Maps';
+          this.geocodingStatus = this.isGeoapify
+            ? 'Adresse introuvable'
+            : 'Adresse introuvable sur Google Maps';
           this.applyAddress(query);
           return;
         }
@@ -204,7 +225,9 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
       },
       error: () => {
         this.isSearching = false;
-        this.geocodingStatus = 'Recherche Google Maps indisponible';
+        this.geocodingStatus = this.isGeoapify
+          ? "Recherche d'adresse indisponible"
+          : 'Recherche Google Maps indisponible';
         this.applyAddress(query);
       },
     });
@@ -225,18 +248,19 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
   private loadMap(): void {
     if (this.mapLoadStarted) return;
     this.mapLoadStarted = true;
-    this.googleMaps
-      .load()
-      .then((google) => {
+    void this.mapProvider.config().then((config) => {
+      if (config.provider === 'geoapify') {
+        this.isGeoapify = true;
+        this.geoapifyKey = config.geoapifyBrowserApiKey;
+        this.zone.run(() => this.showFallbackMap());
+        return;
+      }
+      this.googleMaps.load().then((google) => {
         this.google = google;
         this.hasGoogleMap = true;
         this.initializeMapWhenReady();
-      })
-      .catch(() => {
-        this.zone.run(() => {
-          this.showFallbackMap();
-        });
-      });
+      }).catch(() => this.zone.run(() => this.showFallbackMap()));
+    }).catch(() => this.zone.run(() => this.showFallbackMap()));
   }
 
   private showFallbackMap(): void {
@@ -258,9 +282,13 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
         .map(container, { zoomControl: true })
         .setView([this.dakarCoords.latitude, this.dakarCoords.longitude], 13);
       leaflet
-        .tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        .tileLayer(this.geoapifyKey
+          ? geoapifyTileUrl(this.geoapifyKey)
+          : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19,
-          attribution: '&copy; OpenStreetMap contributors',
+          attribution: this.geoapifyKey
+            ? GEOAPIFY_ATTRIBUTION
+            : '&copy; OpenStreetMap contributors',
         })
         .addTo(map);
       map.on('click', (event: Leaflet.LeafletMouseEvent) => {
@@ -481,6 +509,24 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
   }
 
   private async loadAddressSuggestions(query: string): Promise<void> {
+    if (this.isGeoapify) {
+      const requestId = ++this.autocompleteRequestId;
+      this.isLoadingSuggestions.set(true);
+      try {
+        const results = await firstValueFrom(this.mapsApi.autocomplete(query));
+        if (requestId !== this.autocompleteRequestId) return;
+        this.addressSuggestions.set(results.map((result, index) => ({
+          id: result.placeId || `${query}-${index}`,
+          label: result.formattedAddress,
+          coordinate: { latitude: result.latitude, longitude: result.longitude },
+        })));
+      } catch {
+        if (requestId === this.autocompleteRequestId) this.addressSuggestions.set([]);
+      } finally {
+        if (requestId === this.autocompleteRequestId) this.isLoadingSuggestions.set(false);
+      }
+      return;
+    }
     const places = this.google?.maps.places;
     if (!places?.AutocompleteSuggestion || !places.AutocompleteSessionToken) {
       this.addressSuggestions.set([]);
@@ -504,16 +550,15 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
       this.zone.run(() => {
         this.addressSuggestions.set(
           suggestions
-            .map((suggestion, index) => {
+            .flatMap((suggestion, index): AddressSuggestion[] => {
               const prediction = suggestion.placePrediction;
-              if (!prediction) return null;
-              return {
+              if (!prediction) return [];
+              return [{
                 id: prediction.placeId || `${query}-${index}`,
                 label: prediction.text.toString(),
                 prediction,
-              };
+              }];
             })
-            .filter((suggestion): suggestion is AddressSuggestion => suggestion !== null)
             .slice(0, 6),
         );
       });
@@ -561,7 +606,7 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
     this.addressSuggestions.set([]);
     this.autocompleteSessionToken = null;
 
-    const coordinate: GoogleMapsCoordinate = { latitude: lat, longitude: lng };
+    const coordinate: MapCoordinate = { latitude: lat, longitude: lng };
     const fallbackAddress = this.coordinateAreaLabel(lat, lng);
     const requestId = ++this.reverseGeocodeRequestId;
 
@@ -571,7 +616,7 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
     this.applyAddress(fallbackAddress, coordinate);
     this.geocodingStatus = 'Recherche de l adresse...';
 
-    this.googleMaps.reverseGeocode(coordinate).subscribe({
+    this.mapsApi.reverseGeocode(coordinate).subscribe({
       next: (result) => {
         if (requestId !== this.reverseGeocodeRequestId) return;
         const address = this.humanAddressLabel(result?.formattedAddress || fallbackAddress);
@@ -588,7 +633,7 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
     });
   }
 
-  private applyAddress(value: string, coordinate?: GoogleMapsCoordinate): void {
+  private applyAddress(value: string, coordinate?: MapCoordinate): void {
     this.searchQuery = value;
     this.addressSelected.emit(value);
     if (coordinate) {
@@ -629,7 +674,7 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
       .replace(/'/g, '&#039;');
   }
 
-  private toGooglePoint(coordinate: GoogleMapsCoordinate): { lat: number; lng: number } {
+  private toGooglePoint(coordinate: MapCoordinate): { lat: number; lng: number } {
     return {
       lat: coordinate.latitude,
       lng: coordinate.longitude,

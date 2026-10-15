@@ -178,7 +178,9 @@ describe('LiveTrackingCommandService realtime payload contracts', () => {
         'reservation',
         { latitude: 14.72, longitude: -17.46 } as never,
       ),
-    ).rejects.toMatchObject({ code: 'RESERVATIONS_UNAUTHORIZED' });
+    ).rejects.toMatchObject({
+      response: { errorCode: 'RESERVATIONS_UNAUTHORIZED' },
+    });
     expect(repository.startOrResumeTravelerTracking).not.toHaveBeenCalled();
   });
 

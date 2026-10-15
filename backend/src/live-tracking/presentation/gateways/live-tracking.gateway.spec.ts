@@ -1,6 +1,39 @@
 import { LiveTrackingGateway } from './live-tracking.gateway';
 
 describe('LiveTrackingGateway route synchronization', () => {
+  it('sends the initial snapshot once and restores the selected route', async () => {
+    const selectedRoute = { routeId: 'route-1' };
+    const tracking = {
+      reservationId: 'reservation-1',
+      selectedRoute,
+    };
+    const getReservationTracking = jest.fn().mockResolvedValue(tracking);
+    const emit = jest.fn();
+    const join = jest.fn().mockResolvedValue(undefined);
+    const gateway = new LiveTrackingGateway(
+      {} as never,
+      {} as never,
+      { getReservationTracking } as never,
+      {} as never,
+    );
+    const client = { id: 'socket-1', join, emit } as never;
+    (gateway as unknown).socketUsers.set('socket-1', { sub: 'client-1' });
+
+    const response = await gateway.handleSubscribe(client, {
+      reservationId: 'reservation-1',
+    });
+
+    expect(getReservationTracking).toHaveBeenCalledWith(
+      expect.objectContaining({ sub: 'client-1' }),
+      'reservation-1',
+    );
+    expect(join).toHaveBeenCalledWith('tracking:reservation:reservation-1');
+    expect(emit).toHaveBeenCalledTimes(2);
+    expect(emit).toHaveBeenNthCalledWith(1, 'tracking.snapshot', tracking);
+    expect(emit).toHaveBeenNthCalledWith(2, 'tracking.route.selected', selectedRoute);
+    expect(response).toBeUndefined();
+  });
+
   it('broadcasts a selected route only after the actor selection is persisted', async () => {
     const emit = jest.fn();
     const to = jest.fn().mockReturnValue({ emit });
@@ -101,6 +134,34 @@ describe('LiveTrackingGateway route synchronization', () => {
       'tracking.route-metadata.updated',
       payload,
     );
+  });
+
+  it('sends the same GPS position to the client and professional rooms', () => {
+    const emit = jest.fn();
+    const to = jest.fn().mockReturnValue({ emit });
+    const gateway = new LiveTrackingGateway(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    gateway.server = { to } as never;
+    const position = {
+      reservationId: 'reservation-1',
+      clientUserId: 'client-1',
+      professionalId: 'professional-1',
+      latitude: 14.7,
+      longitude: -17.4,
+      positionTimestamp: '2026-09-16T15:00:00.000Z',
+    };
+
+    gateway.handleTrackingRealtimeUpdate(position);
+
+    expect(to).toHaveBeenNthCalledWith(1, 'tracking:reservation:reservation-1');
+    expect(to).toHaveBeenNthCalledWith(2, 'user:client-1');
+    expect(to).toHaveBeenNthCalledWith(3, 'tracking:professional:professional-1');
+    expect(emit).toHaveBeenCalledTimes(3);
+    expect(emit).toHaveBeenCalledWith('tracking.location.updated', position);
   });
 
   it('sends an arrival snapshot to the reservation, client and professional', async () => {

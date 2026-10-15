@@ -60,6 +60,7 @@ export class AppointmentPaymentPageComponent implements OnInit {
   protected readonly availableMethods = signal<PaymentMethod[]>([]);
   protected readonly simulatedPayment = signal(false);
   protected readonly methodsLoading = signal(true);
+  protected readonly methodsLoadError = signal(false);
   protected readonly isLoading = signal(true);
   protected readonly isPaying = signal(false);
   protected readonly isCancelling = signal(false);
@@ -238,10 +239,14 @@ export class AppointmentPaymentPageComponent implements OnInit {
       next: ({ methods, simulated }) => {
         this.availableMethods.set(methods);
         this.simulatedPayment.set(simulated);
+        this.methodsLoadError.set(false);
         if (methods.length > 0) this.selectedMethod.set(methods[0]);
         this.methodsLoading.set(false);
       },
-      error: () => this.methodsLoading.set(false),
+      error: () => {
+        this.methodsLoadError.set(true);
+        this.methodsLoading.set(false);
+      },
     });
   }
 

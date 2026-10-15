@@ -16,6 +16,23 @@ const baseEnv = {
 };
 
 describe('validerEnv', () => {
+  it('keeps Google as the default map provider and accepts a complete Geoapify setup', () => {
+    expect(validerEnv(baseEnv).MAP_PROVIDER).toBe('google');
+    const env = validerEnv({
+      ...baseEnv,
+      MAP_PROVIDER: 'geoapify',
+      GEOAPIFY_API_KEY: 'server-key',
+      GEOAPIFY_BROWSER_API_KEY: 'browser-key',
+    });
+    expect(env.MAP_PROVIDER).toBe('geoapify');
+  });
+
+  it('rejects Geoapify activation before both keys are configured', () => {
+    expect(() => validerEnv({ ...baseEnv, MAP_PROVIDER: 'geoapify' })).toThrow(
+      'GEOAPIFY_API_KEY',
+    );
+  });
+
   it('accepts a production configuration with strict frontend origins and webhook secret', () => {
     const env = validerEnv(baseEnv);
 

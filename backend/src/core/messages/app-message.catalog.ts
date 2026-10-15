@@ -766,7 +766,7 @@ export const APP_MESSAGES_BY_MODULE = {
     MAPS_API_KEY_MISSING: {
       code: 'MAPS_API_KEY_MISSING',
       httpStatus: HTTP_STATUS_CODES.SERVER_ERROR.INTERNAL_SERVER_ERROR,
-      message: "La cle Google Maps n'est pas configuree.",
+      message: "La cle du fournisseur de cartes n'est pas configuree.",
     },
     MAPS_ADDRESS_INVALID: {
       code: 'MAPS_ADDRESS_INVALID',
@@ -782,6 +782,11 @@ export const APP_MESSAGES_BY_MODULE = {
       code: 'MAPS_GOOGLE_UNAVAILABLE',
       httpStatus: HTTP_STATUS_CODES.SERVER_ERROR.INTERNAL_SERVER_ERROR,
       message: 'Google Maps est momentanement indisponible.',
+    },
+    MAPS_GEOAPIFY_UNAVAILABLE: {
+      code: 'MAPS_GEOAPIFY_UNAVAILABLE',
+      httpStatus: HTTP_STATUS_CODES.SERVER_ERROR.INTERNAL_SERVER_ERROR,
+      message: 'Geoapify est momentanement indisponible.',
     },
   },
   reservations: {

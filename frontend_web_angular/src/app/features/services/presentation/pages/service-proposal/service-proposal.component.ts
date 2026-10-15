@@ -11,10 +11,8 @@ import { SenegalGeolocationService } from '../../../../../core/location/senegal-
 import { SessionPresenceService } from '../../../../../core/presence/session-presence.service';
 import { getHttpErrorMessage } from '../../../../../core/http/api-response.utils';
 import { BackNavigationService } from '../../../../../core/navigation/back-navigation.service';
-import {
-  GoogleMapsCoordinate,
-  GoogleMapsLoaderService,
-} from '../../../../../shared/maps/google-maps-loader.service';
+import { MapCoordinate } from '../../../../../shared/maps/map.models';
+import { MapsApiService } from '../../../../../shared/maps/maps-api.service';
 import { safeInternalUrl } from '../../../../../shared/utils/safe-internal-url';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating/app-star-rating.component';
@@ -191,7 +189,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   private readonly geolocation = inject(SenegalGeolocationService);
   private readonly authSession = inject(AuthSessionService);
   private readonly backNavigation = inject(BackNavigationService);
-  private readonly googleMaps = inject(GoogleMapsLoaderService);
+  private readonly mapsApi = inject(MapsApiService);
   private readonly formatter = inject(ServiceProposalFormatService);
   private readonly materialQuoteMapper = inject(ServiceProposalMaterialQuoteService);
   private readonly parcelService = inject(ServiceProposalParcelService);
@@ -278,9 +276,9 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
   protected readonly parcelDropoffContact = signal<ParcelContactDraft>({ name: '', phone: '' });
   protected readonly parcelDescriptionExpanded = signal(true);
   protected readonly parcels = signal<ParcelDraft[]>([]);
-  private readonly appointmentAddressCoordinate = signal<GoogleMapsCoordinate | null>(null);
-  private readonly parcelPickupCoordinate = signal<GoogleMapsCoordinate | null>(null);
-  private readonly parcelDropoffCoordinate = signal<GoogleMapsCoordinate | null>(null);
+  private readonly appointmentAddressCoordinate = signal<MapCoordinate | null>(null);
+  private readonly parcelPickupCoordinate = signal<MapCoordinate | null>(null);
+  private readonly parcelDropoffCoordinate = signal<MapCoordinate | null>(null);
   protected readonly parcelDistanceMeters = signal<number | null>(null);
   protected readonly isParcelPriceLoading = signal(false);
   protected readonly parcelPriceError = signal<string | null>(null);
@@ -1563,7 +1561,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
   protected updateParcelPickupAddress(
     value: string,
-    coordinate: GoogleMapsCoordinate | null = null,
+    coordinate: MapCoordinate | null = null,
   ): void {
     this.parcelPickupAddress.set(value);
     this.parcelPickupCoordinate.set(coordinate);
@@ -1573,7 +1571,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
   protected updateParcelDropoffAddress(
     value: string,
-    coordinate: GoogleMapsCoordinate | null = null,
+    coordinate: MapCoordinate | null = null,
   ): void {
     this.parcelDropoffAddress.set(value);
     this.address.set(value);
@@ -1599,14 +1597,14 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
   protected updateActiveParcelAddressFromMap(selection: {
     address: string;
-    coordinate: GoogleMapsCoordinate;
+    coordinate: MapCoordinate;
   }): void {
     this.updateActiveParcelAddressWithCoordinate(selection.address, selection.coordinate);
   }
 
   private updateActiveParcelAddressWithCoordinate(
     value: string,
-    coordinate: GoogleMapsCoordinate,
+    coordinate: MapCoordinate,
   ): void {
     const validCoordinate = this.parcelService.normalizeCoordinate(coordinate);
     const modal = this.activeDetailsModal();
@@ -1790,7 +1788,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
           : 'Position exacte recuperee.',
       );
 
-      this.googleMaps.reverseGeocode(coordinate).subscribe({
+      this.mapsApi.reverseGeocode(coordinate).subscribe({
         next: (result) => {
           const label = result?.formattedAddress?.trim() || fallbackLabel;
           this.updateActiveParcelAddressWithCoordinate(
@@ -3300,7 +3298,7 @@ export class ServiceProposalComponent implements OnDestroy, OnInit {
 
     this.isParcelPriceLoading.set(true);
     this.parcelPriceError.set(null);
-    this.googleMaps
+    this.mapsApi
       .computeRoutes({ origin: pickup, destination: dropoff })
       .pipe(catchError(() => of([])))
       .subscribe((routes) => {

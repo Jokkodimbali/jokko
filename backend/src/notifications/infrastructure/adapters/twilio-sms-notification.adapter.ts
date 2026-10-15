@@ -10,6 +10,7 @@ import {
 @Injectable()
 export class TwilioSmsNotificationAdapter implements SmsNotificationSenderPort {
   private readonly logger = new Logger(TwilioSmsNotificationAdapter.name);
+  private warnedMissingConfig = false;
 
   constructor(private readonly configService: ConfigService) {}
 
@@ -23,9 +24,12 @@ export class TwilioSmsNotificationAdapter implements SmsNotificationSenderPort {
     );
 
     if (!accountSid || !authToken || !fromPhoneNumber) {
-      this.logger.warn(
-        TECHNICAL_MESSAGES.RESERVATION_SMS_PROVIDER_NOT_CONFIGURED,
-      );
+      if (!this.warnedMissingConfig) {
+        this.logger.warn(
+          TECHNICAL_MESSAGES.RESERVATION_SMS_PROVIDER_NOT_CONFIGURED,
+        );
+        this.warnedMissingConfig = true;
+      }
       return {
         status: 'CONFIGURATION_MANQUANTE',
         provider: 'twilio',

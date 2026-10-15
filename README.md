@@ -92,6 +92,7 @@ La documentation structurante du projet backend est centralisee dans `backend/do
 Documents principaux :
 
 - [backend/docs/ARCHITECTURE_PROFESSIONNELLE.md](backend/docs/ARCHITECTURE_PROFESSIONNELLE.md)
+- [backend/docs/FOURNISSEURS_CARTES.md](backend/docs/FOURNISSEURS_CARTES.md)
 - [backend/docs/STANDARDS_MODULES_BACKEND.md](backend/docs/STANDARDS_MODULES_BACKEND.md)
 - [backend/docs/TABLEAU_MESSAGES_HTTP.md](backend/docs/TABLEAU_MESSAGES_HTTP.md)
 - [backend/docs/POSTMAN_TESTS.md](backend/docs/POSTMAN_TESTS.md)

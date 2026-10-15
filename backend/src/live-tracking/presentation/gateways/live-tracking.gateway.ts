@@ -142,11 +142,6 @@ export class LiveTrackingGateway
     if (tracking.selectedRoute) {
       client.emit('tracking.route.selected', tracking.selectedRoute);
     }
-
-    return {
-      event: 'tracking.snapshot',
-      data: tracking,
-    };
   }
 
   @SubscribeMessage('tracking.unsubscribe')

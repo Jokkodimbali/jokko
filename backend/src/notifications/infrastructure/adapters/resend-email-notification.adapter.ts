@@ -10,6 +10,7 @@ import {
 @Injectable()
 export class ResendEmailNotificationAdapter implements EmailNotificationSenderPort {
   private readonly logger = new Logger(ResendEmailNotificationAdapter.name);
+  private warnedMissingConfig = false;
 
   constructor(private readonly configService: ConfigService) {}
 
@@ -22,9 +23,12 @@ export class ResendEmailNotificationAdapter implements EmailNotificationSenderPo
       this.configService.get<string>('EMAIL_FROM_NAME') ?? 'Jokko';
 
     if (!apiKey || !fromAddress) {
-      this.logger.warn(
-        TECHNICAL_MESSAGES.RESERVATION_EMAIL_PROVIDER_NOT_CONFIGURED,
-      );
+      if (!this.warnedMissingConfig) {
+        this.logger.warn(
+          TECHNICAL_MESSAGES.RESERVATION_EMAIL_PROVIDER_NOT_CONFIGURED,
+        );
+        this.warnedMissingConfig = true;
+      }
       return {
         status: 'CONFIGURATION_MANQUANTE',
         provider: 'resend',

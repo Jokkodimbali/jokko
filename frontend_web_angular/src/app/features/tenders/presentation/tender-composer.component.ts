@@ -1,6 +1,6 @@
 import { firstValueFrom } from 'rxjs';
 import { SenegalGeolocationService } from '../../../core/location/senegal-geolocation.service';
-import { GoogleMapsLoaderService } from '../../../shared/maps/google-maps-loader.service';
+import { MapsApiService } from '../../../shared/maps/maps-api.service';
 import { normalizeSearchText } from '../../../shared/utils/normalize-search-text';
 import { CommonModule } from '@angular/common';
 import {
@@ -52,7 +52,7 @@ export class TenderComposerComponent {
   private readonly destroyRef = inject(DestroyRef);
   private previewRequest = 0;
   private readonly geolocation = inject(SenegalGeolocationService);
-  private readonly maps = inject(GoogleMapsLoaderService);
+  private readonly maps = inject(MapsApiService);
   protected locating = false;
   protected mapExpanded = false;
   private readonly catalog = inject(ServicesService);

@@ -1421,7 +1421,7 @@
                   ? 'Le prestataire peut activer le trajet le jour du rendez-vous.'
                   : 'Le client se deplace vers le prestataire. La prestation peut commencer a son arrivee.'
                 : hasTrackingCoordinates()
-                  ? 'Google Maps attend une cle navigateur valide pour afficher le trajet.'
+                  ? 'Le calcul de l’itinéraire est temporairement indisponible. La position GPS reste visible sur la carte.'
                   : isRouteActorViewer()
                     ? 'Partagez votre position exacte pour lancer le trajet.'
                     : clientTravelsToProvider()
@@ -1450,6 +1450,7 @@
             aria-label="Actions de la carte"
           >
             <button
+              *ngIf="supportsSatelliteMap()"
               type="button"
               class="appointment-detail__map-tool"
               (click)="toggleSatelliteMap()"

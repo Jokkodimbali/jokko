@@ -32,6 +32,7 @@ import {
 import { MapCoordinate } from '../../../../../shared/maps/map.models';
 import { MapsApiService } from '../../../../../shared/maps/maps-api.service';
 import { MapProviderService } from '../../../../../shared/maps/map-provider.service';
+import { loadLeaflet } from '../../../../../shared/maps/leaflet-loader';
 
 type MapStyle = 'roadmap' | 'satellite';
 type GoogleMapInstance = {
@@ -280,7 +281,7 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
     const container = this.fallbackMapContainer?.nativeElement;
     if (!container) return;
     try {
-      const leaflet = await import('leaflet');
+      const leaflet = await loadLeaflet();
       if (!container.isConnected || this.leafletMap) return;
       const map = leaflet
         .map(container, { zoomControl: true })

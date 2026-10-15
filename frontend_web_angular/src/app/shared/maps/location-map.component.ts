@@ -14,6 +14,7 @@ import {
 import { userInitials } from '../utils/user-initials';
 import type * as Leaflet from 'leaflet';
 import { MapProviderService } from './map-provider.service';
+import { loadLeaflet } from './leaflet-loader';
 import {
   GoogleMapsAdvancedMarkerInstance,
   GoogleMapsLoaderService,
@@ -218,7 +219,7 @@ export class LocationMapComponent implements AfterViewInit, OnChanges, OnDestroy
       this.unavailable.set(true);
       return;
     }
-    if (!this.leafletRuntime) this.leafletRuntime = await import('leaflet');
+    if (!this.leafletRuntime) this.leafletRuntime = await loadLeaflet();
     if (this.destroyed) return;
     const leaflet = this.leafletRuntime;
     const position: Leaflet.LatLngExpression = [this.latitude, this.longitude];

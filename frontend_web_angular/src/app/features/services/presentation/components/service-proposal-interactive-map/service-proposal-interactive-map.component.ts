@@ -16,7 +16,6 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import type * as Leaflet from 'leaflet';
 import { firstValueFrom } from 'rxjs';
 import { FormsModule } from '@angular/forms';
@@ -88,12 +87,8 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
   private readonly mapProvider = inject(MapProviderService);
   private geoapifyKey = '';
   protected isGeoapify = false;
-  private readonly sanitizer = inject(DomSanitizer);
   private readonly cdr = inject(ChangeDetectorRef);
-  protected readonly fallbackMapUrl: SafeResourceUrl =
-    this.sanitizer.bypassSecurityTrustResourceUrl(
-      'https://www.openstreetmap.org/export/embed.html?bbox=-17.5677%2C14.6167%2C-17.3677%2C14.8167&layer=mapnik&marker=14.7167%2C-17.4677',
-    );
+  protected mapUnavailable = '';
   private readonly dakarCoords: MapCoordinate = {
     latitude: 14.7167,
     longitude: -17.4677,
@@ -121,7 +116,7 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
         if (this.marker) this.marker.map = null;
         this.marker = null;
         this.map = null;
-        this.showFallbackMap();
+        this.showMapUnavailable('Carte Google Maps indisponible.');
       });
     });
   }
@@ -252,26 +247,35 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
       if (config.provider === 'geoapify') {
         this.isGeoapify = true;
         this.geoapifyKey = config.geoapifyBrowserApiKey;
-        this.zone.run(() => this.showFallbackMap());
+        if (!this.geoapifyKey) {
+          this.zone.run(() => this.showMapUnavailable('Clé navigateur Geoapify manquante.'));
+          return;
+        }
+        this.zone.run(() => {
+          this.loading = false;
+          this.hasGoogleMap = false;
+          this.geocodingStatus = 'Cliquez sur la carte pour choisir l’adresse.';
+          this.cdr.detectChanges();
+          void this.initializeGeoapifyMap();
+        });
         return;
       }
       this.googleMaps.load().then((google) => {
         this.google = google;
         this.hasGoogleMap = true;
         this.initializeMapWhenReady();
-      }).catch(() => this.zone.run(() => this.showFallbackMap()));
-    }).catch(() => this.zone.run(() => this.showFallbackMap()));
+      }).catch(() => this.zone.run(() => this.showMapUnavailable('Carte Google Maps indisponible.')));
+    }).catch(() => this.zone.run(() => this.showMapUnavailable('Configuration de la carte indisponible.')));
   }
 
-  private showFallbackMap(): void {
+  private showMapUnavailable(message: string): void {
     this.loading = false;
     this.hasGoogleMap = false;
-    this.geocodingStatus = 'Cliquez sur la carte pour choisir l’adresse.';
+    this.mapUnavailable = message;
     this.cdr.detectChanges();
-    void this.initializeFallbackMap();
   }
 
-  private async initializeFallbackMap(): Promise<void> {
+  private async initializeGeoapifyMap(): Promise<void> {
     if (this.leafletMap) return;
     const container = this.fallbackMapContainer?.nativeElement;
     if (!container) return;
@@ -282,13 +286,9 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
         .map(container, { zoomControl: true })
         .setView([this.dakarCoords.latitude, this.dakarCoords.longitude], 13);
       leaflet
-        .tileLayer(this.geoapifyKey
-          ? geoapifyTileUrl(this.geoapifyKey)
-          : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        .tileLayer(geoapifyTileUrl(this.geoapifyKey), {
           maxZoom: 19,
-          attribution: this.geoapifyKey
-            ? GEOAPIFY_ATTRIBUTION
-            : '&copy; OpenStreetMap contributors',
+          attribution: GEOAPIFY_ATTRIBUTION,
         })
         .addTo(map);
       map.on('click', (event: Leaflet.LeafletMouseEvent) => {
@@ -300,8 +300,8 @@ export class ServiceProposalInteractiveMapComponent implements AfterViewInit, On
       this.cdr.markForCheck();
       setTimeout(() => map.invalidateSize(), 0);
     } catch {
-      // Keep the existing embedded map if Leaflet cannot load.
       this.hasLeafletMap = false;
+      this.mapUnavailable = 'Carte Geoapify indisponible.';
       this.cdr.markForCheck();
     }
   }

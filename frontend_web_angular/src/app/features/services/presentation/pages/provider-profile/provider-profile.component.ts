@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { Observable } from 'rxjs';
@@ -16,6 +15,7 @@ import {
 import { AppFooterComponent } from '../../../../../shared/ui/app-footer/app-footer.component';
 import { AppStarRatingComponent } from '../../../../../shared/ui/app-star-rating/app-star-rating.component';
 import { AppPresenceStatusComponent } from '../../../../../shared/ui/app-presence-status/app-presence-status.component';
+import { LocationMapComponent } from '../../../../../shared/maps/location-map.component';
 import { ProviderTravelBadgeComponent } from '../../components/provider-travel-badge/provider-travel-badge.component';
 import { userInitials } from '../../../../../shared/utils/user-initials';
 import { publicAssetUrl } from '../../../../../shared/utils/public-asset-url';
@@ -71,6 +71,7 @@ const TRAVEL_MODE_IMAGES: Record<ServiceTravelMode, string> = {
     AppFooterComponent,
     AppStarRatingComponent,
     AppPresenceStatusComponent,
+    LocationMapComponent,
     ProviderTravelBadgeComponent,
     LucideAngularModule,
     RouterLink,
@@ -82,7 +83,6 @@ export class ProviderProfileComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly backNavigation = inject(BackNavigationService);
   private readonly servicesService = inject(ServicesService);
-  private readonly sanitizer = inject(DomSanitizer);
   private readonly favoritesService = inject(FavoritesService);
   private readonly authSession = inject(AuthSessionService);
   private readonly feedback = inject(AppFeedbackService);
@@ -335,19 +335,7 @@ export class ProviderProfileComponent implements OnInit {
     if (daysCount === 0) return 'Aucun horaire publie';
     return `${daysCount} jour${daysCount > 1 ? 's' : ''} actif${daysCount > 1 ? 's' : ''} · ${slotsCount} plage${slotsCount > 1 ? 's' : ''}`;
   });
-  protected readonly mapUrl = computed<SafeResourceUrl | null>(() => {
-    const detail = this.detail();
-    const coordinates = this.resolveMapCoordinates(detail);
-    const query = coordinates
-      ? `${coordinates.latitude},${coordinates.longitude}`
-      : this.formatLocation();
-    if (!query) {
-      return null;
-    }
-
-    const src = `https://www.google.com/maps?q=${encodeURIComponent(query)}&z=15&output=embed`;
-    return this.sanitizer.bypassSecurityTrustResourceUrl(src);
-  });
+  protected readonly mapCoordinates = computed(() => this.resolveMapCoordinates(this.detail()));
 
   ngOnInit(): void {
     this.loadProviderDetail();

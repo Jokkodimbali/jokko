@@ -257,7 +257,7 @@ export class MedicineAppointmentBookingComponent implements OnInit, OnDestroy {
     if (!location) return 'Adresse textuelle uniquement';
     const accuracy =
       location.accuracyMeters === null
-        ? 'precision Google Maps'
+        ? 'précision non indiquée'
         : `precision ${Math.round(location.accuracyMeters)} m`;
     return `${location.label} (${accuracy})`;
   });

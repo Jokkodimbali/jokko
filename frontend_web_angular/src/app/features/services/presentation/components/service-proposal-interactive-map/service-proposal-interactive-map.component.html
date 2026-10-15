@@ -90,18 +90,13 @@
       <span>Chargement de la carte...</span>
     </div>
 
-    <iframe
-      *ngIf="!loading && !hasGoogleMap && !hasLeafletMap"
-      class="interactive-map__fallback"
-      title="Carte de Dakar"
-      [src]="fallbackMapUrl"
-      loading="lazy"
-      referrerpolicy="no-referrer-when-downgrade"
-    ></iframe>
+    <p *ngIf="mapUnavailable" class="interactive-map__fallback" role="status">
+      {{ mapUnavailable }}
+    </p>
 
     <div
       #fallbackMapContainer
-      *ngIf="!loading && !hasGoogleMap"
+      *ngIf="!loading && isGeoapify && !mapUnavailable"
       class="interactive-map__fallback-map"
       aria-label="Carte interactive : cliquez pour choisir l'adresse"
     ></div>
